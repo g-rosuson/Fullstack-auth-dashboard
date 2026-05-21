@@ -13,6 +13,8 @@ interface ScraperTargetProps {
 interface ScraperTargetRow {
     title: string | null;
     url: string | null;
+    reasonCodes: string[];
+    passed: boolean;
 }
 
 /**
