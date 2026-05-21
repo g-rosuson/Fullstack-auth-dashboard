@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface ExecutionScrapedItemPrefilter {
-  passed: boolean;
-  reasonCodes: string[];
+export interface ExecutionScraperToolTargetListingError {
+  code: string;
+  message: string;
 }

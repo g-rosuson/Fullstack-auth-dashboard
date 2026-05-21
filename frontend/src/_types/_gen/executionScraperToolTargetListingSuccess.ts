@@ -4,12 +4,11 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { ExecutionScrapedItemSuccessFields } from './executionScrapedItemSuccessFields';
+import type { ExecutionScraperToolTargetListingSuccessFields } from './executionScraperToolTargetListingSuccessFields';
 import type { ScraperToolTargetName } from './scraperToolTargetName';
 
-export interface ExecutionScrapedItemSuccess {
-  fields?: ExecutionScrapedItemSuccessFields;
-  listingKey: string;
+export interface ExecutionScraperToolTargetListingSuccess {
+  fields?: ExecutionScraperToolTargetListingSuccessFields;
   ok: boolean;
   /** @nullable */
   postedAt?: string | null;

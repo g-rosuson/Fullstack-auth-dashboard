@@ -4,10 +4,10 @@ import {
     EmailToolTypeProperty,
     type ExecutionEmailToolTarget,
     type ExecutionEmailToolTargetResult,
-    type ExecutionJobItemRow,
     type ExecutionSchedule,
     ExecutionScheduleType,
     type ExecutionScraperToolTarget,
+    type ExecutionScraperToolTargetResult,
     type JobTargetFinishedEvent,
     JobTargetFinishedEventType,
     type ScraperTool,
@@ -17,10 +17,9 @@ import {
 /**
  * Minimal scraper pipeline row for tests (matches API `ExecutionJobItemRow`).
  */
-const stubScraperJobItemRow = (): ExecutionJobItemRow => ({
+const stubScraperToolTargetResult = (): ExecutionScraperToolTargetResult => ({
     listing: {
         ok: true,
-        listingKey: 'stub-listing-key',
         source: 'jobs-ch',
         url: 'https://example.com/job',
         title: 'Stub title',
@@ -52,7 +51,13 @@ const buildScraperTool = (toolId: string): ScraperTool => ({
 const buildScraperExecutionTarget = (targetId: string): ExecutionScraperToolTarget => ({
     target: 'jobs-ch',
     targetId,
-    results: [stubScraperJobItemRow()],
+    results: [stubScraperToolTargetResult()],
+    summary: {
+        total: 1,
+        passed: 1,
+        rejected: 0,
+        reasonCounts: {},
+    },
 });
 
 /**

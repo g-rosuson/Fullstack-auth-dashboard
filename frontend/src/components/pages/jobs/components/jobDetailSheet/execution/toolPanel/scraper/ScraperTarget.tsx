@@ -1,12 +1,28 @@
+import Indicator from './components/indicator/Indicator';
 import DataTable from '@/components/ui-app/table/Table';
+
+import mappers from './mappers';
 
 import type { ScraperTargetProps, ScraperTargetRow } from './types/Scraper.types';
 import type { ColumnDef } from '@tanstack/react-table';
 
+/**
+ * Displays a scraper target's results in a table.
+ * @todo Extend row filtering when the need arises -> Use tanstack table conventions.
+ * @param {ScraperTargetProps} target - The target to display.
+ * @returns
+ */
 const ScraperTarget = ({ target }: ScraperTargetProps) => {
-    const rows: ScraperTargetRow[] = [];
+    const failedRows: ScraperTargetRow[] = [];
+    const passedRows: ScraperTargetRow[] = [];
 
     const columns: ColumnDef<ScraperTargetRow>[] = [
+        {
+            header: 'Passed',
+            accessorKey: 'passed',
+            meta: { align: 'center' },
+            cell: ({ row }) => <Indicator passed={row.original.passed} reasonCodes={row.original.reasonCodes} />,
+        },
         { header: 'Title', accessorKey: 'title' },
         {
             header: 'URL',
@@ -26,22 +42,16 @@ const ScraperTarget = ({ target }: ScraperTargetProps) => {
     ];
 
     for (const resultItem of target.results) {
-        if ('error' in resultItem.listing) {
-            const errorRow = {
-                title: resultItem.listing.error.message || resultItem.listing.error.code || 'n/a',
-                url: resultItem.listing.url?.trim() ? resultItem.listing.url : 'n/a',
-            };
-            rows.push(errorRow);
+        const row = mappers.mapToRow(resultItem);
+
+        if (row.passed) {
+            passedRows.push(row);
         } else {
-            const successRow = {
-                title: resultItem.listing.title?.trim() ? resultItem.listing.title : 'n/a',
-                url: resultItem.listing.url?.trim() ? resultItem.listing.url : 'n/a',
-            };
-            rows.push(successRow);
+            failedRows.push(row);
         }
     }
 
-    return <DataTable data={rows} columns={columns} />;
+    return <DataTable data={[...passedRows, ...failedRows]} columns={columns} />;
 };
 
 export default ScraperTarget;

@@ -22,27 +22,51 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
             value: target.targetId,
             children: (
                 <div>
-                    <section className="flex flex-col gap-2 p-3 my-3 border rounded-md">
-                        <div>
-                            <Heading level={3} size="xs">
-                                Identifier
-                            </Heading>
-                            <Text size="xs">{target.targetId}</Text>
-                        </div>
-                        <div>
-                            <Heading level={3} size="xs">
-                                Keywords
-                            </Heading>
-                            <Text size="xs">{target.keywords?.join(', ') || '-'}</Text>
-                        </div>
+                    <div className="flex gap-3">
+                        <section className="flex flex-1 flex-col gap-2 p-3 my-3 border rounded-md">
+                            <div>
+                                <Heading level={3} size="xs">
+                                    Identifier
+                                </Heading>
+                                <Text size="xs">{target.targetId}</Text>
+                            </div>
+                            <div>
+                                <Heading level={3} size="xs">
+                                    Keywords
+                                </Heading>
+                                <Text size="xs">{target.keywords?.join(', ') || '-'}</Text>
+                            </div>
 
-                        <div>
-                            <Heading level={3} size="xs">
-                                Max pages
-                            </Heading>
-                            <Text size="xs">{target.maxPages}</Text>
-                        </div>
-                    </section>
+                            <div>
+                                <Heading level={3} size="xs">
+                                    Max pages
+                                </Heading>
+                                <Text size="xs">{target.maxPages}</Text>
+                            </div>
+                        </section>
+
+                        <section className="flex flex-1 flex-col gap-2 p-3 my-3 border rounded-md">
+                            <div>
+                                <Heading level={3} size="xs">
+                                    Total
+                                </Heading>
+                                <Text size="xs">{target.summary.total}</Text>
+                            </div>
+                            <div>
+                                <Heading level={3} size="xs">
+                                    Passed
+                                </Heading>
+                                <Text size="xs">{target.summary.passed}</Text>
+                            </div>
+
+                            <div>
+                                <Heading level={3} size="xs">
+                                    Rejected
+                                </Heading>
+                                <Text size="xs">{target.summary.rejected}</Text>
+                            </div>
+                        </section>
+                    </div>
 
                     <section>
                         <Heading size="s" level={2}>
