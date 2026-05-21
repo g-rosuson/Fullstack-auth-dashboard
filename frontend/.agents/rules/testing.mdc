@@ -12,15 +12,15 @@ Enforce test structure and tooling for frontend component and unit tests.
 
 ## Tooling
 
-- Vitest + `@testing-library/react` + jsdom
-- Vitest globals (`describe`, `it`, `expect`, `vi`, etc.) configured in `vite.config.ts`
+-   Vitest + `@testing-library/react` + jsdom
+-   Vitest globals (`describe`, `it`, `expect`, `vi`, etc.) configured in `vite.config.ts`
 
 ## Component Tests
 
-- Co-locate test file next to component: `Button.tsx` → `Button.test.tsx`
-- Use `render`, `screen`, and `userEvent` from `@testing-library/react`.
-- Test user-visible behavior. DO NOT test implementation details (internal state, refs, private methods).
-- Assert on what the user sees (text, roles, aria attributes) and what happens on interaction.
+-   Co-locate test file next to component: `Button.tsx` → `Button.test.tsx`
+-   Use `render`, `screen`, and `userEvent` from `@testing-library/react`.
+-   Test user-visible behavior. DO NOT test implementation details (internal state, refs, private methods).
+-   Assert on what the user sees (text, roles, aria attributes) and what happens on interaction.
 
 ```typescript
 import { render, screen } from '@testing-library/react';
@@ -45,9 +45,9 @@ describe('Button', () => {
 
 ## Unit Tests
 
-- Co-locate next to the module under test: `utils.ts` → `utils.test.ts`
-- Test pure functions and utilities in isolation.
-- DO NOT render components in unit tests — use component tests for that.
+-   Co-locate next to the module under test: `utils.ts` → `utils.test.ts`
+-   Test pure functions and utilities in isolation.
+-   DO NOT render components in unit tests — use component tests for that.
 
 ## Required Commands
 
@@ -59,13 +59,13 @@ npm run type-check # tsc --noEmit
 
 # Anti-Patterns
 
-- DO NOT test internal component state — test rendered output and user interactions.
-- DO NOT use `test.only` or `it.skip` in committed code.
-- DO NOT share mutable state between `it` blocks — reset with `beforeEach`.
+-   DO NOT test internal component state — test rendered output and user interactions.
+-   DO NOT use `test.only` or `it.skip` in committed code.
+-   DO NOT share mutable state between `it` blocks — reset with `beforeEach`.
 
 # Checklist
 
-- [ ] Test file co-located: `<Component>.test.tsx` next to `<Component>.tsx`
-- [ ] Assertions target visible output and user interactions
-- [ ] No `test.only` or `it.skip` in committed tests
-- [ ] `npm test` passes
+-   [ ] Test file co-located: `<Component>.test.tsx` next to `<Component>.tsx`
+-   [ ] Assertions target visible output and user interactions
+-   [ ] No `test.only` or `it.skip` in committed tests
+-   [ ] `npm test` passes

@@ -4,7 +4,8 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { ExecutionJobItemRow } from './executionJobItemRow';
+import type { ExecutionScraperToolTargetResult } from './executionScraperToolTargetResult';
+import type { ExecutionScraperToolTargetSummary } from './executionScraperToolTargetSummary';
 import type { ScraperToolTargetName } from './scraperToolTargetName';
 
 export interface ExecutionScraperToolTarget {
@@ -12,7 +13,8 @@ export interface ExecutionScraperToolTarget {
   keywords?: string[];
   /** @minimum 0 */
   maxPages?: number;
-  results: ExecutionJobItemRow[];
+  results: ExecutionScraperToolTargetResult[];
+  summary: ExecutionScraperToolTargetSummary;
   target: ScraperToolTargetName;
   targetId: string;
 }

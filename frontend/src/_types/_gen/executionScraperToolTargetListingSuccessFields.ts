@@ -5,7 +5,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface ExecutionScrapedItemError {
-  code: string;
-  message: string;
-}
+export type ExecutionScraperToolTargetListingSuccessFields = {[key: string]: string};
