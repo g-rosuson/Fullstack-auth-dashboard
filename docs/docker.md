@@ -2,18 +2,34 @@
 
 ## Architecture
 
-The stack runs as three isolated containers. Each has a single responsibility and communicates over Docker's internal network.
+### Development
+
+Three containers communicate over Docker's internal network, with ports exposed directly to the host for local access:
 
 ```
 Browser
-  ├── localhost:5173  →  frontend  (Vite dev / Nginx prod)
-  └── localhost:1000  →  backend   (Express API)
+  ├── localhost:5173  →  frontend  (Vite dev server)
+  └── localhost:1000  →  backend   (Express API, ts-node-dev)
                               └── mongo:27017  →  mongo (MongoDB)
 ```
 
-The frontend and backend are on separate ports — there is no reverse proxy between them. The frontend knows the backend URL via the `VITE_BACKEND_URL` environment variable, which is set in each compose file.
+### Production
 
-MongoDB is not exposed to the host in production. It is only reachable from within the Docker network via the `mongo` hostname.
+Four containers run behind a Caddy reverse proxy. Only Caddy has public ports — all other traffic is internal:
+
+```
+Internet
+  └── Caddy (:80, :443)
+        ├── dashboard.<domain>  →  frontend (nginx, :80 internal)
+        └── api.<domain>        →  backend  (Express, :1000 internal)
+                                        └── mongo:27017  →  mongo (MongoDB)
+```
+
+Caddy terminates TLS and auto-provisions Let's Encrypt certificates. The frontend and backend are declared with `expose` (not `ports`), making them unreachable from outside Docker.
+
+The frontend knows the backend URL via the `VITE_BACKEND_URL` build argument, which is baked into the static bundle at image build time.
+
+MongoDB is never exposed outside the Docker network in either environment.
 
 ---
 
@@ -22,7 +38,7 @@ MongoDB is not exposed to the host in production. It is only reachable from with
 | Concern | Dev | Prod |
 |---|---|---|
 | Frontend | Vite dev server, HMR enabled | Nginx serving static build |
-| Backend | `ts-node-dev` with hot reload | Compiled Node (`dist/main.js`) |
+| Backend | `ts-node-dev` with hot reload | Compiled Node (`dist/src/main.js`) |
 | Code changes | Live — no rebuild needed | Requires image rebuild |
 | Source mounting | Yes — host files mounted into containers | No — code is baked into image |
 

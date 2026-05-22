@@ -1,3 +1,7 @@
+# TODO: Before deploying, this workflow should run regression, E2E, and smoke tests
+# as required by docs/requirements/ci-cd.md (Main Branch Validation Workflow).
+# Currently only the PR gate (unit + integration) protects main — deploy triggers
+# immediately on merge without post-merge test validation.
 name: Deploy to production # Runs on every push to main after merge
 
 on:

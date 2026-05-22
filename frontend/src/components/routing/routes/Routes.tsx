@@ -1,4 +1,4 @@
-import { Route, Routes as ReactRouterDOMRoutes } from 'react-router-dom';
+import { Navigate, Route, Routes as ReactRouterDOMRoutes } from 'react-router-dom';
 
 import Authenticate from '../../layout/authenticate/Authenticate';
 import Authentication from '../../pages/authentication/Authentication';
@@ -11,7 +11,11 @@ const Routes = () => {
     return (
         <ReactRouterDOMRoutes>
             <Route path={config.routes.login} element={<Authentication />} />
-            <Route path={config.routes.register} element={<Authentication />} />
+            {config.features.registrationEnabled ? (
+                <Route path={config.routes.register} element={<Authentication />} />
+            ) : (
+                <Route path={config.routes.register} element={<Navigate to={config.routes.login} replace />} />
+            )}
 
             <Route element={<Authenticate />}>
                 <Route path={config.routes.root} element={<Home />} />

@@ -2,83 +2,39 @@
 
 ## Overview
 
-The production stack is self-hosted via Docker Compose on a Hetzner VPS. Images are built directly on the server from the cloned repository. When a CI/CD pipeline is added, the build step moves to CI and the server only pulls pre-built images.
+The production stack is self-hosted via Docker Compose on a Hetzner VPS. Deployments are automated — every push to `main` triggers the GitHub Actions workflow (`.github/workflows/main-deploy.yml`), which SSHes into the server, pulls the latest code, and rebuilds the containers.
 
-For first-time server provisioning, see [VPS Setup Guide](./vps-setup.md).
-
----
-
-## First deployment
-
-### 1. Clone the repo on the server
-
-```bash
-git clone <repo-url>
-cd <project-dir>
-```
-
-### 2. Create the root `.env` file
-
-This file is never committed. It holds the MongoDB root credentials used by Docker Compose variable substitution.
-
-```bash
-# Create at repo root
-cat > .env << EOF
-MONGO_ROOT_USERNAME=admin
-MONGO_ROOT_PASSWORD=your-strong-password-here
-EOF
-```
-
-### 3. Configure `backend/.env.prod`
-
-Fill in real values for all placeholder fields:
-
-| Variable | What to change |
-|---|---|
-| `ACCESS_TOKEN_SECRET` | Replace `REPLACE_WITH_STRONG_SECRET` with a random 64-char hex string |
-| `REFRESH_TOKEN_SECRET` | Same — must be different from access token secret |
-| `MONGO_URI` | Replace the password to match `MONGO_ROOT_PASSWORD` in `.env` |
-| `PROD_CLIENT_URL` | Your frontend domain |
-| `PROD_DOMAIN` | Your domain (used for cookie settings) |
-
-Generate strong secrets with:
-```bash
-openssl rand -hex 64
-```
-
-### 4. Configure `docker-compose.prod.yml`
-
-Update `VITE_BACKEND_URL` to your actual backend URL:
-
-```yaml
-args:
-  - VITE_BACKEND_URL=https://api.yourdomain.com
-```
-
-This value is baked into the frontend bundle at build time. Changing it requires a rebuild.
-
-### 5. Start the stack
-
-```bash
-npm run start:prod
-```
-
-On first run, the script detects no existing volume and builds the images automatically. This will take several minutes due to the Playwright base image (~1.5GB).
+For first-time server provisioning, see the [VPS Setup Guide](./guides/vps-setup.md).
 
 ---
 
-## Subsequent deployments
+## How deploys work
 
-After pulling new code:
+1. A PR is opened targeting `main`
+2. The PR validation workflow runs unit + integration tests as a merge gate
+3. On merge, the deploy workflow triggers automatically:
+   - `git fetch origin main` + `git reset --hard origin/main` — syncs the server to the exact merged commit
+   - `docker compose -f docker-compose.prod.yml up -d --build` — rebuilds changed images and restarts affected containers
 
-```bash
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
+No manual SSH is needed for routine deployments.
+
+---
+
+## Production stack
+
+Four containers run in the `web` Docker network:
+
+```
+Internet
+  └── Caddy (:80, :443)
+        ├── dashboard.<domain>  →  frontend (nginx, :80 internal)
+        └── api.<domain>        →  backend  (Express, :1000 internal)
+                                        └── mongo:27017  →  mongo (MongoDB)
 ```
 
-The `--build` flag rebuilds images with the new code. Existing data volumes are untouched.
-
-Do not use `npm run start:prod` for updates — it skips `--build` when the volume already exists.
+- **Caddy** is the only container with public ports. It terminates TLS and reverse-proxies to the other services by Docker service name.
+- **Frontend and backend** use `expose` (internal only) — they are not directly reachable from the internet.
+- **MongoDB** is never exposed outside the Docker network.
 
 ---
 
@@ -89,10 +45,9 @@ Do not use `npm run start:prod` for updates — it skips `--build` when the volu
 | `backend/.env.dev` | No | Dev environment variables |
 | `backend/.env.prod` | No | Prod environment variables |
 | `.env` (repo root) | No | MongoDB credentials for Docker Compose variable substitution (prod only) |
+| `~/mongo-keyfile` (server) | No | MongoDB replica set keyfile — lives outside the repo at `$HOME/mongo-keyfile` |
 
-None of these files are committed to the repository. They must be created manually on each machine/server.
-
-The `backend/.env.dev` file is safe for local use — it contains no production secrets and points to the local Docker MongoDB instance.
+None of these files are committed. They must be created manually on each server.
 
 ---
 
@@ -108,6 +63,7 @@ View logs for a specific service:
 
 ```bash
 docker compose -f docker-compose.prod.yml logs -f backend
+docker compose -f docker-compose.prod.yml logs -f caddy
 docker compose -f docker-compose.prod.yml logs -f mongo
 ```
 
@@ -125,11 +81,28 @@ docker compose -f docker-compose.prod.yml ps
 # Stop without removing data
 docker compose -f docker-compose.prod.yml down
 
-# Restart
+# Restart without rebuild
 docker compose -f docker-compose.prod.yml up -d
+
+# Rebuild and restart (after code changes deployed manually)
+docker compose -f docker-compose.prod.yml up -d --build
 
 # Wipe everything including database — DESTRUCTIVE
 npm run reset:prod
 ```
 
 `reset:prod` prompts for confirmation before running. It is intended for decommissioning, not routine restarts.
+
+---
+
+## TLS certificates
+
+Caddy automatically obtains and renews Let's Encrypt certificates for all domains defined in `Caddyfile`. Certificates are stored in the `caddy_data` named Docker volume and persist across container restarts.
+
+No manual certificate management is needed.
+
+If certificates fail to renew, check Caddy logs:
+
+```bash
+docker compose -f docker-compose.prod.yml logs caddy | grep -i "tls\|cert\|error"
+```
