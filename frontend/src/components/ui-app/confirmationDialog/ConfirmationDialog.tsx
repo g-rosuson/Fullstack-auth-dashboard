@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { VisuallyHidden } from 'radix-ui';
 
 import type { ConfirmationDialogProps } from './ConfirmationDialog.types';
 
@@ -41,10 +42,12 @@ const ConfirmationDialog = ({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent showCloseButton={false} aria-describedby={description ? undefined : description}>
+            <DialogContent showCloseButton={false}>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
-                    {description && <DialogDescription size="s">{description}</DialogDescription>}
+                    <DialogDescription size="s">
+                        {description ?? <VisuallyHidden.Root>{title}</VisuallyHidden.Root>}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <DialogFooter>

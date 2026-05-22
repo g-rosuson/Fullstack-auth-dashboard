@@ -40,7 +40,8 @@ const Authentication = () => {
     const navigate = useNavigate();
 
     // Flags
-    const isRegisterActive = location.pathname === config.routes.register;
+    const isRegisterActive =
+        config.features.registrationEnabled && location.pathname === config.routes.register;
 
     /**
      * Sets the input field changes in the state.
@@ -243,13 +244,15 @@ const Authentication = () => {
                     </form>
                 </CardContent>
 
-                <CardFooter className="justify-center">
-                    <Link to={route}>
-                        <Text size="s" appearance="foreground">
-                            {authModeLinkLabel}
-                        </Text>
-                    </Link>
-                </CardFooter>
+                {config.features.registrationEnabled && (
+                    <CardFooter className="justify-center">
+                        <Link to={route}>
+                            <Text size="s" appearance="foreground">
+                                {authModeLinkLabel}
+                            </Text>
+                        </Link>
+                    </CardFooter>
+                )}
             </Card>
         </div>
     );

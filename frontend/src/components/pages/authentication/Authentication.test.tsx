@@ -140,6 +140,8 @@ describe('Authentication component: authentication', () => {
     });
 
     it('register endpoint is invoked with correct values when the "/register" route is active', async () => {
+        config.features.registrationEnabled = true;
+
         renderComponent(config.routes.register);
 
         (api.service.resources.authentication.register as Mock).mockResolvedValue({
@@ -166,6 +168,8 @@ describe('Authentication component: authentication', () => {
                 confirmationPassword: mockPassword,
             });
         });
+
+        config.features.registrationEnabled = false;
     });
 
     // Test that the changeUser function is called with the correct payload
@@ -244,6 +248,8 @@ describe('Authentication component: authentication', () => {
     });
 
     it('register failure is handled gracefully', async () => {
+        config.features.registrationEnabled = true;
+
         renderComponent(config.routes.register);
 
         const mockError = new Error('Registration failed');
@@ -263,9 +269,13 @@ describe('Authentication component: authentication', () => {
             expect(screen.getByRole('heading')).toHaveTextContent(/register/i);
             expect(mockChangeUser).not.toHaveBeenCalled();
         });
+
+        config.features.registrationEnabled = false;
     });
 
     it('submit button is disabled on register when password is invalid', async () => {
+        config.features.registrationEnabled = true;
+
         // Override: do not call onChange so isPasswordValid stays false (button stays disabled)
         mockPasswordValidator.mockImplementation(() => null);
 
@@ -279,6 +289,8 @@ describe('Authentication component: authentication', () => {
 
         const submitButton = screen.getByRole('button', { name: 'Register' });
         expect(submitButton).toBeDisabled();
+
+        config.features.registrationEnabled = false;
     });
 });
 
@@ -290,10 +302,14 @@ describe('Authentication component: UI & navigation', () => {
         expect(heading).toBeInTheDocument();
     });
 
-    it('heading is "Register" when the register route is active', () => {
+    it('heading is "Register" when the register route is active and registration is enabled', () => {
+        config.features.registrationEnabled = true;
+
         renderComponent(config.routes.register);
         const heading = screen.getByRole('heading');
         expect(heading.textContent).toBe('Register');
+
+        config.features.registrationEnabled = false;
     });
 
     it('heading is "Login" when the login route is active', () => {
@@ -332,10 +348,14 @@ describe('Authentication component: UI & navigation', () => {
     });
 
     // Test submit button
-    it('submit button has a "Register" label when the register route is active', () => {
+    it('submit button has a "Register" label when the register route is active and registration is enabled', () => {
+        config.features.registrationEnabled = true;
+
         renderComponent(config.routes.register);
         const submitButton = screen.getByRole('button', { name: /Register/i });
         expect(submitButton).toHaveTextContent(/register/i);
+
+        config.features.registrationEnabled = false;
     });
 
     it('submit button has a "Login" label when the login route is active', () => {
@@ -345,31 +365,46 @@ describe('Authentication component: UI & navigation', () => {
     });
 
     // Test link
-    // Login route
-    it('contains a link with a "/register" href when on the "/login" route', () => {
+    it('does not show a register link when registration is disabled', () => {
         renderComponent(config.routes.login);
-        const link = screen.getByRole('link', { name: /Register/i });
-        expect(link).toHaveAttribute('href', '/register');
+        expect(screen.queryByRole('link', { name: /Register/i })).not.toBeInTheDocument();
     });
 
-    it('navigates to the "/register" route when the register link is clicked', async () => {
-        renderComponent(config.routes.login);
-        const link = screen.getByRole('link', { name: /Register/i });
-        await userEvent.click(link);
-        expect(screen.getByRole('heading')).toHaveTextContent(/register/i);
-    });
+    describe('when registration is enabled', () => {
+        beforeEach(() => {
+            config.features.registrationEnabled = true;
+        });
 
-    // Register route
-    it('contains a link with a "/login" href when on the "/register" route', () => {
-        renderComponent(config.routes.register);
-        const link = screen.getByRole('link', { name: /Login/i });
-        expect(link).toHaveAttribute('href', '/login');
-    });
+        afterEach(() => {
+            config.features.registrationEnabled = false;
+        });
 
-    it('navigates to the "/login" route when the login link is clicked', async () => {
-        renderComponent(config.routes.register);
-        const link = screen.getByRole('link', { name: /Login/i });
-        await userEvent.click(link);
-        expect(screen.getByRole('heading')).toHaveTextContent(/login/i);
+        // Login route
+        it('contains a link with a "/register" href when on the "/login" route', () => {
+            renderComponent(config.routes.login);
+            const link = screen.getByRole('link', { name: /Register/i });
+            expect(link).toHaveAttribute('href', '/register');
+        });
+
+        it('navigates to the "/register" route when the register link is clicked', async () => {
+            renderComponent(config.routes.login);
+            const link = screen.getByRole('link', { name: /Register/i });
+            await userEvent.click(link);
+            expect(screen.getByRole('heading')).toHaveTextContent(/register/i);
+        });
+
+        // Register route
+        it('contains a link with a "/login" href when on the "/register" route', () => {
+            renderComponent(config.routes.register);
+            const link = screen.getByRole('link', { name: /Login/i });
+            expect(link).toHaveAttribute('href', '/login');
+        });
+
+        it('navigates to the "/login" route when the login link is clicked', async () => {
+            renderComponent(config.routes.register);
+            const link = screen.getByRole('link', { name: /Login/i });
+            await userEvent.click(link);
+            expect(screen.getByRole('heading')).toHaveTextContent(/login/i);
+        });
     });
 });
