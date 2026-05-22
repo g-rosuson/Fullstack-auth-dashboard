@@ -50,7 +50,7 @@ services:
             - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
         volumes:
             - mongo_prod_data:/data/db
-            - ./mongo-keyfile:/etc/mongo/keyfile:ro
+            - ${HOME}/mongo-keyfile:/etc/mongo/keyfile:ro
         healthcheck:
             test: >
                 mongosh -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"

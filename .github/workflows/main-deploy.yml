@@ -27,5 +27,6 @@ jobs:
                   script: |
                       set -e
                       cd ${{ secrets.HETZNER_REPO_PATH }}
-                      git pull origin main
+                      git fetch origin main
+                      git reset --hard origin/main
                       docker compose -f docker-compose.prod.yml up -d --build
