@@ -2,7 +2,9 @@
 
 ## Overview
 
-The production stack is self-hosted via Docker Compose. There is no CI/CD pipeline currently — images are built on the server from the cloned repository. When a pipeline is added, the build step moves to CI and the server only pulls pre-built images.
+The production stack is self-hosted via Docker Compose on a Hetzner VPS. Images are built directly on the server from the cloned repository. When a CI/CD pipeline is added, the build step moves to CI and the server only pulls pre-built images.
+
+For first-time server provisioning, see [VPS Setup Guide](./vps-setup.md).
 
 ---
 

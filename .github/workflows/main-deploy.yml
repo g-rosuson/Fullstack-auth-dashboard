@@ -1,0 +1,31 @@
+name: Deploy to production # Runs on every push to main after merge
+
+on:
+    push:
+        branches:
+            - main
+
+concurrency:
+    group: main-deploy # Only one deployment at a time; queue rather than cancel
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    deploy:
+        name: SSH deploy
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Deploy to Hetzner VPS
+              uses: appleboy/ssh-action@v1.2.0
+              with:
+                  host: ${{ secrets.HETZNER_HOST }}
+                  username: ${{ secrets.HETZNER_USER }}
+                  key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+                  script: |
+                      set -e
+                      cd ${{ secrets.HETZNER_REPO_PATH }}
+                      git pull origin main
+                      docker compose -f docker-compose.prod.yml up -d --build
