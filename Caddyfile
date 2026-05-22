@@ -1,0 +1,7 @@
+dashboard.rosuson.com {
+    reverse_proxy frontend:80
+}
+
+api.rosuson.com {
+    reverse_proxy backend:1000
+}
