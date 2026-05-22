@@ -1,44 +1,71 @@
 name: nameless-dashboard-prod
 
 services:
+    caddy:
+        image: caddy:2-alpine
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile:ro
+            - caddy_data:/data
+            - caddy_config:/config
+        depends_on:
+            - frontend
+            - backend
+        networks:
+            - web
+
     frontend:
         build:
             context: ./frontend
             target: prod
             args:
-                - VITE_BACKEND_URL=https://api.yourdomain.com
-        ports:
-            - '80:80'
+                - VITE_BACKEND_URL=https://api.rosuson.com
+        expose:
+            - '80'
         depends_on:
             - backend
+        networks:
+            - web
 
     backend:
         build:
             context: ./backend
             target: prod
-        ports:
-            - '1000:1000'
+        expose:
+            - '1000'
         env_file: ./backend/.env.prod
         depends_on:
             mongo:
                 condition: service_healthy
+        networks:
+            - web
 
     mongo:
         image: mongo:7
-        command: mongod --replSet rs0 --auth
+        command: mongod --replSet rs0 --auth --keyFile /etc/mongo/keyfile
         environment:
             - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
             - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
         volumes:
             - mongo_prod_data:/data/db
+            - ./mongo-keyfile:/etc/mongo/keyfile:ro
         healthcheck:
-            test: |
-                mongosh -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin
-                --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+            test: >
+                mongosh -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+
             start_period: 10s
             interval: 500ms
             timeout: 5s
             retries: 10
+        networks:
+            - web
+
+networks:
+    web:
 
 volumes:
     mongo_prod_data:
+    caddy_data:
+    caddy_config:

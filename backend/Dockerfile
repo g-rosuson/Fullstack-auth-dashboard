@@ -8,10 +8,10 @@ RUN rm -f package-lock.json && npm install
 FROM deps AS dev
 CMD ["npm", "start"]
 
-# build — compiles TypeScript to dist/
+# build — compiles TypeScript to dist/ using CommonJS output for Node.js compatibility
 FROM deps AS build
 COPY . .
-RUN npx tsc --outDir dist
+RUN npx tsc -p tsconfig.build.json
 
 # prod — compiled output + prod-only dependencies
 FROM mcr.microsoft.com/playwright:v1.59.1-noble AS prod
@@ -19,4 +19,5 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./
 RUN rm -f package-lock.json && npm install --omit=dev
-CMD ["node", "dist/main.js"]
+ENV NODE_PATH=/app/dist/src
+CMD ["node", "dist/src/main.js"]
