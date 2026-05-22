@@ -30,9 +30,16 @@ The replica set is initialised automatically via the MongoDB healthcheck in the 
 healthcheck:
   test: |
     mongosh --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+  start_period: 120s
+  start_interval: 10s   # frequent checks during boot only (Docker 25+)
+  interval: 7200s       # 2 hours between runtime checks
+  timeout: 10s
+  retries: 10
 ```
 
 On first boot, `rs.status()` throws because the replica set does not exist yet. The `catch` block calls `rs.initiate()`. On subsequent boots the `try` succeeds and `rs.initiate()` is never called. No manual setup is needed.
+
+`start_interval` keeps boot/restart checks frequent while `interval` stays at 2 hours at runtime to avoid spawning `mongosh` every 500ms (which pegged CPU on a 1 vCPU VPS).
 
 The member host is `mongo:27017` — the Docker service name — not `localhost`. Using `localhost` here would cause the replica set to report a primary on a host that the backend driver cannot reach, breaking all replica set-aware connections.
 

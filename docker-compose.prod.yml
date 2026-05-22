@@ -55,9 +55,10 @@ services:
             test: >
                 mongosh -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin --eval "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
 
-            start_period: 10s
-            interval: 500ms
-            timeout: 5s
+            start_period: 120s
+            start_interval: 10s
+            interval: 7200s
+            timeout: 10s
             retries: 10
         networks:
             - web
