@@ -1,5 +1,7 @@
 import config from 'config';
 
+import type { MongoConfig } from '../shared/types';
+
 /**
  * MongoDB configuration object containing database connection details and collection settings.
  * This configuration drives the database initialization, indexing, and repository setup.
@@ -11,29 +13,20 @@ const mongoConfig = {
         collection: {
             users: {
                 name: config.mongoUserCollectionName,
-                // Field to create index on (e.g., 'email')
-                targetField: 'email',
-                // Index sort order: 1 for ascending, -1 for descending
-                targetValue: 1,
-                // Whether the index should enforce uniqueness
+                indexKeys: { email: 1 as const },
                 unique: true,
-                // Whether to create an index for this collection at startup
                 index: true,
+                dropLegacyIndexes: [],
             },
             jobs: {
                 name: config.mongoJobsCollectionName,
-                // Field to create index on (e.g., 'name')
-                // TODO: job.name should be unique per user, not globally.
-                targetField: 'name',
-                // Index sort order: 1 for ascending, -1 for descending
-                targetValue: 1,
-                // Enforce unique job names for clear identification in dashboards
+                indexKeys: { userId: 1 as const, name: 1 as const },
                 unique: true,
-                // Whether to create an index for this collection at startup
                 index: true,
+                dropLegacyIndexes: ['name_1'],
             },
         },
     },
-};
+} satisfies MongoConfig;
 
 export default mongoConfig;
