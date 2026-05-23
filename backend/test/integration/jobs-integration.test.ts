@@ -107,8 +107,6 @@ function buildUpdateJobPayload(
  * Each `describe` names the endpoint (`METHOD path`); scenario detail lives in `it` titles and IDs.
  *
  * Requirement IDs: docs/requirements/jobs-http-contract.md
- *
- * @todo – Add a test that validates that job names are unique per user, after fixing the global unique index issue.
  */
 describe('Integration: jobs HTTP', () => {
     let app: Express;
@@ -313,6 +311,58 @@ describe('Integration: jobs HTTP', () => {
             expect(typeof res.body.data.schedule.nextRun).toBe('string');
             const { lastRun } = res.body.data.schedule;
             expect(lastRun === null || typeof lastRun === 'string').toBe(true);
+        });
+
+        describe.sequential('job name uniqueness', () => {
+            const sharedName = 'Shared job name';
+
+            it('[JOBS-UNQ-001] allows different users to create jobs with the same name', async () => {
+                const regA = await getRegisterResponse(agent, 'unq-user-a@example.com');
+                expect(regA.status).toBe(200);
+
+                const regB = await getRegisterResponse(agent, 'unq-user-b@example.com');
+                expect(regB.status).toBe(200);
+
+                const createA = await agent
+                    .post(constants.routes.jobs.create)
+                    .set('Authorization', `Bearer ${regA.body.data}`)
+                    .send(buildJobWithoutSchedulePayload(sharedName));
+
+                expect(createA.status).toBe(201);
+                expect(createA.body.data.name).toBe(sharedName);
+
+                const createB = await agent
+                    .post(constants.routes.jobs.create)
+                    .set('Authorization', `Bearer ${regB.body.data}`)
+                    .send(buildJobWithoutSchedulePayload(sharedName));
+
+                expect(createB.status).toBe(201);
+                expect(createB.body.data.name).toBe(sharedName);
+                expect(createB.body.data.id).not.toBe(createA.body.data.id);
+            });
+
+            it('[JOBS-UNQ-002] returns conflict when the same user creates a duplicate job name', async () => {
+                const email = 'unq-duplicate-create@example.com';
+                const registerResponse = await getRegisterResponse(agent, email);
+                expect(registerResponse.status).toBe(200);
+                const token = registerResponse.body.data as string;
+
+                const first = await agent
+                    .post(constants.routes.jobs.create)
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(buildJobWithoutSchedulePayload('Duplicate create'));
+
+                expect(first.status).toBe(201);
+
+                const second = await agent
+                    .post(constants.routes.jobs.create)
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(buildJobWithoutSchedulePayload('Duplicate create'));
+
+                expect(second.status).toBe(409);
+                expect(second.body.success).toBe(false);
+                expect(second.body.code).toBe(ErrorCode.CONFLICT_ERROR);
+            });
         });
 
         it('[JOBS-SCH-001] rejects a schedule whose start date is not in the future', async () => {
@@ -611,6 +661,37 @@ describe('Integration: jobs HTTP', () => {
 
             expect(getRes.status).toBe(200);
             expect(getRes.body.data.name).toBe('After PUT');
+        });
+
+        it('[JOBS-UNQ-003] returns conflict when updating a job name to another owned job name', async () => {
+            const registerResponse = await getRegisterResponse(agent, 'unq-update@example.com');
+            expect(registerResponse.status).toBe(200);
+            const token = registerResponse.body.data as string;
+
+            const firstJob = await agent
+                .post(constants.routes.jobs.create)
+                .set('Authorization', `Bearer ${token}`)
+                .send(buildJobWithSchedulePayload('First job'));
+
+            expect(firstJob.status).toBe(201);
+
+            const secondJob = await agent
+                .post(constants.routes.jobs.create)
+                .set('Authorization', `Bearer ${token}`)
+                .send(buildJobWithSchedulePayload('Second job'));
+
+            expect(secondJob.status).toBe(201);
+
+            const payload = buildUpdateJobPayload(secondJob.body.data, { name: 'First job' });
+
+            const putRes = await agent
+                .put(buildJobUrl(constants.routes.jobs.update, secondJob.body.data.id))
+                .set('Authorization', `Bearer ${token}`)
+                .send(payload);
+
+            expect(putRes.status).toBe(409);
+            expect(putRes.body.success).toBe(false);
+            expect(putRes.body.code).toBe(ErrorCode.CONFLICT_ERROR);
         });
 
         it('[JOBS-UPD-002] clears schedule when schedule is set to null', async () => {

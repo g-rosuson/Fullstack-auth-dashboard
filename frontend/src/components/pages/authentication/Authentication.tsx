@@ -40,8 +40,7 @@ const Authentication = () => {
     const navigate = useNavigate();
 
     // Flags
-    const isRegisterActive =
-        config.features.registrationEnabled && location.pathname === config.routes.register;
+    const isRegisterActive = config.features.registrationEnabled && location.pathname === config.routes.register;
 
     /**
      * Sets the input field changes in the state.

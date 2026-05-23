@@ -7,10 +7,5 @@
         "types": [],
         "skipLibCheck": true
     },
-    "exclude": [
-        "**/*.test.ts",
-        "test/**/*",
-        "vitest.config.mjs",
-        "vitest.integration.config.mjs"
-    ]
+    "exclude": ["**/*.test.ts", "test/**/*", "vitest.config.mjs", "vitest.integration.config.mjs"]
 }
