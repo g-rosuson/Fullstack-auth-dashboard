@@ -188,6 +188,7 @@ async getById(id: string, userId: string) {
 - **Transactions require a replica set**: The Docker Compose stack provisions MongoDB with `rs0`. Standalone instances do not support transactions — ensure the integration test environment uses the replica set config.
 - **`isCommitted` guard**: If `commitTransaction()` itself throws (rare but possible), the transaction is in an unknown state. The `isCommitted = true` assignment is placed immediately after the await to minimize the gap.
 - **MongoDB 11000**: Duplicate unique key errors are caught and converted to `ConflictException` by `exceptionsMiddleware` automatically — do not manually catch code `11000` in repositories.
+- **Job name uniqueness**: Enforced by a compound unique index on `{ userId, name }` (see `aop/db/mongo/config`). Different users may share a name; duplicates within one user surface as `11000` → `409 CONFLICT_ERROR`.
 - **ObjectId conversion**: MongoDB `_id` is `ObjectId`; controllers need a string `id`. Convert with `doc._id.toString()` in the repository return value.
 
 # Anti-Patterns
