@@ -233,6 +233,34 @@ describe('MongoClientManager', () => {
             expect(mockDropIndex).toHaveBeenCalledWith('name_1');
         });
 
+        it('should create index when collection namespace does not exist yet', async () => {
+            const namespaceError = new Error('ns does not exist') as MongoError;
+            namespaceError.code = 26;
+
+            mockIndexes.mockRejectedValueOnce(namespaceError).mockImplementation(() => Promise.resolve([]));
+
+            await dbInstance.connect();
+
+            expect(mockCreateIndex).toHaveBeenCalled();
+        });
+
+        it('should not cache db when initializeDb fails so a later connect re-runs initialization', async () => {
+            const initError = new Error('transient index failure');
+
+            mockIndexes.mockRejectedValueOnce(initError).mockImplementation(() => Promise.resolve([]));
+
+            await expect(dbInstance.connect()).rejects.toThrow('transient index failure');
+
+            vi.clearAllMocks();
+            mockIndexes.mockImplementation(() => Promise.resolve([]));
+
+            const db = await dbInstance.connect();
+
+            expect(db).toBe(mockDb);
+            expect(mockCommand).toHaveBeenCalled();
+            expect(mockCreateIndex).toHaveBeenCalled();
+        });
+
         it('should skip creating index when it already exists with correct options', async () => {
             // Mock: indexes exist with correct unique options for all configured collections
             const collections = getIndexedCollections();
