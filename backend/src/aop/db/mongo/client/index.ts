@@ -4,10 +4,15 @@ import { InternalException } from 'aop/exceptions/errors/system';
 import { logger } from 'aop/logging';
 
 import config from '../config';
+import utils from './utils';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
+import type { CollectionConfig } from '../shared/types';
 import type { MongoClientOptions } from './types';
+
+/** MongoDB NamespaceNotFound — collection does not exist yet. */
+const MONGO_NAMESPACE_NOT_FOUND = 26;
 
 /**
  * MongoClientManager is a singleton class responsible for managing the MongoDB client connection.
@@ -86,11 +91,12 @@ export class MongoClientManager {
             await this.client.connect();
         }
 
-        // Select the target database
-        this.db = this.client.db(this.dbName);
+        const db = this.client.db(this.dbName);
 
-        // Initialize database (ping + create indexes)
-        await this.initializeDb(this.db);
+        // Initialize database (ping + create indexes) before caching the Db handle.
+        // Assigning this.db only after success avoids retry/cache-hit skipping init on failure.
+        await this.initializeDb(db);
+        this.db = db;
 
         return this.db;
     }
@@ -125,6 +131,24 @@ export class MongoClientManager {
     }
 
     /**
+     * Lists indexes for a collection, treating a missing namespace as an empty index list.
+     * On a fresh database, `collection.indexes()` throws NamespaceNotFound before the first write.
+     */
+    private async listCollectionIndexes(collection: Collection) {
+        try {
+            return await collection.indexes();
+        } catch (error) {
+            const mongoError = error as MongoError;
+
+            if (mongoError.code === MONGO_NAMESPACE_NOT_FOUND) {
+                return [];
+            }
+
+            throw error;
+        }
+    }
+
+    /**
      * Initializes the database connection by verifying connectivity and ensuring required indexes exist.
      *
      * This method performs two critical operations:
@@ -132,12 +156,13 @@ export class MongoClientManager {
      * 2. **Index Management**: Creates or updates indexes for collections marked in configuration
      *
      * Index management behavior:
-     * - Checks if each required index already exists with correct options (unique, field, order)
+     * - Drops legacy indexes listed in `dropLegacyIndexes` before managing the configured index
+     * - Checks if each required index already exists with correct options (unique, key shape)
      * - If index exists with correct options: skips creation (idempotent)
      * - If index exists with different options: drops and recreates with correct options
      * - If index doesn't exist: creates it with the specified configuration
      *
-     * All indexes use explicit names following MongoDB's pattern: `{field}_{order}` (e.g., `email_1`, `name_1`)
+     * All indexes use explicit names following MongoDB's pattern (e.g. `email_1`, `userId_1_name_1`)
      * to ensure predictable behavior and avoid conflicts.
      *
      * @param db The MongoDB database instance to initialize
@@ -157,40 +182,55 @@ export class MongoClientManager {
         const collections = Object.values(config.db.collection).filter(item => item.index);
 
         for (const item of collections) {
-            const indexName = `${item.targetField}_${item.targetValue}`;
+            const indexName = utils.buildIndexName(item.indexKeys);
             const collection = db.collection(item.name);
+
+            // Drop legacy indexes if they exist
+            if (item.dropLegacyIndexes.length) {
+                for (const legacyIndexName of item.dropLegacyIndexes) {
+                    try {
+                        await collection.dropIndex(legacyIndexName);
+                        logger.info(`Dropped legacy index ${legacyIndexName} for ${item.name}`);
+                    } catch (dropError) {
+                        logger.warn(
+                            `Could not drop legacy index ${legacyIndexName} for ${item.name} (may not exist): ${(dropError as Error).message}`
+                        );
+                    }
+                }
+            }
 
             try {
                 // Check if index already exists
-                const existingIndexes = await collection.indexes();
+                const existingIndexes = await this.listCollectionIndexes(collection);
                 const existingIndex = existingIndexes.find(idx => idx.name === indexName);
-
                 if (existingIndex) {
-                    // Index exists - verify options match
-                    const isUnique = existingIndex.unique === true;
+                    const existingKey = existingIndex.key;
+                    const configuredKey = item.indexKeys;
 
-                    if (isUnique === item.unique) {
+                    const hasSameFieldCount = Object.keys(configuredKey).length === Object.keys(existingKey).length;
+                    const hasSameFieldsAndOrder = Object.entries(configuredKey).every(
+                        ([field, order]) => existingKey[field] === order
+                    );
+                    const hasSameUniqueOption = existingIndex.unique === item.unique;
+
+                    const areIndexesTheSame = hasSameUniqueOption && hasSameFieldCount && hasSameFieldsAndOrder;
+                    if (areIndexesTheSame) {
                         // Index exists with correct options - no action needed
-                        logger.info(
-                            `Index ${indexName} already exists with correct options for ${item.name}.${item.targetField}`
-                        );
+                        logger.info(`Index ${indexName} already exists with correct options for ${item.name}`);
                         continue;
                     }
 
                     // Index exists with different options - recreate it
                     logger.warn(
-                        `Index ${indexName} exists with different options for ${item.name}.${item.targetField}. Recreating with correct options.`
+                        `Index ${indexName} exists with different options for ${item.name}. Recreating with correct options.`
                     );
 
-                    await this.recreateIndex(collection, item, indexName);
+                    await this.rotateIndex(collection, item, indexName);
                 } else {
                     // Index doesn't exist - create it
-                    await collection.createIndex(
-                        { [item.targetField]: item.targetValue },
-                        { unique: item.unique, name: indexName }
-                    );
+                    await collection.createIndex(item.indexKeys, { unique: item.unique, name: indexName });
 
-                    logger.info(`Created index ${indexName} for ${item.name}.${item.targetField}`);
+                    logger.info(`Created index ${indexName} for ${item.name}`);
                 }
             } catch (error) {
                 const mongoError = error as MongoError;
@@ -198,10 +238,10 @@ export class MongoClientManager {
                 // Handle race condition: index was created between our check and create attempt
                 if (mongoError.code === 86) {
                     logger.warn(
-                        `Index conflict detected for ${item.name}.${item.targetField} during creation. Recreating with correct options.`
+                        `Index conflict detected for ${item.name} during creation. Recreating with correct options.`
                     );
 
-                    await this.recreateIndex(collection, item, indexName);
+                    await this.rotateIndex(collection, item, indexName);
                 } else {
                     // Re-throw unexpected errors
                     throw error;
@@ -220,11 +260,7 @@ export class MongoClientManager {
      * @param item The collection configuration item containing index settings
      * @param indexName The name of the index to recreate
      */
-    private async recreateIndex(
-        collection: Collection,
-        item: { targetField: string; targetValue: number; unique: boolean },
-        indexName: string
-    ) {
+    private async rotateIndex(collection: Collection, item: CollectionConfig, indexName: string) {
         try {
             await collection.dropIndex(indexName);
         } catch (dropError) {
@@ -232,11 +268,8 @@ export class MongoClientManager {
             logger.warn(`Could not drop index ${indexName} (may not exist): ${(dropError as Error).message}`);
         }
 
-        await collection.createIndex(
-            { [item.targetField]: item.targetValue },
-            { unique: item.unique, name: indexName }
-        );
+        await collection.createIndex(item.indexKeys, { unique: item.unique, name: indexName });
 
-        logger.info(`Successfully recreated index ${indexName} for ${collection.collectionName}.${item.targetField}`);
+        logger.info(`Successfully recreated index ${indexName} for ${collection.collectionName}`);
     }
 }

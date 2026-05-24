@@ -9,7 +9,7 @@ const Tabs = ({ tabs, tabContents }: TabsProps) => {
         <TabsPrimitive defaultValue={tabs[0].value}>
             <TabsList variant="line">
                 {tabs.map(tab => (
-                    <TabsTrigger key={tab.value} value={tab.value} >
+                    <TabsTrigger key={tab.value} value={tab.value}>
                         <Text size="xs" appearance="foreground">
                             {tab.label}
                         </Text>

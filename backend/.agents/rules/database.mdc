@@ -49,6 +49,7 @@ return result.data;
 ## Unique Constraints
 
 - The `users` collection has a unique index on `email`.
+- The `jobs` collection has a unique compound index on `{ userId, name }` (names are unique per user, not globally).
 - MongoDB code `11000` (duplicate key) is handled automatically by `exceptionsMiddleware` → `ConflictException`.
 - DO NOT manually catch `11000` in controllers or repositories.
 

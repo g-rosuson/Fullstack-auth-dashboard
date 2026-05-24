@@ -29,7 +29,12 @@ jobs: # Job definitions for callers to inherit
 
             - name: Run integration tests # Vitest loads .env.integration.test → localhost:27017 Compose mongo (replica set)
               run: >-
-                  npx vitest run --config vitest.integration.config.mjs --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=test-results/junit-integration.xml
+                  npx vitest run \
+                    --config vitest.integration.config.mjs \
+                    --reporter=verbose \
+                    --reporter=github-actions \
+                    --reporter=junit \
+                    --outputFile.junit=test-results/junit-integration.xml
 
 
             - name: Upload JUnit and test results

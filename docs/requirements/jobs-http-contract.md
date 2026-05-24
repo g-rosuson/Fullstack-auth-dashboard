@@ -64,6 +64,13 @@ Jobs are **owned** by the user identified by the bearer token. Another user MUST
 | **JOBS-CRT-001** | Creating a job **without** a schedule (**`schedule: null`**) succeeds with **201**, **`success: true`**, **`data.name`** and **`data.id`** set, **`data.schedule`** **null**, tools persisted with stable identifiers (**e.g. `toolId`, nested `targetId`** where applicable). |
 | **JOBS-CRT-002** | Creating a **scheduled** job succeeds with **201**, **`success: true`**, non-null **`schedule`** with expected **`type`**, **`startDate`**, string **`nextRun`**, and **`lastRun`** either **`null`** or an ISO string. |
 
+### Job name uniqueness (create)
+
+| ID               | Business rule |
+|------------------|----------------|
+| **JOBS-UNQ-001** | Different users MAY create jobs with the **same** **`name`**; each receives **201** and distinct **`data.id`** values. |
+| **JOBS-UNQ-002** | The **same** user MUST NOT create two jobs with the **same** **`name`**; the second attempt returns **409**, **`success: false`**, **`CONFLICT_ERROR`**. |
+
 ### Schedule validation (create)
 
 | ID               | Business rule |
@@ -91,6 +98,7 @@ Jobs are **owned** by the user identified by the bearer token. Another user MUST
 | **JOBS-UPD-003** | **`schedule: null`** combined with **`runJob: true`** is accepted (**200**); **`schedule`** remains **null** in the response data. |
 | **JOBS-UPD-004** | While the job’s execution delegate is **running**, an update may be rejected with **422**, **`success: false`**, **`BUSINESS_LOGIC_ERROR`** (timing-sensitive; the integration test polls until this outcome or times out). |
 | **JOBS-UPD-005** | **PUT** for a **non-existent** id MUST yield **404**, **`success: false`**, **`NOT_FOUND_ERROR`**. |
+| **JOBS-UNQ-003** | Owner MUST NOT rename a job to the **`name`** of **another job they own**; **409**, **`success: false`**, **`CONFLICT_ERROR`**. |
 
 ---
 
@@ -125,6 +133,7 @@ Primary verification: **`backend/test/integration/jobs/jobs-integration.test.ts`
 | **JOBS-GET-002** | `[JOBS-GET-002]` |
 | **JOBS-CRT-001** | `[JOBS-CRT-001]` |
 | **JOBS-CRT-002** | `[JOBS-CRT-002]` |
+| **JOBS-UNQ-001**, **JOBS-UNQ-002** | `[JOBS-UNQ-001]`, `[JOBS-UNQ-002]` |
 | **JOBS-SCH-001** | `[JOBS-SCH-001]` |
 | **JOBS-SCH-002** | `[JOBS-SCH-002]` |
 | **JOBS-SCH-003** | `[JOBS-SCH-003]` |
@@ -133,6 +142,7 @@ Primary verification: **`backend/test/integration/jobs/jobs-integration.test.ts`
 | **JOBS-TLR-003** | `[JOBS-TLR-003]` — subject + body scenarios |
 | **JOBS-ISO-002** | `[JOBS-ISO-002]` |
 | **JOBS-UPD-001** … **JOBS-UPD-005** | matching `[JOBS-UPD-00x]` titles |
+| **JOBS-UNQ-003** | `[JOBS-UNQ-003]` |
 | **JOBS-ISO-003** | `[JOBS-ISO-003]` |
 | **JOBS-DEL-001**, **JOBS-DEL-002** | `[JOBS-DEL-001]`, `[JOBS-DEL-002]` |
 | **JOBS-SSE-001** | `[JOBS-SSE-001]` |
