@@ -208,12 +208,6 @@ export class MongoClientManager {
                 dropLegacyIndexes: item.dropLegacyIndexes,
             });
 
-            const indexesBeforeDrop = await collection.indexes();
-            console.log('[DBG:INIT] iter: indexes BEFORE drop-legacy', {
-                collection: item.name,
-                indexes: indexesBeforeDrop,
-            });
-
             // Drop legacy indexes if they exist
             if (item.dropLegacyIndexes.length) {
                 for (const legacyIndexName of item.dropLegacyIndexes) {
@@ -326,12 +320,6 @@ export class MongoClientManager {
                     throw error;
                 }
             }
-
-            const indexesAfter = await collection.indexes();
-            console.log('[DBG:INIT] iter: indexes AFTER operation', {
-                collection: item.name,
-                indexes: indexesAfter,
-            });
         }
 
         console.log('[DBG:INIT] initializeDb: done', { dbName: db.databaseName });
