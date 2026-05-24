@@ -180,8 +180,9 @@ export class MongoClientManager {
             try {
                 // Check if index already exists
                 const existingIndexes = await collection.indexes();
+                console.log('existingIndexes', existingIndexes);
                 const existingIndex = existingIndexes.find(idx => idx.name === indexName);
-
+                console.log('existingIndex', existingIndex);
                 if (existingIndex) {
                     const existingKey = existingIndex.key;
                     const configuredKey = item.indexKeys;
@@ -191,9 +192,9 @@ export class MongoClientManager {
                         ([field, order]) => existingKey[field] === order
                     );
                     const hasSameUniqueOption = existingIndex.unique === item.unique;
-                    const indexMatchesConfig = hasSameUniqueOption && hasSameFieldCount && hasSameFieldsAndOrder;
 
-                    if (indexMatchesConfig) {
+                    const areIndexesTheSame = hasSameUniqueOption && hasSameFieldCount && hasSameFieldsAndOrder;
+                    if (areIndexesTheSame) {
                         // Index exists with correct options - no action needed
                         logger.info(`Index ${indexName} already exists with correct options for ${item.name}`);
                         continue;
@@ -204,7 +205,7 @@ export class MongoClientManager {
                         `Index ${indexName} exists with different options for ${item.name}. Recreating with correct options.`
                     );
 
-                    await this.recreateIndex(collection, item, indexName);
+                    await this.rotateIndex(collection, item, indexName);
                 } else {
                     // Index doesn't exist - create it
                     await collection.createIndex(item.indexKeys, { unique: item.unique, name: indexName });
@@ -220,7 +221,7 @@ export class MongoClientManager {
                         `Index conflict detected for ${item.name} during creation. Recreating with correct options.`
                     );
 
-                    await this.recreateIndex(collection, item, indexName);
+                    await this.rotateIndex(collection, item, indexName);
                 } else {
                     // Re-throw unexpected errors
                     throw error;
@@ -239,7 +240,7 @@ export class MongoClientManager {
      * @param item The collection configuration item containing index settings
      * @param indexName The name of the index to recreate
      */
-    private async recreateIndex(collection: Collection, item: CollectionConfig, indexName: string) {
+    private async rotateIndex(collection: Collection, item: CollectionConfig, indexName: string) {
         try {
             await collection.dropIndex(indexName);
         } catch (dropError) {
