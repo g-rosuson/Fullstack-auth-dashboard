@@ -180,9 +180,7 @@ export class MongoClientManager {
             try {
                 // Check if index already exists
                 const existingIndexes = await collection.indexes();
-                console.log('existingIndexes', existingIndexes);
                 const existingIndex = existingIndexes.find(idx => idx.name === indexName);
-                console.log('existingIndex', existingIndex);
                 if (existingIndex) {
                     const existingKey = existingIndex.key;
                     const configuredKey = item.indexKeys;
@@ -209,7 +207,8 @@ export class MongoClientManager {
                 } else {
                     // Index doesn't exist - create it
                     await collection.createIndex(item.indexKeys, { unique: item.unique, name: indexName });
-
+                    const existingIndexes = await collection.indexes();
+                    console.log('created indexes', existingIndexes);
                     logger.info(`Created index ${indexName} for ${item.name}`);
                 }
             } catch (error) {

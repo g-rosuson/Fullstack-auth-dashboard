@@ -2,6 +2,8 @@ import { ObjectId } from 'mongodb';
 
 import type { CreateJobInput, UpdateJobInput } from 'modules/jobs/types';
 
+import { MongoClientManager } from 'aop/db/mongo/client';
+import config from 'aop/db/mongo/config';
 import { ErrorCode } from 'aop/exceptions/shared/enums';
 
 import constants from 'shared/constants';
@@ -342,6 +344,12 @@ describe('Integration: jobs HTTP', () => {
             });
 
             it('[JOBS-UNQ-002] returns conflict when the same user creates a duplicate job name', async () => {
+                const instance = MongoClientManager.getInstance();
+                const db = await instance.connect();
+                const collection = db.collection(config.db.collection.jobs.name);
+                const existingIndexes = await collection.indexes();
+                console.log('existingIndexes', existingIndexes);
+
                 const email = 'unq-duplicate-create@example.com';
                 const registerResponse = await getRegisterResponse(agent, email);
                 expect(registerResponse.status).toBe(200);
