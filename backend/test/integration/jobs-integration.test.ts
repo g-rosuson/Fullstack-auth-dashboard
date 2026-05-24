@@ -115,19 +115,25 @@ describe('Integration: jobs HTTP', () => {
     let agent: ReturnType<typeof getAgent>;
 
     beforeAll(async () => {
+        console.log('[DBG:JOBS-FILE] beforeAll: start');
         app = await initServer();
         agent = getAgent(app);
+        console.log('[DBG:JOBS-FILE] beforeAll: end (initServer awaited)');
     });
 
     beforeEach(async () => {
+        console.log('[DBG:JOBS-FILE] beforeEach: start');
         await deleteCronJobs();
         await clearCollections();
+        console.log('[DBG:JOBS-FILE] beforeEach: end');
     });
 
     afterAll(async () => {
+        console.log('[DBG:JOBS-FILE] afterAll: start');
         await deleteCronJobs();
         await clearCollections();
         await disconnectMongo();
+        console.log('[DBG:JOBS-FILE] afterAll: end');
     });
 
     describe(`GET ${constants.routes.jobs.getAll} — unauthenticated access`, () => {
@@ -346,19 +352,64 @@ describe('Integration: jobs HTTP', () => {
             it('[JOBS-UNQ-002] returns conflict when the same user creates a duplicate job name', async () => {
                 const instance = MongoClientManager.getInstance();
                 const db = await instance.connect();
-                const collection = db.collection(config.db.collection.jobs.name);
-                const existingIndexes = await collection.indexes();
-                console.log('existingIndexes', existingIndexes);
+                const jobsCollectionName = config.db.collection.jobs.name;
+                const collection = db.collection(jobsCollectionName);
+
+                console.log('[DBG:TEST] UNQ-002: test start', {
+                    dbName: db.databaseName,
+                    jobsCollectionName,
+                });
+
+                const indexesAtStart = await collection.indexes();
+                console.log('[DBG:TEST] UNQ-002: jobs indexes at test start', {
+                    indexes: indexesAtStart,
+                });
 
                 const email = 'unq-duplicate-create@example.com';
                 const registerResponse = await getRegisterResponse(agent, email);
                 expect(registerResponse.status).toBe(200);
                 const token = registerResponse.body.data as string;
 
+                // Decode the access token (no verify) to confirm the userId both requests will send.
+                const payloadSegment = token.split('.')[1];
+                let decodedUserId: string | undefined;
+                try {
+                    decodedUserId = JSON.parse(Buffer.from(payloadSegment, 'base64url').toString('utf8')).id as
+                        | string
+                        | undefined;
+                } catch (e) {
+                    console.log('[DBG:TEST] UNQ-002: failed to decode token payload', {
+                        message: (e as Error).message,
+                    });
+                }
+                console.log('[DBG:TEST] UNQ-002: registered, decoded userId', { decodedUserId });
+
+                const indexesBeforeFirstPost = await collection.indexes();
+                console.log('[DBG:TEST] UNQ-002: indexes BEFORE first POST', {
+                    indexes: indexesBeforeFirstPost,
+                });
+
                 const first = await agent
                     .post(constants.routes.jobs.create)
                     .set('Authorization', `Bearer ${token}`)
                     .send(buildJobWithoutSchedulePayload('Duplicate create'));
+
+                console.log('[DBG:TEST] UNQ-002: first POST result', {
+                    status: first.status,
+                    body: first.body,
+                });
+
+                const docsAfterFirst = await collection.find({}).toArray();
+                const indexesAfterFirstPost = await collection.indexes();
+                console.log('[DBG:TEST] UNQ-002: state AFTER first POST', {
+                    docsCount: docsAfterFirst.length,
+                    docs: docsAfterFirst.map(d => ({
+                        _id: d._id?.toString?.(),
+                        userId: (d as { userId?: unknown }).userId,
+                        name: (d as { name?: unknown }).name,
+                    })),
+                    indexes: indexesAfterFirstPost,
+                });
 
                 expect(first.status).toBe(201);
 
@@ -366,6 +417,23 @@ describe('Integration: jobs HTTP', () => {
                     .post(constants.routes.jobs.create)
                     .set('Authorization', `Bearer ${token}`)
                     .send(buildJobWithoutSchedulePayload('Duplicate create'));
+
+                console.log('[DBG:TEST] UNQ-002: second POST result', {
+                    status: second.status,
+                    body: second.body,
+                });
+
+                const docsAfterSecond = await collection.find({}).toArray();
+                const indexesAfterSecondPost = await collection.indexes();
+                console.log('[DBG:TEST] UNQ-002: state AFTER second POST', {
+                    docsCount: docsAfterSecond.length,
+                    docs: docsAfterSecond.map(d => ({
+                        _id: d._id?.toString?.(),
+                        userId: (d as { userId?: unknown }).userId,
+                        name: (d as { name?: unknown }).name,
+                    })),
+                    indexes: indexesAfterSecondPost,
+                });
 
                 expect(second.status).toBe(409);
                 expect(second.body.success).toBe(false);
