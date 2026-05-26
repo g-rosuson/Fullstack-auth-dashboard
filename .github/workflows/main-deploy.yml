@@ -1,7 +1,5 @@
-# TODO: Before deploying, this workflow should run regression, E2E, and smoke tests
-# as required by docs/requirements/ci-cd.md (Main Branch Validation Workflow).
-# Currently only the PR gate (unit + integration) protects main — deploy triggers
-# immediately on merge without post-merge test validation.
+# TODO: Before deploying, run regression tests per docs/requirements/ci-cd.md.
+# E2E/smoke tests now gate deploy; full regression suite is not yet implemented.
 name: Deploy to production # Runs on every push to main after merge
 
 on:
@@ -15,10 +13,15 @@ concurrency:
 
 permissions:
     contents: read
+    actions: write
 
 jobs:
+    e2e-tests:
+        uses: ./.github/workflows/reusable-e2e-tests.yml
+
     deploy:
         name: SSH deploy
+        needs: e2e-tests
         runs-on: ubuntu-latest
 
         steps:
