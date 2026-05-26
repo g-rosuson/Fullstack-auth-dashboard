@@ -10,7 +10,7 @@ The backend is Express/TypeScript. API schemas are defined with Zod, and `@astea
 
 ## Tech stack
 
-**Frontend:** React · TypeScript · Vite · Zustand · Orval · SCSS · Vitest
+**Frontend:** React · TypeScript · Vite · Zustand · Orval · SCSS · Vitest · Playwright (E2E)
 
 **Backend:** Node.js · Express · TypeScript · Zod · MongoDB · JWT · Crawlee · Playwright
 
@@ -49,6 +49,9 @@ docker compose -f docker-compose.prod.yml logs -f
 
 # Rebuild after code changes in production
 docker compose -f docker-compose.prod.yml up -d --build
+
+# E2E tests (requires Node + frontend deps installed locally; Chromium + Firefox — WebKit runs in CI only)
+npm run test:e2e
 ```
 
 ---
@@ -58,6 +61,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 - [docs/docker.md](docs/docker.md) — container architecture, image decisions, HMR setup, volumes
 - [docs/database.md](docs/database.md) — replica set, transactions, MongoDB auth, security tradeoffs, backups
 - [docs/deployment.md](docs/deployment.md) — first deployment, environment files, secrets, monitoring
+- [docs/guides/e2e-testing.md](docs/guides/e2e-testing.md) — Playwright E2E setup, conventions, and CI
 
 ---
 
