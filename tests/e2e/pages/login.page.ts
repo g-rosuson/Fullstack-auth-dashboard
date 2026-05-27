@@ -22,4 +22,10 @@ export class LoginPage {
     async goto() {
         await this.page.goto(routes.login);
     }
+
+    async login(email: string, password: string) {
+        await this.emailField.fill(email);
+        await this.passwordField.fill(password);
+        await this.submitButton.click();
+    }
 }

@@ -6,10 +6,10 @@ type E2EFixtures = {
     loginPage: LoginPage;
 };
 
-export const test = base.extend<E2EFixtures>({
+const test = base.extend<E2EFixtures>({
     loginPage: async ({ page }, use) => {
         await use(new LoginPage(page));
     },
 });
 
-export { expect } from '@playwright/test';
+export { test };
