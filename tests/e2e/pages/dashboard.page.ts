@@ -2,17 +2,15 @@ import type { Locator, Page } from '@playwright/test';
 
 export class DashboardPage {
     readonly page: Page;
-    readonly userAvatar: Locator;
-    readonly sidebar: Locator;
+    readonly userMenuTrigger: Locator;
 
     constructor(page: Page) {
         this.page = page;
-        this.userAvatar = page.getByRole('button', { name: 'Dropdown menu trigger' });
-        this.sidebar = page.getByTestId('sidebar');
+        this.userMenuTrigger = page.getByRole('button', { name: 'Dropdown menu trigger' });
     }
 
     async logout() {
-        await this.userAvatar.click();
+        await this.userMenuTrigger.click();
         await this.page.getByRole('menuitem', { name: 'Logout' }).click();
     }
 }
