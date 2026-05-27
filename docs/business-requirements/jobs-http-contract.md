@@ -1,3 +1,5 @@
+<!-- TODO: Does this only refer to integration tests, and therefore should live in /backend? -->
+
 # Jobs HTTP contract — business requirements
 
 **Scope:** Authenticated CRUD and streaming endpoints for **per-user jobs**. Rules describe **observable HTTP behavior** (status, JSON envelope, isolation). Stable requirement IDs tie scenarios to integration tests. Payload shapes and validators live in the backend; this document summarizes what callers can rely on.

@@ -70,23 +70,50 @@ npm run test:e2e -- --project=chromium
 
 Playwright starts the Vite dev server automatically (`npm run dev` in `frontend/`), waits for `http://localhost:5173`, runs tests, then shuts the server down.
 
+### Auth tests (full stack)
+
+Tests in `auth/` require the **backend and MongoDB** running on port `1000` / `27017`:
+
+```bash
+docker compose -f docker-compose.dev.yml up backend mongo
+```
+
+Or start the full dev stack with `npm run start:dev`.
+
+Auth tests self-register a unique user via `POST /api/auth/register` before each test. If the backend is unavailable, the auth suite is skipped automatically.
+
+```bash
+npm run test:e2e -- tests/e2e/spec/auth
+```
+
+### Shell UI (sidebar, top bar, avatar, theme)
+
+These are **not** covered by E2E. They are validated by frontend unit tests:
+
+- `frontend/src/components/layout/sidebar/Sidebar.test.tsx` — nav links, active route
+- `frontend/src/components/layout/topBar/TobBar.test.tsx` — sidebar toggle
+- Avatar and theme toggle — covered alongside layout components in unit tests
+
+E2E focuses on cross-page auth and session flows; shell behavior is cheaper and more reliable to test in Vitest.
+
 ---
 
 ## Directory layout
 
 ```txt
-tests/end-to-end/
-  auth/         # authenticated user flows (login, session, protected routes)
-  smoke/        # startup and critical-path health checks
-  fixtures/     # extended test fixtures (e.g. loginPage)
-  helpers/      # E2E-only utilities (API setup, seed data)
-  pages/        # Page Object Models
+tests/e2e/
+  spec/
+    auth/         # login, logout, session, protected routes
+    smoke/        # startup and critical-path health checks
+  fixtures/       # extended test fixtures (e.g. loginPage, testUser)
+  helpers/        # E2E-only utilities (API setup)
+  pages/          # Page Object Models
 playwright.config.ts
 ```
 
 | Layer | Purpose |
 |---|---|
-| `smoke/` | Fast checks that the app loads and primary UI is visible — no backend dependency |
+| `smoke/` | Fast checks that the app loads — no backend dependency |
 | `auth/` | Full auth flows that require backend + database |
 | `pages/` | Encapsulate locators and navigation for a screen |
 | `fixtures/` | Shared Playwright test extensions |

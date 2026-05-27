@@ -1,3 +1,5 @@
+<!-- TODO: Does this only refer to integration tests, and therefore should live in /backend? -->
+
 # Auth HTTP contract — business requirements
 
 **Scope:** HTTP authentication for this product: registration, login, session refresh, and logout. These rules are the **contract** between the backend API and any client (web app, mobile, integration tests). Implementation details live in the codebase; this document states **observable behavior** and stable requirement IDs for traceability (e.g. tying tests to rules).

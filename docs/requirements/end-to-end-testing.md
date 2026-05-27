@@ -53,9 +53,10 @@ Create:
 ```txt
 root/
   tests/
-    end-to-end/
-      auth/
-      smoke/
+    e2e/
+      spec/
+        auth/
+        smoke/
       fixtures/
       helpers/
       pages/
