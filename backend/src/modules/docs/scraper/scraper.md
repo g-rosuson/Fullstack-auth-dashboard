@@ -46,7 +46,7 @@ A scraper **tool** defines defaults; each **target** can override them.
 | `maxPages` | optional non-negative number | optional non-negative number | At least one side must provide a valid `maxPages`. Target wins when both are valid. |
 | `targets` | required array | — | Each entry: `target` (`jobs-ch` \| `job-ich`), `targetId`, optional overrides. |
 
-**HTTP validation** (create/update job): [`jobs-validators.ts`](../../jobs/validators/jobs-validators.ts) — rules **JOBS-TLR-001** / **JOBS-TLR-002** in [jobs-http-contract.md](../../../../docs/requirements/jobs-http-contract.md).
+**HTTP validation** (create/update job): [`jobs-validators.ts`](../../jobs/validators/jobs-validators.ts) — rules **JOBS-TLR-001** / **JOBS-TLR-002** in [jobs-http-contract.md](../../../../docs/business-requirements/jobs-http-contract.md).
 
 **Runtime validation** (execution): the orchestrator re-checks merged config. Missing keywords or `maxPages` yields a single error result and an empty summary (see [Error outcomes](#error-outcomes)).
 
@@ -180,4 +180,4 @@ cd backend && npm test -- --run src/aop/delegator/tools/scraper
 ## Related docs
 
 - [Match step](./scraper-match-step.md) — planned LLM evaluation stage on each row.
-- [Jobs HTTP contract](../../../../../docs/requirements/jobs-http-contract.md) — scraper tool validation on create/update.
+- [Jobs HTTP contract](../../../../../docs/business-requirements/jobs-http-contract.md) — scraper tool validation on create/update.

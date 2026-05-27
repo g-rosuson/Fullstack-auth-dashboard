@@ -20,7 +20,7 @@ const mockRegisterPayload = buildRegisterPayload(mockEmail);
  * Integration: auth routes against real Mongo + bcrypt + cookies + JWT verification.
  * Asserts HTTP contracts (status, JSON envelope), not internal handlers.
  *
- * Requirement IDs: docs/requirements/auth-http-contract.md
+ * Requirement IDs: docs/business-requirements/auth-http-contract.md
  */
 describe('Integration: auth HTTP', () => {
     let app: Express;

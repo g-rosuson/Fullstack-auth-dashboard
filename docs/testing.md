@@ -39,4 +39,4 @@ PR merge expectations are summarized in [`docs/requirements/ci-cd.md`](../requir
 
 - Name tests `*.test.ts` / `*.test.tsx` (or `*.unit.test.tsx` where the frontend distinguishes heavier suites).
 - Prefer integration specs for **HTTP and persistence contracts**; keep unit tests fast and free of real DB unless unavoidable.
-- Backend integration specs reference requirement docs where applicable (e.g. `docs/requirements/auth-http-contract.md`, jobs contract).
+- Backend integration specs reference requirement docs where applicable (e.g. `docs/business-requirements/auth-http-contract.md`, `docs/business-requirements/jobs-http-contract.md`).

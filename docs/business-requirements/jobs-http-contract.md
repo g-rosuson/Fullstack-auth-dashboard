@@ -1,5 +1,3 @@
-<!-- TODO: Does this only refer to integration tests, and therefore should live in /backend? -->
-
 # Jobs HTTP contract — business requirements
 
 **Scope:** Authenticated CRUD and streaming endpoints for **per-user jobs**. Rules describe **observable HTTP behavior** (status, JSON envelope, isolation). Stable requirement IDs tie scenarios to integration tests. Payload shapes and validators live in the backend; this document summarizes what callers can rely on.
@@ -123,7 +121,9 @@ Jobs are **owned** by the user identified by the bearer token. Another user MUST
 
 ## Traceability (backend integration tests)
 
-Primary verification: **`backend/test/integration/jobs/jobs-integration.test.ts`**. Each `it(...)` title is prefixed with a bracketed requirement ID so you can grep by ID.
+Primary verification: **`backend/test/integration/jobs-integration.test.ts`**. Each `it(...)` title is prefixed with a bracketed requirement ID so you can grep by ID.
+
+Browser-level UI verification for a subset of these rules: [jobs-e2e.md](./jobs-e2e.md) (`JOBS-E2E-*`, cross-reference table).
 
 | ID | Verified by |
 |----|-------------|

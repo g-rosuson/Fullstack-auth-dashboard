@@ -106,7 +106,7 @@ function buildUpdateJobPayload(
  * Integration: jobs HTTP — real Mongo, middleware, and route handlers.
  * Each `describe` names the endpoint (`METHOD path`); scenario detail lives in `it` titles and IDs.
  *
- * Requirement IDs: docs/requirements/jobs-http-contract.md
+ * Requirement IDs: docs/business-requirements/jobs-http-contract.md
  */
 describe('Integration: jobs HTTP', () => {
     let app: Express;
