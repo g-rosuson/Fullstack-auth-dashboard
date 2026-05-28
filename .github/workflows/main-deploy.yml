@@ -1,5 +1,4 @@
-# TODO: Before deploying, run regression tests per docs/requirements/ci-cd.md.
-# E2E/smoke tests now gate deploy; full regression suite is not yet implemented.
+# Full-stack E2E tests gate deploy on push to main; full regression suite is not yet implemented.
 name: Deploy to production # Runs on every push to main after merge
 
 on:

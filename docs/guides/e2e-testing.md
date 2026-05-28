@@ -195,6 +195,6 @@ Push and PR workflows intentionally skip E2E for speed — see [`docs/requiremen
 | Issue | Fix |
 |---|---|
 | `No tests found` | Run from repo root, not `frontend/` |
-| Dev server port in use | Stop other Vite instances on `5173`, or set `reuseExistingServer` locally (default when `CI` is unset) |
-| WebKit skipped locally | Expected — WebKit runs in CI only. Use Chromium or Firefox locally |
+| Dev server port in use | Stop other Vite instances on `5173`. With `CI=true`, Playwright always starts a fresh server (`reuseExistingServer: false`) — free the port first |
+| `CI=true` locally on macOS | WebKit runs in GitHub Actions only on Linux. Locally use `CI=true npm run test:e2e -- --project=chromium --project=firefox` |
 | Frontend module not found | Run `npm ci` in `frontend/` |

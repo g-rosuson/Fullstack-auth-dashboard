@@ -32,11 +32,31 @@ Backend integration tests exercise the same MongoDB topology the app expects in 
 
 1. **Unit:** reusable workflow runs `npm ci` then `npx vitest run` with default reporters plus JUnit under `test-results/` for **backend** and **frontend** in parallel matrix legs.
 2. **Backend integration:** runs only after unit succeeds; starts Mongo via `docker compose -f docker-compose.dev.yml up -d mongo --wait`, then `vitest run --config vitest.integration.config.mjs` with JUnit output.
+3. **E2E (main only):** on push to `main`, [`reusable-e2e-tests.yml`](../.github/workflows/reusable-e2e-tests.yml) runs before deploy — Mongo, backend (`npm run start:e2e`), then Playwright smoke + auth. PR workflows skip E2E; see [`ci-cd.md`](../requirements/ci-cd.md).
 
 PR merge expectations are summarized in [`docs/requirements/ci-cd.md`](../requirements/ci-cd.md).
+
+## End-to-end (repo root)
+
+Playwright E2E tests live in [`tests/e2e/`](../tests/e2e/). Playwright starts the Vite dev server; auth specs also need Mongo and the backend on `:1000` / `:27017`.
+
+**Commands** (from repo root):
+
+- `npm run test:e2e` — smoke + auth (Chromium + Firefox locally)
+- `npm run test:e2e:report` — open last HTML report
+
+Full setup, CI behavior, and troubleshooting: [`docs/guides/e2e-testing.md`](guides/e2e-testing.md). Requirement specs: [`auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md), [`jobs-e2e-contract.md`](../business-requirements/jobs-e2e-contract.md).
+
+**Local full stack for auth:**
+
+```bash
+docker compose -f docker-compose.dev.yml up -d mongo --wait
+cd backend && npm run start:e2e   # separate terminal
+npm run test:e2e -- tests/e2e/spec/auth
+```
 
 ## Conventions (quick reference)
 
 - Name tests `*.test.ts` / `*.test.tsx` (or `*.unit.test.tsx` where the frontend distinguishes heavier suites).
 - Prefer integration specs for **HTTP and persistence contracts**; keep unit tests fast and free of real DB unless unavoidable.
-- Backend integration specs reference requirement docs where applicable (e.g. `docs/business-requirements/auth-http-contract.md`, `docs/business-requirements/jobs-http-contract.md`).
+- Backend integration specs reference requirement docs where applicable (e.g. `docs/business-requirements/auth-http-contract.md`, `docs/business-requirements/auth-e2e-contract.md`, `docs/business-requirements/jobs-http-contract.md`).
