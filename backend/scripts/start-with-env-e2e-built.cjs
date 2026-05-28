@@ -20,6 +20,10 @@ require('dotenv').config({
 
 const backendRoot = path.resolve(__dirname, '..');
 
+// BEGIN E2E-DEBUG — remove after CI root-cause is fixed
+console.error(`[E2E-DEBUG] wrapper pid=${process.pid} cwd=${backendRoot}`);
+// END E2E-DEBUG
+
 const child = spawn('node', ['dist/src/main.js'], {
     cwd: backendRoot,
     env: {
@@ -29,4 +33,10 @@ const child = spawn('node', ['dist/src/main.js'], {
     stdio: 'inherit',
 });
 
-child.on('exit', code => process.exit(code ?? 0));
+// BEGIN E2E-DEBUG — remove after CI root-cause is fixed
+console.error(`[E2E-DEBUG] spawned node child pid=${child.pid}`);
+child.on('exit', (code, signal) => {
+    console.error(`[E2E-DEBUG] node child exited code=${code} signal=${signal ?? 'none'}`);
+    process.exit(code ?? 0);
+});
+// END E2E-DEBUG
