@@ -34,6 +34,9 @@ jobs:
               run: npm ci
               working-directory: backend
 
+            - name: Verify MongoDB for E2E
+              run: bash .github/scripts/verify-mongo-e2e.sh
+
             - name: Start backend and wait for health
               run: bash .github/scripts/start-e2e-backend.sh
 
