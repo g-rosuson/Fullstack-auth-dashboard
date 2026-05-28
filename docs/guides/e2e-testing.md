@@ -77,7 +77,7 @@ Requirements: [`docs/business-requirements/auth-e2e-contract.md`](../business-re
 Tests in `auth/` require the **backend and MongoDB** on `:1000` / `:27017`:
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d mongo
+docker compose -f docker-compose.e2e.yml up -d mongo
 cd backend && npm run start:e2e
 npm run test:e2e -- tests/e2e/spec/auth
 ```
@@ -178,7 +178,7 @@ E2E runs on pushes to `main` via [`.github/workflows/reusable-e2e-tests.yml`](..
 
 The workflow:
 
-1. Starts MongoDB via Docker Compose (single-node replica set)
+1. Starts MongoDB via [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) (single-node replica set, no `.env.dev` required)
 2. Installs root, frontend, and backend dependencies
 3. Starts the backend with `npm run start:e2e` and waits for OpenAPI on `:1000` (see [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) — `nohup`/`disown` keeps the server alive for Playwright)
 4. Installs Playwright browsers with `--with-deps`

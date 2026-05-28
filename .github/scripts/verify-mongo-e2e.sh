@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="${ROOT_DIR}/docker-compose.dev.yml"
+COMPOSE_FILE="${ROOT_DIR}/docker-compose.e2e.yml"
 MONGO_URI="mongodb://127.0.0.1:27017/test?directConnection=true"
 
 echo "--- docker compose ps mongo ---"
