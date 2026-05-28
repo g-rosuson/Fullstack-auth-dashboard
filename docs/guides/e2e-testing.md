@@ -180,11 +180,10 @@ The workflow:
 
 1. Starts MongoDB via Docker Compose (single-node replica set)
 2. Installs root, frontend, and backend dependencies
-3. Starts the backend with `backend/.env.e2e.test` (`npm run start:e2e`)
-4. Waits for the OpenAPI endpoint on `:1000`
-5. Installs Playwright browsers with `--with-deps`
-6. Runs `npm run test:e2e` with `CI=true` — smoke + auth must pass
-7. Uploads HTML report, test artifacts, and backend log on failure
+3. Starts the backend with `npm run start:e2e` and waits for OpenAPI on `:1000` (see [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) — `nohup`/`disown` keeps the server alive for Playwright)
+4. Installs Playwright browsers with `--with-deps`
+5. Runs `npm run test:e2e` with `CI=true` — smoke + auth must pass
+6. Stops the backend and uploads HTML report, test artifacts, and backend log on failure
 
 Push and PR workflows intentionally skip E2E for speed — see [`docs/requirements/ci-cd.md`](../requirements/ci-cd.md).
 
