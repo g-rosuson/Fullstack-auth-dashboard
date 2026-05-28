@@ -17,3 +17,8 @@ node_modules
 
 # Vitest CI output (JUnit, etc.)
 **/test-results/
+
+# Playwright E2E output
+playwright-report/
+blob-report/
+.playwright/

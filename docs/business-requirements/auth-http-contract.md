@@ -72,7 +72,9 @@ Refresh MUST use only the **refresh** signing secret; an access token MUST NOT b
 
 ## Traceability (backend integration tests)
 
-Primary verification: `backend/test/integration/auth/auth-integration.test.ts`. Each `it(...)` title is prefixed with bracketed requirement IDs (e.g. `[AUTH-REG-001][AUTH-TOK-001] ...`) so you can grep by ID.
+Primary verification: **`backend/test/integration/auth-integration.test.ts`**. Each `it(...)` title is prefixed with bracketed requirement IDs (e.g. `[AUTH-REG-001][AUTH-TOK-001] ...`) so you can grep by ID.
+
+Browser-level UI verification: [auth-e2e-contract.md](./auth-e2e-contract.md) (`AUTH-E2E-*`, cross-reference table).
 
 | ID | Verified by |
 |----|-------------|

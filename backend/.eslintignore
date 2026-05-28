@@ -1,4 +1,5 @@
 node_modules/
+scripts/
 
 src/vite-env.d.ts
 global.d.ts

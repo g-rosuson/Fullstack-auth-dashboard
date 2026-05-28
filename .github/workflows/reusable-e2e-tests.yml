@@ -1,0 +1,84 @@
+name: Reusable E2E tests
+
+on:
+    workflow_call:
+
+jobs:
+    e2e:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Start MongoDB (single-node replica set)
+              run: docker compose -f docker-compose.dev.yml up -d mongo --wait
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      frontend/package-lock.json
+                      backend/package-lock.json
+
+            - name: Install root dependencies
+              run: npm ci
+
+            - name: Install frontend dependencies
+              run: npm ci
+              working-directory: frontend
+
+            - name: Install backend dependencies
+              run: npm ci
+              working-directory: backend
+
+            - name: Start backend for E2E
+              working-directory: backend
+              run: npm run start:e2e > ../backend-e2e.log 2>&1 &
+
+            - name: Wait for backend health
+              run: |
+                  for i in $(seq 1 60); do
+                      if curl -sf http://localhost:1000/api/docs/openapi; then
+                          exit 0
+                      fi
+                      sleep 2
+                  done
+                  echo "Backend did not become ready within 120s"
+                  echo "--- backend-e2e.log ---"
+                  cat backend-e2e.log || true
+                  exit 1
+
+            - name: Install Playwright browsers
+              run: npx playwright install --with-deps chromium firefox webkit
+
+            - name: Run E2E tests
+              run: npm run test:e2e
+              env:
+                  CI: true
+
+            - name: Upload Playwright report
+              if: success() || failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-report
+                  path: playwright-report/
+                  if-no-files-found: warn
+
+            - name: Upload Playwright test results
+              if: success() || failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-test-results
+                  path: test-results/
+                  if-no-files-found: warn
+
+            - name: Upload backend log
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: backend-e2e-log
+                  path: backend-e2e.log
+                  if-no-files-found: warn

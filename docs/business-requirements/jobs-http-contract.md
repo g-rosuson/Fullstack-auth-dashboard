@@ -121,7 +121,9 @@ Jobs are **owned** by the user identified by the bearer token. Another user MUST
 
 ## Traceability (backend integration tests)
 
-Primary verification: **`backend/test/integration/jobs/jobs-integration.test.ts`**. Each `it(...)` title is prefixed with a bracketed requirement ID so you can grep by ID.
+Primary verification: **`backend/test/integration/jobs-integration.test.ts`**. Each `it(...)` title is prefixed with a bracketed requirement ID so you can grep by ID.
+
+Browser-level UI verification for a subset of these rules: [jobs-e2e.md](./jobs-e2e.md) (`JOBS-E2E-*`, cross-reference table).
 
 | ID | Verified by |
 |----|-------------|
