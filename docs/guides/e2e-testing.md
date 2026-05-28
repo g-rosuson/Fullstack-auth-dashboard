@@ -163,6 +163,7 @@ import routes from '../../../frontend/src/config/routes.config';
 ### Page Objects and fixtures
 
 ```ts
+// TODO this is stale
 import { expect, test } from '../fixtures/base';
 
 test('login page loads', async ({ loginPage }) => {
@@ -193,7 +194,7 @@ The workflow:
 
 1. Starts MongoDB via [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) and verifies connectivity ([`verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh))
 2. Installs root, frontend, and backend dependencies
-3. Builds the backend and starts it with [`.env.e2e.test`](../../backend/.env.e2e.test) via [`start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) (`npm run build` + `start:e2e:built` → `node dist/src/main.js`, prod entrypoint)
+3. Builds the backend (`npm run build`) and starts it with [`.env.e2e.test`](../../backend/.env.e2e.test) via [`start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) (`start:e2e:built` → `node dist/src/main.js` on `0.0.0.0:1000`)
 4. Installs Playwright browsers with `--with-deps`
 5. Runs `npm run test:e2e` with `CI=true` — smoke + auth must pass
 6. Stops the backend ([`stop-e2e-backend.sh`](../../.github/scripts/stop-e2e-backend.sh)) and uploads HTML report, test artifacts, and backend log

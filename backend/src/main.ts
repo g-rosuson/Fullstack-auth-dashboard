@@ -11,7 +11,7 @@ const run = async (): Promise<void> => {
     try {
         const app = await server.init();
 
-        httpServer = app.listen(1000, () => {
+        httpServer = app.listen(1000, '0.0.0.0', () => {
             logger.info(`🚀 Server listening on port ${1000}`);
         });
 
