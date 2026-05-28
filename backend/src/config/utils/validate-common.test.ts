@@ -38,6 +38,7 @@ describe('validateCommonEnvironmentVariables', () => {
             const result = validateCommonEnvironmentVariables();
 
             expect(result).toEqual({
+                port: 1000,
                 accessTokenSecret: accessTokenSecretValue,
                 refreshTokenSecret: refreshTokenSecretValue,
                 mongoURI: mongoUriValue,

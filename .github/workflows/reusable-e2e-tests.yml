@@ -51,6 +51,7 @@ jobs:
               run: npm run test:e2e
               env:
                   CI: true
+                  E2E_BACKEND_URL: http://localhost:3000
 
             - name: Stop backend
               if: always()

@@ -7,7 +7,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG_FILE="${ROOT_DIR}/backend-e2e.log"
 PID_FILE="${ROOT_DIR}/backend-e2e.pid"
-HEALTH_URL="http://127.0.0.1:1000/api/docs/openapi"
+E2E_ENV_FILE="${ROOT_DIR}/backend/.env.e2e.test"
+E2E_PORT="3000"
+if [[ -f "${E2E_ENV_FILE}" ]]; then
+    E2E_PORT="$(grep -E '^PORT=' "${E2E_ENV_FILE}" | tail -1 | cut -d= -f2 | tr -d '\r' || true)"
+fi
+E2E_PORT="${E2E_PORT:-3000}"
+HEALTH_URL="http://127.0.0.1:${E2E_PORT}/api/docs/openapi"
 MAX_ATTEMPTS=60
 SLEEP_SECONDS=2
 
@@ -17,6 +23,7 @@ e2e_debug() {
     echo "[E2E-DEBUG] ========== ${label} =========="
 
     echo "[E2E-DEBUG] timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    echo "[E2E-DEBUG] E2E port: ${E2E_PORT}"
     echo "[E2E-DEBUG] health URL: ${HEALTH_URL}"
 
     if [[ -f "${PID_FILE}" ]]; then
@@ -39,25 +46,25 @@ e2e_debug() {
     echo "[E2E-DEBUG] compiled listen line in dist/src/main.js:"
     grep -n 'listen' "${ROOT_DIR}/backend/dist/src/main.js" 2>/dev/null || echo "[E2E-DEBUG] (grep failed)"
 
-    echo "[E2E-DEBUG] listeners on port 1000 (lsof):"
+    echo "[E2E-DEBUG] listeners on port ${E2E_PORT} (lsof):"
     if command -v lsof >/dev/null 2>&1; then
-        lsof -nP -iTCP:1000 -sTCP:LISTEN 2>/dev/null || echo "[E2E-DEBUG] (no listeners / lsof error)"
+        lsof -nP -iTCP:"${E2E_PORT}" -sTCP:LISTEN 2>/dev/null || echo "[E2E-DEBUG] (no listeners / lsof error)"
     else
         echo "[E2E-DEBUG] lsof not available"
     fi
 
-    echo "[E2E-DEBUG] listeners on port 1000 (ss):"
+    echo "[E2E-DEBUG] listeners on port ${E2E_PORT} (ss):"
     if command -v ss >/dev/null 2>&1; then
-        ss -ltnp 'sport = :1000' 2>/dev/null || true
+        ss -ltnp "sport = :${E2E_PORT}" 2>/dev/null || true
     else
         echo "[E2E-DEBUG] ss not available"
     fi
 
     local url curl_output curl_exit
     for url in \
-        "http://127.0.0.1:1000/api/docs/openapi" \
-        "http://localhost:1000/api/docs/openapi" \
-        "http://[::1]:1000/api/docs/openapi"; do
+        "http://127.0.0.1:${E2E_PORT}/api/docs/openapi" \
+        "http://localhost:${E2E_PORT}/api/docs/openapi" \
+        "http://[::1]:${E2E_PORT}/api/docs/openapi"; do
         echo "[E2E-DEBUG] curl ${url}"
         curl_output="$(curl -s --connect-timeout 2 --max-time 5 -o /dev/null -w 'http_code=%{http_code} time=%{time_total}s' "${url}" 2>&1)" || curl_exit=$?
         echo "[E2E-DEBUG]   ${curl_output:-failed} shell_exit=${curl_exit:-0}"
@@ -69,9 +76,9 @@ e2e_debug() {
 
     echo "[E2E-DEBUG] nc probes:"
     if command -v nc >/dev/null 2>&1; then
-        nc -zv 127.0.0.1 1000 2>&1 || true
-        nc -zv localhost 1000 2>&1 || true
-        nc -zv ::1 1000 2>&1 || true
+        nc -zv 127.0.0.1 "${E2E_PORT}" 2>&1 || true
+        nc -zv localhost "${E2E_PORT}" 2>&1 || true
+        nc -zv ::1 "${E2E_PORT}" 2>&1 || true
     else
         echo "[E2E-DEBUG] nc not available"
     fi
@@ -101,7 +108,7 @@ nohup npm run start:e2e:built >> "${LOG_FILE}" 2>&1 &
 echo $! > "${PID_FILE}"
 disown
 
-echo "Backend starting (pid $(cat "${PID_FILE}")), log: ${LOG_FILE}"
+echo "Backend starting (pid $(cat "${PID_FILE}")), port ${E2E_PORT}, log: ${LOG_FILE}"
 
 # BEGIN E2E-DEBUG
 sleep 1

@@ -10,7 +10,7 @@ const E2E_TEST_USER = {
 };
 
 /** Backend base URL for E2E API helpers. */
-const E2E_BACKEND_URL = process.env.E2E_BACKEND_URL ?? 'http://localhost:1000';
+const E2E_BACKEND_URL = process.env.E2E_BACKEND_URL ?? 'http://localhost:3000';
 
 /** The URL of the OpenAPI endpoint. */
 const OPENAPI_URL = `${E2E_BACKEND_URL}/api/docs/openapi`;

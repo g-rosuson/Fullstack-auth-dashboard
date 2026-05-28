@@ -39,6 +39,8 @@ const enableLoggingSchema = z.enum(['true', 'false'], {
     errorMap: () => ({ message: EnvErrorMessage.DISABLE_LOGGING_INVALID }),
 });
 
+const portSchema = z.coerce.number().int().min(1).max(65535).default(1000);
+
 export {
     nodeEnvSchema,
     devClientUrlSchema,
@@ -55,4 +57,5 @@ export {
     mongoJobsCollectionNameSchema,
     enableHttpRateLimitSchema,
     enableLoggingSchema,
+    portSchema,
 };

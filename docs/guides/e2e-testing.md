@@ -70,23 +70,100 @@ npm run test:e2e -- --project=chromium
 
 Playwright starts the Vite dev server automatically (`npm run dev` in `frontend/`), waits for `http://localhost:5173`, runs tests, then shuts the server down.
 
-### Auth tests (full stack)
+**Smoke tests only** need the command above — no Mongo or backend.
 
-Requirements: [`docs/business-requirements/auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md)
+### Local full stack (auth tests)
 
-Tests in `auth/` require the **backend and MongoDB** on `:1000` / `:27017`:
+Auth specs need Mongo, a host-process backend on `:3000`, and a **fresh** Vite dev server on `:5173` with `VITE_BACKEND_URL=http://localhost:3000`. Playwright starts Vite for you; you must **not** reuse the Docker dev frontend.
+
+#### 1. Stop the Docker dev frontend
+
+If you use [`docker-compose.dev.yml`](../../docker-compose.dev.yml), stop the **frontend** service (and any standalone `npm run dev` on `:5173`):
+
+```bash
+docker compose -f docker-compose.dev.yml stop frontend
+```
+
+Also stop a local Vite process if one is already bound to `:5173`.
+
+**Why:** Playwright sets `reuseExistingServer: true` locally. If `:5173` is already taken by Docker dev or another Vite instance, Playwright reuses it. That server was built with `VITE_BACKEND_URL=http://localhost:1000` (see `docker-compose.dev.yml`), so login and session tests fail while smoke and “stay on login page” tests may still pass. E2E expects the API on **`:3000`**, not Docker’s `:1000`.
+
+You can leave **Mongo** from either compose file running, or use the E2E mongo-only stack (step 2). Stop the Docker **backend** on `:1000` if it is running — E2E uses `npm run start:e2e` on `:3000` instead.
+
+#### 2. Start Mongo (E2E stack)
+
+From the repo root:
 
 ```bash
 docker compose -f docker-compose.e2e.yml up -d mongo --wait
-cd backend && npm run start:e2e   # separate terminal — see Backend bootstrap below
-npm run test:e2e -- tests/e2e/spec/auth
 ```
 
-The `testUser` fixture registers a unique user via API before each test. Auth tests **fail** if the backend is not available (local and CI).
+Uses [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) (mongo only — no gitignored `backend/.env.dev`).
+
+#### 3. Start the backend (separate terminal)
+
+The `start:e2e` script lives in **`backend/package.json`**, not the repo root:
+
+```bash
+cd backend && npm run start:e2e
+```
+
+This loads [`backend/.env.e2e.test`](../../backend/.env.e2e.test) via [`start-with-env-e2e.cjs`](../../backend/scripts/start-with-env-e2e.cjs) (`ts-node-dev`, no build step). Wait for `🚀 Server listening on port 3000`.
+
+Verify:
+
+```bash
+curl -sf http://localhost:3000/api/docs/openapi
+```
+
+#### 4. Run Playwright (repo root)
+
+In another terminal, from the repo root:
+
+```bash
+npm run test:e2e                    # smoke + auth (Chromium + Firefox)
+npm run test:e2e -- tests/e2e/spec/auth   # auth only
+```
+
+Playwright starts Vite with `VITE_BACKEND_URL=http://localhost:3000` (see [`playwright.config.ts`](../../playwright.config.ts)).
+
+To force a new Vite server even if something is still on `:5173`:
+
+```bash
+CI=true npm run test:e2e
+```
+
+#### Summary
+
+| Step | Where | Command |
+|------|--------|---------|
+| Stop Docker frontend | repo root | `docker compose -f docker-compose.dev.yml stop frontend` |
+| Mongo | repo root | `docker compose -f docker-compose.e2e.yml up -d mongo --wait` |
+| Backend | `backend/` | `npm run start:e2e` |
+| Tests | repo root | `npm run test:e2e` |
+
+The `testUser` fixture registers a unique user via API before each auth test. Auth tests **fail closed** if the backend is not reachable on `:3000`.
+
+Requirements: [`docs/business-requirements/auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md)
 
 ### Backend bootstrap
 
 E2E loads test env from [`backend/.env.e2e.test`](../../backend/.env.e2e.test) (committed secrets, dedicated DB/collection names, `MONGO_URI` → `127.0.0.1:27017`).
+
+#### Why port 3000 for E2E (not 1000)
+
+Production and Docker dev expose the API on **port 1000** (see [`docker-compose.dev.yml`](../../docker-compose.dev.yml), [`docs/docker.md`](../docker.md)). E2E uses **port 3000** instead, set via `PORT=3000` in [`.env.e2e.test`](../../backend/.env.e2e.test).
+
+On Linux, ports **1–1023** are *privileged*: only root (or a process with `CAP_NET_BIND_SERVICE`) may bind them. GitHub Actions runners execute as an unprivileged user. Starting the backend on `:1000` there fails with `EACCES` (`listen` permission denied) — the process may log “Server listening” but nothing accepts TCP connections, and health checks get **connection refused**.
+
+Port **3000** is above the privileged range, so the same `node dist/src/main.js` entrypoint works on CI without special capabilities. Docker and VPS deploys keep the default **`PORT` unset → 1000** in [`backend/src/config`](../backend/src/config); only the committed E2E env overrides it.
+
+Do **not** change E2E back to `:1000` unless CI runs the backend as root or inside a container that already maps `:1000`.
+
+| Context | Backend port | Why |
+|---------|--------------|-----|
+| Docker dev / prod | `1000` | Internal service port; container or deploy env controls bind permissions |
+| E2E (local + CI) | `3000` | Host-process backend on unprivileged port; matches Playwright `VITE_BACKEND_URL` / `E2E_BACKEND_URL` |
 
 | Command | Script | When |
 |---------|--------|------|
@@ -95,7 +172,7 @@ E2E loads test env from [`backend/.env.e2e.test`](../../backend/.env.e2e.test) (
 
 **Mongo:** use [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) for mongo-only (CI and local E2E). It avoids `backend/.env.dev`, which is gitignored and required by `docker-compose.dev.yml` when Compose parses the full dev stack.
 
-**CI orchestration:** [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) builds, starts `start:e2e:built` in the background, and waits for `http://127.0.0.1:1000/api/docs/openapi`. [`.github/scripts/verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh) pings Mongo before the backend starts.
+**CI orchestration:** [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) starts `start:e2e:built` in the background and waits for `http://127.0.0.1:3000/api/docs/openapi` (port from `.env.e2e.test`). [`.github/scripts/verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh) pings Mongo before the backend starts.
 
 ### Shell UI (sidebar, top bar, avatar, theme)
 
@@ -194,7 +271,7 @@ The workflow:
 
 1. Starts MongoDB via [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) and verifies connectivity ([`verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh))
 2. Installs root, frontend, and backend dependencies
-3. Builds the backend (`npm run build`) and starts it with [`.env.e2e.test`](../../backend/.env.e2e.test) via [`start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) (`start:e2e:built` → `node dist/src/main.js` on `0.0.0.0:1000`)
+3. Builds the backend (`npm run build`) and starts it with [`.env.e2e.test`](../../backend/.env.e2e.test) via [`start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) (`start:e2e:built` → `node dist/src/main.js` on `0.0.0.0:3000`)
 4. Installs Playwright browsers with `--with-deps`
 5. Runs `npm run test:e2e` with `CI=true` — smoke + auth must pass
 6. Stops the backend ([`stop-e2e-backend.sh`](../../.github/scripts/stop-e2e-backend.sh)) and uploads HTML report, test artifacts, and backend log
@@ -208,7 +285,8 @@ Push and PR workflows intentionally skip E2E for speed — see [`docs/requiremen
 | Issue | Fix |
 |---|---|
 | `No tests found` | Run from repo root, not `frontend/` |
-| Dev server port in use | Stop other Vite instances on `5173`. With `CI=true`, Playwright always starts a fresh server (`reuseExistingServer: false`) — free the port first |
+| Auth login/session tests fail; smoke passes | Stop Docker dev frontend (`docker compose -f docker-compose.dev.yml stop frontend`) and any Vite on `:5173`. Ensure backend is `npm run start:e2e` on `:3000`. See [Local full stack](#local-full-stack-auth-tests) |
+| Dev server port in use | Stop Docker frontend and other Vite instances on `5173`. With `CI=true`, Playwright always starts a fresh server (`reuseExistingServer: false`) |
 | `CI=true` locally on macOS | WebKit runs in GitHub Actions only on Linux. Locally use `CI=true npm run test:e2e -- --project=chromium --project=firefox` |
-| Backend health check fails in CI | Download the `backend-e2e-log` artifact; CI uses compiled `dist/` (not `ts-node-dev`). Locally, confirm `curl -sf http://127.0.0.1:1000/api/docs/openapi` |
+| Backend health check fails in CI | Download the `backend-e2e-log` artifact. If the log shows `EACCES` on `listen` port `1000`, E2E is using the wrong port — see [Why port 3000 for E2E](#why-port-3000-for-e2e-not-1000). Confirm `curl -sf http://127.0.0.1:3000/api/docs/openapi` |
 | Frontend module not found | Run `npm ci` in `frontend/` |

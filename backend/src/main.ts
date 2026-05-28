@@ -2,6 +2,8 @@ import { Server } from 'http';
 
 import { logger } from 'aop/logging';
 
+import config from 'config';
+
 import server from 'server';
 import { ShutdownManager } from 'server/server-shutdown-manager';
 
@@ -10,8 +12,12 @@ const run = async (): Promise<void> => {
 
     try {
         const app = await server.init();
+        const port = config.port ?? 1000;
 
-        httpServer = app.listen(1000, '0.0.0.0', () => {
+        ('[E2E-DEBUG] reconsider how httpServer is defined as a variable');
+        httpServer = app.listen(port, '0.0.0.0', () => undefined);
+
+        httpServer.on('listening', () => {
             // BEGIN E2E-DEBUG — remove after CI root-cause is fixed
             const boundAddress = httpServer?.address();
             logger.info(
@@ -22,14 +28,16 @@ const run = async (): Promise<void> => {
                 })}`
             );
             // END E2E-DEBUG
-            logger.info(`🚀 Server listening on port ${1000}`);
+            logger.info(`🚀 Server listening on port ${port}`);
         });
 
-        // BEGIN E2E-DEBUG — remove after CI root-cause is fixed
         httpServer.on('error', error => {
+            // BEGIN E2E-DEBUG — remove after CI root-cause is fixed
             logger.error('[E2E-DEBUG] HTTP server listen error', { error: error as Error });
+            // END E2E-DEBUG
+            logger.error('Failed to start HTTP server', { error: error as Error });
+            process.exit(1);
         });
-        // END E2E-DEBUG
 
         // Register server with ShutdownManager
         const shutdownManager = ShutdownManager.getInstance();

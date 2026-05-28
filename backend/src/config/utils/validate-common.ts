@@ -13,6 +13,7 @@ import {
     mongoJobsCollectionNameSchema,
     mongoUriSchema,
     mongoUserCollectionNameSchema,
+    portSchema,
     refreshTokenSecretSchema,
 } from '../schemas';
 
@@ -123,7 +124,16 @@ export const validateCommonEnvironmentVariables = () => {
 
     const enableLogging = enableLoggingResult.data === 'true';
 
+    const portResult = parseSchema(portSchema, process.env.PORT);
+
+    if (!portResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: portResult.issues,
+        });
+    }
+
     return {
+        port: portResult.data,
         accessTokenSecret: accessTokenSecretResult.data,
         refreshTokenSecret: refreshTokenSecretResult.data,
         mongoURI: mongoUriResult.data,

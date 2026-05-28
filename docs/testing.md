@@ -38,24 +38,25 @@ PR merge expectations are summarized in [`docs/requirements/ci-cd.md`](../requir
 
 ## End-to-end (repo root)
 
-Playwright E2E tests live in [`tests/e2e/`](../tests/e2e/). Playwright starts the Vite dev server; auth specs also need Mongo and the backend on `:1000` / `:27017`.
+Playwright E2E tests live in [`tests/e2e/`](../tests/e2e/). Playwright starts the Vite dev server; auth specs also need Mongo and the backend on `:3000` / `:27017` (see [`backend/.env.e2e.test`](../backend/.env.e2e.test)). E2E uses `:3000` instead of Docker’s `:1000` because CI runners cannot bind privileged ports — [details](guides/e2e-testing.md#why-port-3000-for-e2e-not-1000).
 
 **Commands** (from repo root):
 
 - `npm run test:e2e` — smoke + auth (Chromium + Firefox locally)
 - `npm run test:e2e:report` — open last HTML report
 
-Full setup, CI behavior, and troubleshooting: [`docs/guides/e2e-testing.md`](guides/e2e-testing.md). Requirement specs: [`auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md), [`jobs-e2e-contract.md`](../business-requirements/jobs-e2e-contract.md).
+Full setup, CI behavior, and troubleshooting: [`docs/guides/e2e-testing.md`](guides/e2e-testing.md) — see [Local full stack (auth tests)](guides/e2e-testing.md#local-full-stack-auth-tests). Requirement specs: [`auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md), [`jobs-e2e-contract.md`](../business-requirements/jobs-e2e-contract.md).
 
-**Local full stack for auth:**
+**Local full stack for auth** (details in the E2E guide):
 
 ```bash
+docker compose -f docker-compose.dev.yml stop frontend   # avoid stale Vite on :5173 / wrong API URL
 docker compose -f docker-compose.e2e.yml up -d mongo --wait
-cd backend && npm run start:e2e   # local dev launcher (ts-node-dev); CI uses start:e2e:built
-npm run test:e2e -- tests/e2e/spec/auth
+cd backend && npm run start:e2e   # separate terminal; API on :3000
+npm run test:e2e                  # repo root; Playwright starts Vite with VITE_BACKEND_URL=:3000
 ```
 
-Backend env: [`.env.e2e.test`](../backend/.env.e2e.test). See [Backend bootstrap](guides/e2e-testing.md#backend-bootstrap) in the E2E guide.
+Backend env: [`.env.e2e.test`](../backend/.env.e2e.test).
 
 ## Conventions (quick reference)
 
