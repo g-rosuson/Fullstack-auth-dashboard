@@ -34,22 +34,8 @@ jobs:
               run: npm ci
               working-directory: backend
 
-            - name: Start backend for E2E
-              working-directory: backend
-              run: npm run start:e2e > ../backend-e2e.log 2>&1 &
-
-            - name: Wait for backend health
-              run: |
-                  for i in $(seq 1 60); do
-                      if curl -sf http://localhost:1000/api/docs/openapi; then
-                          exit 0
-                      fi
-                      sleep 2
-                  done
-                  echo "Backend did not become ready within 120s"
-                  echo "--- backend-e2e.log ---"
-                  cat backend-e2e.log || true
-                  exit 1
+            - name: Start backend and wait for health
+              run: bash .github/scripts/start-e2e-backend.sh
 
             - name: Install Playwright browsers
               run: npx playwright install --with-deps chromium firefox webkit
@@ -58,6 +44,10 @@ jobs:
               run: npm run test:e2e
               env:
                   CI: true
+
+            - name: Stop backend
+              if: always()
+              run: bash .github/scripts/stop-e2e-backend.sh
 
             - name: Upload Playwright report
               if: success() || failure()
