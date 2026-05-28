@@ -31,8 +31,8 @@ Integration helpers ([`test/integration/harness.ts`](../backend/test/integration
 Backend integration tests exercise the same MongoDB topology the app expects in development: a single-node replica set (`mongod --replSet rs0` in [`docker-compose.dev.yml`](../docker-compose.dev.yml)). The reusable workflow therefore starts Mongo with that Compose file rather than a minimal standalone container, so transactions, driver behavior, and any replica-set-aware code paths stay aligned with local dev and CI.
 
 1. **Unit:** reusable workflow runs `npm ci` then `npx vitest run` with default reporters plus JUnit under `test-results/` for **backend** and **frontend** in parallel matrix legs.
-2. **Backend integration:** runs only after unit succeeds; starts Mongo via `docker compose -f docker-compose.dev.yml up -d mongo --wait`, then `vitest run --config vitest.integration.config.mjs` with JUnit output.
-3. **E2E (main only):** on push to `main`, [`reusable-e2e-tests.yml`](../.github/workflows/reusable-e2e-tests.yml) runs before deploy — Mongo, backend (`npm run start:e2e`), then Playwright smoke + auth. PR workflows skip E2E; see [`ci-cd.md`](../requirements/ci-cd.md).
+2. **Backend integration:** runs only after unit succeeds; starts Mongo via `docker compose -f docker-compose.e2e.yml up -d mongo --wait`, then `vitest run --config vitest.integration.config.mjs` with JUnit output.
+3. **E2E (main only):** on push to `main`, [`reusable-e2e-tests.yml`](../.github/workflows/reusable-e2e-tests.yml) runs before deploy — Mongo (`docker-compose.e2e.yml`), backend (`npm run start:e2e`), then Playwright smoke + auth. PR workflows skip E2E; see [`ci-cd.md`](../requirements/ci-cd.md).
 
 PR merge expectations are summarized in [`docs/requirements/ci-cd.md`](../requirements/ci-cd.md).
 
@@ -50,7 +50,7 @@ Full setup, CI behavior, and troubleshooting: [`docs/guides/e2e-testing.md`](gui
 **Local full stack for auth:**
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d mongo --wait
+docker compose -f docker-compose.e2e.yml up -d mongo --wait
 cd backend && npm run start:e2e   # separate terminal
 npm run test:e2e -- tests/e2e/spec/auth
 ```
