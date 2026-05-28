@@ -105,7 +105,8 @@ When upgrading, update both in lockstep. A mismatch causes a hard `BrowserLaunch
 
 | File | Purpose |
 |---|---|
-| `docker-compose.dev.yml` | Local development |
+| `docker-compose.dev.yml` | Local development (frontend + backend + mongo; backend requires `backend/.env.dev`) |
+| `docker-compose.e2e.yml` | Mongo only — CI and local E2E/integration (no gitignored env files) |
 | `docker-compose.prod.yml` | Production deployment |
 
 Each compose file has a `name:` field at the top (`nameless-dashboard-dev` / `nameless-dashboard-prod`). This ensures Docker Compose uses a deterministic project name regardless of which directory the repo is cloned into — which matters for volume naming and service identification.

@@ -77,12 +77,25 @@ Requirements: [`docs/business-requirements/auth-e2e-contract.md`](../business-re
 Tests in `auth/` require the **backend and MongoDB** on `:1000` / `:27017`:
 
 ```bash
-docker compose -f docker-compose.e2e.yml up -d mongo
-cd backend && npm run start:e2e
+docker compose -f docker-compose.e2e.yml up -d mongo --wait
+cd backend && npm run start:e2e   # separate terminal — see Backend bootstrap below
 npm run test:e2e -- tests/e2e/spec/auth
 ```
 
 The `testUser` fixture registers a unique user via API before each test. Auth tests **fail** if the backend is not available (local and CI).
+
+### Backend bootstrap
+
+E2E loads test env from [`backend/.env.e2e.test`](../../backend/.env.e2e.test) (committed secrets, dedicated DB/collection names, `MONGO_URI` → `127.0.0.1:27017`).
+
+| Command | Script | When |
+|---------|--------|------|
+| `npm run start:e2e` | [`start-with-env-e2e.cjs`](../../backend/scripts/start-with-env-e2e.cjs) | **Local** — `ts-node-dev`, no build step |
+| `npm run start:e2e:built` | [`start-with-env-e2e-built.cjs`](../../backend/scripts/start-with-env-e2e-built.cjs) | **CI** — `node dist/src/main.js` (prod entrypoint); run `npm run build` first |
+
+**Mongo:** use [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) for mongo-only (CI and local E2E). It avoids `backend/.env.dev`, which is gitignored and required by `docker-compose.dev.yml` when Compose parses the full dev stack.
+
+**CI orchestration:** [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) builds, starts `start:e2e:built` in the background, and waits for `http://127.0.0.1:1000/api/docs/openapi`. [`.github/scripts/verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh) pings Mongo before the backend starts.
 
 ### Shell UI (sidebar, top bar, avatar, theme)
 
@@ -178,12 +191,12 @@ E2E runs on pushes to `main` via [`.github/workflows/reusable-e2e-tests.yml`](..
 
 The workflow:
 
-1. Starts MongoDB via [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) (single-node replica set, no `.env.dev` required)
+1. Starts MongoDB via [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) and verifies connectivity ([`verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh))
 2. Installs root, frontend, and backend dependencies
-3. Starts the backend with `npm run start:e2e` and waits for OpenAPI on `:1000` (see [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) — `nohup`/`disown` keeps the server alive for Playwright)
+3. Builds the backend and starts it with [`.env.e2e.test`](../../backend/.env.e2e.test) via [`start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) (`npm run build` + `start:e2e:built` → `node dist/src/main.js`, prod entrypoint)
 4. Installs Playwright browsers with `--with-deps`
 5. Runs `npm run test:e2e` with `CI=true` — smoke + auth must pass
-6. Stops the backend and uploads HTML report, test artifacts, and backend log on failure
+6. Stops the backend ([`stop-e2e-backend.sh`](../../.github/scripts/stop-e2e-backend.sh)) and uploads HTML report, test artifacts, and backend log
 
 Push and PR workflows intentionally skip E2E for speed — see [`docs/requirements/ci-cd.md`](../requirements/ci-cd.md).
 
@@ -196,4 +209,5 @@ Push and PR workflows intentionally skip E2E for speed — see [`docs/requiremen
 | `No tests found` | Run from repo root, not `frontend/` |
 | Dev server port in use | Stop other Vite instances on `5173`. With `CI=true`, Playwright always starts a fresh server (`reuseExistingServer: false`) — free the port first |
 | `CI=true` locally on macOS | WebKit runs in GitHub Actions only on Linux. Locally use `CI=true npm run test:e2e -- --project=chromium --project=firefox` |
+| Backend health check fails in CI | Download the `backend-e2e-log` artifact; CI uses compiled `dist/` (not `ts-node-dev`). Locally, confirm `curl -sf http://127.0.0.1:1000/api/docs/openapi` |
 | Frontend module not found | Run `npm ci` in `frontend/` |
