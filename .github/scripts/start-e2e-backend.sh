@@ -28,6 +28,14 @@ for attempt in $(seq 1 "${MAX_ATTEMPTS}"); do
 done
 
 echo "Backend did not become ready within $((MAX_ATTEMPTS * SLEEP_SECONDS))s"
-echo "--- ${LOG_FILE} ---"
-cat "${LOG_FILE}" || true
+
+pid="$(cat "${PID_FILE}")"
+if kill -0 "${pid}" 2>/dev/null; then
+    echo "Backend process (pid ${pid}) is still running"
+else
+    echo "Backend process (pid ${pid}) has exited"
+fi
+
+echo "--- last 100 lines of ${LOG_FILE} ---"
+tail -100 "${LOG_FILE}" || true
 exit 1
