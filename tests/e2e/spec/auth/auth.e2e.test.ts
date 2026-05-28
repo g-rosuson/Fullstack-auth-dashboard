@@ -8,15 +8,13 @@ import { E2E_TEST_PASSWORD } from '../../constants';
 import { DashboardPage } from '../../pages/dashboard.page';
 import { HomePage } from '../../pages/home.page';
 
-// TODO: Document requirements
-// TODO: Does it make sense to move integration tests into the backend? And only have the end-2-end tests in the root?
-
 test.describe('auth', () => {
     test.beforeEach(async () => {
-        test.skip(
-            !(await isBackendAvailable()),
-            'Backend and MongoDB must be running (e.g. docker compose -f docker-compose.dev.yml up backend mongo)'
-        );
+        if (!(await isBackendAvailable())) {
+            throw new Error(
+                'Backend and MongoDB must be running (e.g. docker compose -f docker-compose.dev.yml up backend mongo)'
+            );
+        }
     });
 
     test.describe('login and logout', () => {

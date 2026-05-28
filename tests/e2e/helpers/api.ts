@@ -53,8 +53,8 @@ async function registerUser(email: string): Promise<RegisteredTestUser> {
  * @param workerIndex - The index of the worker.
  * @returns A unique test email address.
  */
-function uniqueTestEmail(workerIndex: number): string {
+function buildTestEmail(workerIndex: number): string {
     return `e2e-w${workerIndex}-${Date.now()}@example.com`;
 }
 
-export { isBackendAvailable, registerUser, uniqueTestEmail };
+export { isBackendAvailable, registerUser, buildTestEmail };

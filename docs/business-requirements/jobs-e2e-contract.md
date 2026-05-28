@@ -14,6 +14,7 @@
 |----------|----------|
 | [jobs-http-contract.md](./jobs-http-contract.md) | API rules (`JOBS-*`) |
 | [auth-http-contract.md](./auth-http-contract.md) | Session model |
+| [auth-e2e-contract.md](./auth-e2e-contract.md) | Auth browser journeys (`AUTH-E2E-*`) |
 | [e2e-testing.md](../guides/e2e-testing.md) | Playwright setup and conventions |
 
 ---
@@ -49,7 +50,7 @@ Skip the suite when the backend is unreachable (`isBackendAvailable()`, same as 
 
 ## Auth prerequisites
 
-Not duplicated as jobs cases — see auth E2E:
+Not duplicated as jobs cases — see [auth-e2e-contract.md](./auth-e2e-contract.md):
 
 | ID | Rule |
 |----|------|

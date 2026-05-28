@@ -72,19 +72,17 @@ Playwright starts the Vite dev server automatically (`npm run dev` in `frontend/
 
 ### Auth tests (full stack)
 
-Tests in `auth/` require the **backend and MongoDB** running on port `1000` / `27017`:
+Requirements: [`docs/business-requirements/auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md)
+
+Tests in `auth/` require the **backend and MongoDB** on `:1000` / `:27017`:
 
 ```bash
-docker compose -f docker-compose.dev.yml up backend mongo
-```
-
-Or start the full dev stack with `npm run start:dev`.
-
-Auth tests self-register a unique user via `POST /api/auth/register` before each test. If the backend is unavailable, the auth suite is skipped automatically.
-
-```bash
+docker compose -f docker-compose.dev.yml up -d mongo
+cd backend && npm run start:e2e
 npm run test:e2e -- tests/e2e/spec/auth
 ```
+
+The `testUser` fixture registers a unique user via API before each test. Auth tests **fail** if the backend is not available (local and CI).
 
 ### Shell UI (sidebar, top bar, avatar, theme)
 
@@ -114,7 +112,7 @@ playwright.config.ts
 | Layer | Purpose |
 |---|---|
 | `smoke/` | Fast checks that the app loads — no backend dependency |
-| `auth/` | Full auth flows that require backend + database |
+| `auth/` | Full auth flows — see [auth-e2e-contract.md](../business-requirements/auth-e2e-contract.md) |
 | `pages/` | Encapsulate locators and navigation for a screen |
 | `fixtures/` | Shared Playwright test extensions |
 | `helpers/` | Test-only helpers not tied to a single page |
@@ -180,10 +178,13 @@ E2E runs on pushes to `main` via [`.github/workflows/reusable-e2e-tests.yml`](..
 
 The workflow:
 
-1. Installs root and frontend dependencies
-2. Installs browsers with `--with-deps`
-3. Runs `npm run test:e2e` with `CI=true` (retries enabled, GitHub reporter)
-4. Uploads HTML report and test artifacts on failure
+1. Starts MongoDB via Docker Compose (single-node replica set)
+2. Installs root, frontend, and backend dependencies
+3. Starts the backend with `backend/.env.e2e.test` (`npm run start:e2e`)
+4. Waits for the OpenAPI endpoint on `:1000`
+5. Installs Playwright browsers with `--with-deps`
+6. Runs `npm run test:e2e` with `CI=true` — smoke + auth must pass
+7. Uploads HTML report, test artifacts, and backend log on failure
 
 Push and PR workflows intentionally skip E2E for speed — see [`docs/requirements/ci-cd.md`](../requirements/ci-cd.md).
 

@@ -1,6 +1,6 @@
 import { test as base } from './base';
 
-import { registerUser, uniqueTestEmail } from '../helpers/api';
+import { registerUser, buildTestEmail } from '../helpers/api';
 
 import { RegisteredTestUser } from '../types';
 
@@ -10,7 +10,7 @@ interface AuthenticatedFixtures {
 
 const test = base.extend<AuthenticatedFixtures>({
     testUser: async ({}, use, testInfo) => {
-        const email = uniqueTestEmail(testInfo.workerIndex);
+        const email = buildTestEmail(testInfo.workerIndex);
         const user = await registerUser(email);
 
         await use(user);

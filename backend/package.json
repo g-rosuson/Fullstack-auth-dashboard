@@ -39,6 +39,7 @@
         "lint": "eslint \"**/*.{js,ts}\" --max-warnings=0 --cache",
         "lint-fix": "eslint \"**/*.{js,ts}\" --fix",
         "start": "ts-node-dev --files --project ./tsconfig.json -r tsconfig-paths/register src/main.ts",
+        "start:e2e": "node scripts/start-with-env-e2e.cjs",
         "test": "vitest",
         "test:integration": "vitest run --config vitest.integration.config.mjs"
     }
