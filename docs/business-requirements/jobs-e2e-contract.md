@@ -36,11 +36,12 @@ E2E complements integration: integration asserts HTTP; E2E asserts the UI calls 
 **Tier B — full stack.** Vite `:5173`, backend `:1000`, MongoDB `:27017`.
 
 ```bash
-docker compose -f docker-compose.dev.yml up backend mongo
+docker compose -f docker-compose.e2e.yml up -d mongo --wait
+cd backend && npm run start:e2e
 npm run test:e2e -- tests/e2e/spec/jobs
 ```
 
-Skip the suite when the backend is unreachable (`isBackendAvailable()`, same as auth E2E).
+Auth tests **fail** when the backend is unreachable (same as auth E2E). See [e2e-testing.md](../guides/e2e-testing.md#backend-bootstrap).
 
 **Fixtures:** `authenticated` — unique user via `POST /api/auth/register` ([`tests/e2e/fixtures/authenticated.ts`](../../tests/e2e/fixtures/authenticated.ts)). Log in before visiting `/jobs` unless stated otherwise.
 

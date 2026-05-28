@@ -12,7 +12,7 @@ test.describe('auth', () => {
     test.beforeEach(async () => {
         if (!(await isBackendAvailable())) {
             throw new Error(
-                'Backend and MongoDB must be running (e.g. docker compose -f docker-compose.dev.yml up backend mongo)'
+                'Backend and MongoDB must be running (e.g. docker compose -f docker-compose.e2e.yml up -d mongo --wait && cd backend && npm run start:e2e)'
             );
         }
     });

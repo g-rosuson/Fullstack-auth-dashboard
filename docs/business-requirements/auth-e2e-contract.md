@@ -35,12 +35,14 @@ E2E complements integration: integration asserts HTTP; E2E asserts the UI calls 
 **Tier B — full stack.** Vite `:5173`, backend `:1000`, MongoDB `:27017`.
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d mongo
+docker compose -f docker-compose.e2e.yml up -d mongo --wait
 cd backend && npm run start:e2e
 npm run test:e2e -- tests/e2e/spec/auth
 ```
 
-**CI:** Backend must be up — auth failures block deploy (see [e2e-testing.md](../guides/e2e-testing.md)). Locally, if the backend is unavailable, the suite is skipped.
+**CI:** Backend must be up — auth failures block deploy (see [e2e-testing.md](../guides/e2e-testing.md)). Locally, if the backend is unavailable, the suite **fails** (does not skip).
+
+**Backend:** [`backend/.env.e2e.test`](../../backend/.env.e2e.test) via `npm run start:e2e` (local) or `npm run build && npm run start:e2e:built` (CI/prod parity). See [Backend bootstrap](../guides/e2e-testing.md#backend-bootstrap).
 
 **Fixtures:**
 

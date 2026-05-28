@@ -6,14 +6,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG_FILE="${ROOT_DIR}/backend-e2e.log"
 PID_FILE="${ROOT_DIR}/backend-e2e.pid"
-HEALTH_URL="http://localhost:1000/api/docs/openapi"
+HEALTH_URL="http://127.0.0.1:1000/api/docs/openapi"
 MAX_ATTEMPTS=60
 SLEEP_SECONDS=2
 
 : > "${LOG_FILE}"
 
 cd "${ROOT_DIR}/backend"
-nohup npm run start:e2e >> "${LOG_FILE}" 2>&1 &
+echo "Building backend (production entrypoint)..."
+npm run build >> "${LOG_FILE}" 2>&1
+
+nohup npm run start:e2e:built >> "${LOG_FILE}" 2>&1 &
 echo $! > "${PID_FILE}"
 disown
 
