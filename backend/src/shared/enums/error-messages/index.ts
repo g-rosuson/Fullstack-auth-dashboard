@@ -24,6 +24,7 @@ export enum ErrorMessage {
     JOBS_START_DATE_COME_BEFORE_END_DATE = 'Start date must come before end date',
     JOBS_ONCE_TYPE_CANNOT_HAVE_END_DATE = 'Jobs schedule type "once" cannot have an end date',
     JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING = 'Cannot update a job while it is running',
+    JOBS_CANNOT_BE_DELETED_WHILE_RUNNING = 'Cannot delete a job while it is running',
     JOBS_FAILED_TO_ADD_EXECUTION = 'Failed to add execution to job',
     DATABASE_OPERATION_FAILED_ERROR = 'Database operation failed',
     MONGO_CLIENT_MANAGER_INSTANCE_NOT_FOUND = 'Options are required to create a new MongoClientManager instance',

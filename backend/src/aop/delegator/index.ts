@@ -25,10 +25,10 @@ import { retryWithFixedInterval } from 'utils';
  */
 export class Delegator {
     private static instance: Delegator | null = null;
-    private pendingJobs = new Map<string, DelegationPayload>();
     private emitter: Emitter = Emitter.getInstance();
-    public runningJobs = new Map<string, DelegationPayload>();
     private scheduler: Scheduler = Scheduler.getInstance();
+    private pendingJobs = new Map<string, DelegationPayload>();
+    public runningJobs = new Map<string, DelegationPayload>();
 
     /**
      * Private constructor enforces singleton pattern.
@@ -37,6 +37,7 @@ export class Delegator {
     private constructor() {
         this.delegate = this.delegate.bind(this);
         this.register = this.register.bind(this);
+        this.removeJob = this.removeJob.bind(this);
     }
 
     /**
@@ -174,10 +175,26 @@ export class Delegator {
                 failedAt: new Date().toISOString(),
             });
         } finally {
+            const shouldDeletePendingJob = payload.scheduleType === 'once' || payload.scheduleType === null;
+
+            if (shouldDeletePendingJob) {
+                this.pendingJobs.delete(payload.jobId);
+            }
+
             this.runningJobs.delete(payload.jobId);
-            this.pendingJobs.delete(payload.jobId);
             this.emitter.clearJobTargetEvents(payload.jobId);
         }
+    }
+
+    /**
+     * Removes a job from the pending and running jobs maps and clears the job target events.
+     *
+     * @param jobId Job ID to remove
+     */
+    public removeJob(jobId: string): void {
+        this.pendingJobs.delete(jobId);
+        this.runningJobs.delete(jobId);
+        this.emitter.clearJobTargetEvents(jobId);
     }
 
     /**

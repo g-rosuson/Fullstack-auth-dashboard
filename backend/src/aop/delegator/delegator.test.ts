@@ -28,6 +28,16 @@ const mockPayloadWithTool = {
     scheduleType: null,
 };
 
+const mockRecurringPayload = {
+    ...mockPayloadWithTool,
+    scheduleType: 'daily' as const,
+};
+
+const mockOncePayload = {
+    ...mockPayloadWithTool,
+    scheduleType: 'once' as const,
+};
+
 vi.mock('aop/db/mongo/client', () => ({
     MongoClientManager: {
         getInstance: vi.fn(() => ({
@@ -96,6 +106,8 @@ describe('Delegator', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mockExecute.mockResolvedValue(undefined);
+        mockAddExecution.mockResolvedValue(undefined);
         // Reset the singleton instance for isolated tests
         // @ts-expect-error - accessing private static property for testing
         Delegator.instance = null;
@@ -537,8 +549,41 @@ describe('Delegator', () => {
             expect(mockAddExecution).toHaveBeenCalled();
         });
 
-        it('should not execute again after that job has already run', async () => {
+        it('should not execute again after an unscheduled job has already run', async () => {
             delegator.register(mockPayloadWithTool);
+            await delegator.delegateScheduledJob('test-job-id');
+
+            mockExecute.mockClear();
+            mockAddExecution.mockClear();
+            mockLoggerError.mockClear();
+
+            await delegator.delegateScheduledJob('test-job-id');
+
+            expect(mockExecute).not.toHaveBeenCalled();
+            expect(mockAddExecution).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalledWith(
+                expect.stringContaining('Cannot find and delegate scheduled job with ID: "test-job-id"'),
+                {}
+            );
+        });
+
+        it('should execute again on a second cron tick for recurring jobs', async () => {
+            delegator.register(mockRecurringPayload);
+            await delegator.delegateScheduledJob('test-job-id');
+
+            mockExecute.mockClear();
+            mockAddExecution.mockClear();
+            mockLoggerError.mockClear();
+
+            await delegator.delegateScheduledJob('test-job-id');
+
+            expect(mockExecute).toHaveBeenCalled();
+            expect(mockAddExecution).toHaveBeenCalled();
+            expect(mockLoggerError).not.toHaveBeenCalled();
+        });
+
+        it('should not execute again on a second tick for once jobs', async () => {
+            delegator.register(mockOncePayload);
             await delegator.delegateScheduledJob('test-job-id');
 
             mockExecute.mockClear();

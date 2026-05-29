@@ -314,12 +314,13 @@ export class Scheduler {
      * start/stop timeouts and destroys the underlying cron task.
      *
      * @param jobId - The cron job id to delete
+     * @todo – there are cases where we invoke this method to delete a job that is not scheduled.
+     * Therefore it's not good to log an error, look into how to handle this better.
      */
     public delete(jobId: string): void {
         const cronJobById = this.cronJobs.get(jobId);
 
         if (!cronJobById) {
-            // TODO: Add to Sentry
             logger.error(`Cannot find cron-job with id: "${jobId}" to delete`, {});
         } else {
             clearTimeout(cronJobById.metadata.startTimeoutId);

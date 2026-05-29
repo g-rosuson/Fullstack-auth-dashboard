@@ -15,6 +15,7 @@ const mockSchedule = vi.fn();
 const mockGetNextAndPreviousRun = vi.fn();
 const mockDelete = vi.fn();
 const mockRegister = vi.fn();
+const mockRemoveJob = vi.fn();
 const mockDelegate = vi.fn();
 const mockStartTransaction = vi.fn();
 const mockCommitTransaction = vi.fn();
@@ -111,6 +112,7 @@ const buildRequest = (
             delegator: {
                 runningJobs: new Map(runningJobIds.map(jobId => [jobId, { userId: 'user-id-1' }])),
                 register: mockRegister,
+                removeJob: mockRemoveJob,
                 delegate: mockDelegate,
             },
         },
@@ -259,6 +261,7 @@ describe('jobs-controller updateJob', () => {
         );
         expect(mockRegister).not.toHaveBeenCalled();
         expect(mockDelete).toHaveBeenCalledWith('job-id-1');
+        expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
         expect(mockDelegate).toHaveBeenCalledWith({
             jobId: 'job-id-1',
             userId: 'user-id-1',
@@ -283,6 +286,7 @@ describe('jobs-controller updateJob', () => {
         await updateJob(request, mockResponse);
 
         expect(mockDelete).toHaveBeenCalledWith('job-id-1');
+        expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
         expect(mockDelegate).not.toHaveBeenCalled();
         expect(mockRegister).not.toHaveBeenCalled();
         expect(mockSchedule).not.toHaveBeenCalled();
@@ -366,6 +370,7 @@ describe('jobs-controller updateJob', () => {
         expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
         expect(mockResponseJson).toHaveBeenCalledOnce();
         expect(mockDelete).toHaveBeenCalledWith('job-id-1');
+        expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
         expect(mockAbortTransaction).not.toHaveBeenCalled();
         expect(mockLoggerError).toHaveBeenCalledWith('Failed to update cron job', { error: delegateError });
         expect(mockEndSession).toHaveBeenCalledOnce();
