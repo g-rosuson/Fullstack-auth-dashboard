@@ -14,27 +14,15 @@ const run = async (): Promise<void> => {
         const app = await server.init();
         const port = config.port ?? 1000;
 
-        ('[E2E-DEBUG] reconsider how httpServer is defined as a variable');
-        httpServer = app.listen(port, '0.0.0.0', () => undefined);
-
-        httpServer.on('listening', () => {
-            // BEGIN E2E-DEBUG — remove after CI root-cause is fixed
-            const boundAddress = httpServer?.address();
-            logger.info(
-                `[E2E-DEBUG] HTTP server bound address: ${JSON.stringify({
-                    boundAddress: boundAddress ?? null,
-                    pid: process.pid,
-                    ppid: process.ppid,
-                })}`
-            );
-            // END E2E-DEBUG
+        // Explicit IPv4 bind: '0.0.0.0' listens on every interface, not only loopback.
+        // - Prod Docker: Caddy reaches backend over the container network (not 127.0.0.1).
+        // - CI/local: curl health checks hit 127.0.0.1; listen(port) with no host on Linux
+        //   often binds IPv6 (::) only, so IPv4 localhost gets connection refused.
+        httpServer = app.listen(port, '0.0.0.0', () => {
             logger.info(`🚀 Server listening on port ${port}`);
         });
 
         httpServer.on('error', error => {
-            // BEGIN E2E-DEBUG — remove after CI root-cause is fixed
-            logger.error('[E2E-DEBUG] HTTP server listen error', { error: error as Error });
-            // END E2E-DEBUG
             logger.error('Failed to start HTTP server', { error: error as Error });
             process.exit(1);
         });

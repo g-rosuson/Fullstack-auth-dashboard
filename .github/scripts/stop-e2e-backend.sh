@@ -5,11 +5,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PID_FILE="${ROOT_DIR}/backend-e2e.pid"
 E2E_ENV_FILE="${ROOT_DIR}/backend/.env.e2e.test"
+
+# Must match start-e2e-backend.sh / backend/.env.e2e.test PORT.
 E2E_PORT="3000"
 if [[ -f "${E2E_ENV_FILE}" ]]; then
-    E2E_PORT="$(grep -E '^PORT=' "${E2E_ENV_FILE}" | tail -1 | cut -d= -f2 | tr -d '\r' || true)"
+    E2E_PORT="$(grep -E '^PORT=' "${E2E_ENV_FILE}" | cut -d= -f2 | tr -d '\r' || true)"
+    E2E_PORT="${E2E_PORT:-3000}"
 fi
-E2E_PORT="${E2E_PORT:-3000}"
 
 if [[ ! -f "${PID_FILE}" ]]; then
     exit 0

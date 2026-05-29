@@ -34,9 +34,6 @@ jobs:
               run: npm ci
               working-directory: backend
 
-            - name: Verify MongoDB for E2E
-              run: bash .github/scripts/verify-mongo-e2e.sh
-
             - name: Build backend for E2E
               run: npm run build
               working-directory: backend

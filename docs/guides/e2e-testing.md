@@ -172,7 +172,7 @@ Do **not** change E2E back to `:1000` unless CI runs the backend as root or insi
 
 **Mongo:** use [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) for mongo-only (CI and local E2E). It avoids `backend/.env.dev`, which is gitignored and required by `docker-compose.dev.yml` when Compose parses the full dev stack.
 
-**CI orchestration:** [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) starts `start:e2e:built` in the background and waits for `http://127.0.0.1:3000/api/docs/openapi` (port from `.env.e2e.test`). [`.github/scripts/verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh) pings Mongo before the backend starts.
+**CI orchestration:** [`.github/scripts/start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) starts `start:e2e:built` in the background and waits for `http://127.0.0.1:3000/api/docs/openapi` (port from `.env.e2e.test`). Mongo readiness is handled by `docker compose ... up -d mongo --wait` in the workflow.
 
 ### Shell UI (sidebar, top bar, avatar, theme)
 
@@ -239,15 +239,41 @@ import routes from '../../../frontend/src/config/routes.config';
 
 ### Page Objects and fixtures
 
-```ts
-// TODO this is stale
-import { expect, test } from '../fixtures/base';
+**Smoke** — [`fixtures/base.ts`](../../tests/e2e/fixtures/base.ts) extends Playwright with `loginPage`:
 
-test('login page loads', async ({ loginPage }) => {
+```ts
+import routes from '../../../../frontend/src/config/routes.config';
+
+import { test } from '../../fixtures/base';
+import { expect } from '@playwright/test';
+
+test('[SMK-001] login page loads and primary UI is visible', async ({ loginPage }) => {
     await loginPage.goto();
     await expect(loginPage.heading).toBeVisible();
 });
 ```
+
+**Auth** — [`fixtures/authenticated.ts`](../../tests/e2e/fixtures/authenticated.ts) adds `testUser` (registered via API before each test):
+
+```ts
+import routes from '../../../../frontend/src/config/routes.config';
+import { expect } from '@playwright/test';
+
+import { test } from '../../fixtures/authenticated';
+import { HomePage } from '../../pages/home.page';
+
+test('[AUTH-E2E-001] successful login redirects to home', async ({ page, loginPage, testUser }) => {
+    const homePage = new HomePage(page);
+
+    await loginPage.goto();
+    await loginPage.login(testUser.email, testUser.password);
+
+    await expect(page).toHaveURL(routes.root);
+    await expect(homePage.heading).toBeVisible();
+});
+```
+
+Page objects live under [`tests/e2e/pages/`](../../tests/e2e/pages/) (e.g. [`login.page.ts`](../../tests/e2e/pages/login.page.ts), [`dashboard.page.ts`](../../tests/e2e/pages/dashboard.page.ts)).
 
 ---
 
@@ -269,7 +295,7 @@ E2E runs on pushes to `main` via [`.github/workflows/reusable-e2e-tests.yml`](..
 
 The workflow:
 
-1. Starts MongoDB via [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) and verifies connectivity ([`verify-mongo-e2e.sh`](../../.github/scripts/verify-mongo-e2e.sh))
+1. Starts MongoDB via [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml) (`docker compose up -d mongo --wait`)
 2. Installs root, frontend, and backend dependencies
 3. Builds the backend (`npm run build`) and starts it with [`.env.e2e.test`](../../backend/.env.e2e.test) via [`start-e2e-backend.sh`](../../.github/scripts/start-e2e-backend.sh) (`start:e2e:built` → `node dist/src/main.js` on `0.0.0.0:3000`)
 4. Installs Playwright browsers with `--with-deps`

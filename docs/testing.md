@@ -38,14 +38,18 @@ PR merge expectations are summarized in [`docs/requirements/ci-cd.md`](../requir
 
 ## End-to-end (repo root)
 
-Playwright E2E tests live in [`tests/e2e/`](../tests/e2e/). Playwright starts the Vite dev server; auth specs also need Mongo and the backend on `:3000` / `:27017` (see [`backend/.env.e2e.test`](../backend/.env.e2e.test)). E2E uses `:3000` instead of Docker’s `:1000` because CI runners cannot bind privileged ports — [details](guides/e2e-testing.md#why-port-3000-for-e2e-not-1000).
+Playwright E2E tests live in [`tests/e2e/`](../tests/e2e/). Smoke specs need only the frontend;
+
+**CI keeps the backend off Docker to stay fast.** Building and starting a backend container on every run would add meaningful time. Instead, CI runs `npm run build` then the same host-process entrypoint as production (`node dist/src/main.js` via [`start-e2e-backend.sh`](../.github/scripts/start-e2e-backend.sh)). Mongo stays in Docker ([`docker-compose.e2e.yml`](../docker-compose.e2e.yml)); Playwright starts Vite dev for the frontend. E2E does not replay [`docker-compose.prod.yml`](../docker-compose.prod.yml) in GHA.
+
+**Port 3000 is a consequence of that choice.** Because the backend runs on the host as an unprivileged user, Linux blocks ports below 1024 — `:1000` fails with `EACCES` on the runner. E2E sets `PORT=3000` in [`.env.e2e.test`](../backend/.env.e2e.test). Docker dev/prod still use `:1000` inside containers. [Details](guides/e2e-testing.md#why-port-3000-for-e2e-not-1000).
 
 **Commands** (from repo root):
 
 - `npm run test:e2e` — smoke + auth (Chromium + Firefox locally)
 - `npm run test:e2e:report` — open last HTML report
 
-Full setup, CI behavior, and troubleshooting: [`docs/guides/e2e-testing.md`](guides/e2e-testing.md) — see [Local full stack (auth tests)](guides/e2e-testing.md#local-full-stack-auth-tests). Requirement specs: [`auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md), [`jobs-e2e-contract.md`](../business-requirements/jobs-e2e-contract.md).
+Full setup and troubleshooting: [`guides/e2e-testing.md`](guides/e2e-testing.md) ([local auth stack](guides/e2e-testing.md#local-full-stack-auth-tests)). Requirements: [`auth-e2e-contract.md`](../business-requirements/auth-e2e-contract.md), [`jobs-e2e-contract.md`](../business-requirements/jobs-e2e-contract.md).
 
 **Local full stack for auth** (details in the E2E guide):
 

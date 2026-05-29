@@ -5,8 +5,6 @@ import { scraperToolSchema, scraperToolTargetNameSchema, scraperToolTargetSchema
 
 extendZodWithOpenApi(z);
 
-// TODO: fix comments
-
 /** Summary of the scraper tool target. */
 const executionScraperToolTargetSummarySchema = z
     .object({
