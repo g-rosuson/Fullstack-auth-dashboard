@@ -65,15 +65,32 @@ try {
 |---|---|
 | `scheduler.schedule({ jobId, name, type, startDate, endDate })` | Register a cron task; destroys and recreates if already registered |
 | `scheduler.getNextAndPreviousRun(jobId)` | Enrich response with `nextRun` / `lastRun` ISO strings |
-| `scheduler.delete(jobId)` | Remove cron task when schedule is cleared |
+| `scheduler.delete(jobId)` | Remove cron task when schedule is cleared or job is deleted |
 
 ## Delegator — `req.context.delegator`
 
 | Method | When |
 |---|---|
-| `delegator.register({ jobId, userId, name, tools, scheduleType })` | Set up a recurring execution handler (scheduled jobs) |
+| `delegator.register({ jobId, userId, name, tools, scheduleType })` | Set up a scheduled job in `pendingJobs` (create, update, server startup) |
 | `delegator.delegate({ jobId, userId, name, tools, scheduleType: null })` | Trigger immediate one-off execution |
-| `delegator.runningJobs` | Map of currently running jobs; check before allowing updates |
+| `delegator.removeJob(jobId)` | Tear down `pendingJobs`, `runningJobs`, and buffered SSE target events (delete, or update when schedule cleared) |
+| `delegator.runningJobs` | Map of in-flight executions; guard update/delete with `runningJob?.userId === req.context.user.id` |
+
+**`pendingJobs` lifecycle (delegator internals):** After `delegate()` finishes, entries are removed only for `scheduleType === 'once'` or `scheduleType === null`. Recurring jobs stay registered so later cron ticks can call `delegateScheduledJob` again. Do not clear recurring entries from controllers.
+
+## Running-job guard
+
+`runningJobs` is keyed by `jobId` only (not scoped to user). Before update/delete, block only when **this user** owns the running entry:
+
+```typescript
+const runningJob = req.context.delegator.runningJobs.get(id);
+if (runningJob?.userId === req.context.user.id) {
+    throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING);
+    // or JOBS_CANNOT_BE_DELETED_WHILE_RUNNING
+}
+```
+
+Cross-user access is enforced by the repository (`userId` on update/delete/get) → **404**, not by in-memory maps.
 
 ## Schedule enrichment
 
@@ -102,25 +119,47 @@ const schedule: EnrichedJobSchedule = {
 
 ## updateJob
 
-1. Before the transaction, check `req.context.delegator.runningJobs.has(req.params.id)` — throw `BusinessLogicException` if running.
-2. Start session, update in DB, commit.
-3. If new schedule: `scheduler.schedule(...)` (replaces old cron), then `delegator.register(...)`.
-4. If schedule cleared (`null`): `scheduler.delete(jobId)`, then conditionally `delegator.delegate(...)` if `req.body.runJob` is true.
+1. Check running guard: `runningJob?.userId === req.context.user.id` — throw `BusinessLogicException` if true.
+2. Start session, update in DB with `userId: req.context.user.id`, commit.
+3. If new schedule: `scheduler.schedule(...)` (replaces old cron), enrich timing, respond, then `delegator.register(...)`.
+4. If schedule cleared (`null`): after commit, `scheduler.delete(jobId)` and `delegator.removeJob(jobId)`; delegate immediately only if `req.body.runJob` is true.
 
 ## deleteJob
 
-No transaction required for single-document delete:
+1. Check running guard: `runningJob?.userId === userId` — throw `BusinessLogicException` if true.
+2. Delete from DB inside a transaction: `jobs.delete(id, userId, session)` then `commitTransaction()`.
+3. **After commit only:** `scheduler.delete(id)` and `delegator.removeJob(id)`.
+4. Respond with `{ id: result.id }`.
+
+Ownership and “not found” come from `jobs.delete(id, userId)` — there is no automatic cleanup when the document is removed; controllers must explicitly tear down scheduler and delegator state after a successful delete.
 
 ```typescript
-const result = await req.context.db.repository.jobs.delete(id, userId);
+const runningJob = req.context.delegator.runningJobs.get(id);
+if (runningJob?.userId === userId) {
+    throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_DELETED_WHILE_RUNNING);
+}
 
-res.status(HttpStatusCode.OK).json({
-    success: true,
-    data: { id: result.id },
-});
+const session = req.context.db.transaction.startSession();
+let isCommitted = false;
+
+try {
+    session.startTransaction();
+    const result = await req.context.db.repository.jobs.delete(id, userId, session);
+    await session.commitTransaction();
+    isCommitted = true;
+
+    req.context.scheduler.delete(id);
+    req.context.delegator.removeJob(id);
+
+    res.status(HttpStatusCode.OK).json({ success: true, data: { id: result.id } });
+} catch (error) {
+    if (!isCommitted) await session.abortTransaction();
+    logger.error('Failed to delete job', { error: error as Error });
+    throw error;
+} finally {
+    await session.endSession();
+}
 ```
-
-Scheduler and delegator cleanup is handled internally when the job document is removed.
 
 # Examples
 
@@ -195,10 +234,11 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
 
 # Edge Cases
 
-- **Job running guard on update**: Always check `delegator.runningJobs.has(id)` before starting the update transaction. This prevents data corruption from concurrent execution.
+- **Job running guard on update/delete**: Use `runningJob?.userId === req.context.user.id`, not `runningJobs.has(id)` alone — otherwise another user's running job yields **422** instead of **404**.
 - **`scheduler.schedule()` on update**: It destroys and recreates the cron task — safe to call even if a task already exists for that `jobId`.
-- **Schedule cleared to `null` on update**: Call `scheduler.delete(jobId)` and only delegate immediately if `req.body.runJob` is true.
-- **Response before delegation**: `res.json()` is called before `delegator.delegate/register` to avoid blocking the HTTP response on long-running delegation setup.
+- **Schedule cleared to `null` on update**: Call `scheduler.delete(jobId)` and `delegator.removeJob(jobId)`; delegate immediately only if `req.body.runJob` is true.
+- **Delete in-memory cleanup**: Must run **after** `commitTransaction()` — scheduler/delegator are not transactional; failed DB delete must not tear down memory state.
+- **Response before delegation**: `res.json()` is called before `delegator.delegate/register` on create/update to avoid blocking the HTTP response on long-running work.
 
 # Anti-Patterns
 
@@ -207,7 +247,8 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
 - **Never** skip the `isCommitted` guard in the `catch` block — double-aborts cause MongoDB errors.
 - **Never** omit `session.endSession()` from `finally` — leaks MongoDB sessions.
 - **Never** respond to the client after `delegator.delegate()` — delegation can be slow; respond first.
-- **Never** mutate `delegator.runningJobs` directly — it is read-only in controllers.
+- **Never** call `scheduler.delete()` or `delegator.removeJob()` before a successful DB delete/update commit — leaves DB and memory out of sync on failure.
+- **Never** assume delete cleanup happens in the repository — controllers must call `scheduler.delete` and `delegator.removeJob` explicitly.
 
 # Validation Checklist
 
@@ -218,5 +259,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
 - [ ] Response sent before delegation side effects
 - [ ] `catch` block: `abortTransaction()` only when `!isCommitted`; `logger.error`; `throw error`
 - [ ] `session.endSession()` in `finally`
-- [ ] `delegator.runningJobs.has(id)` checked before update
+- [ ] Running guard uses `runningJob?.userId === req.context.user.id` before update/delete
+- [ ] Delete/update clear-schedule: `scheduler.delete` + `delegator.removeJob` only after successful DB commit
 - [ ] All job payloads include `userId: req.context.user.id`
+- [ ] **Never** mutate `delegator.runningJobs` or `delegator.pendingJobs` directly — use `removeJob`, `register`, `delegate` only
