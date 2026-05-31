@@ -18,6 +18,7 @@ Security posture overview for the production deployment. Divided into what is al
 | Auth middleware | All protected routes use `authenticateContextMiddleware` |
 | DB query scoping | Controllers scope queries by `req.context.user.id` — no cross-user data access |
 | Rate limiting | Per-route limiters on `/login`, `/register`, `/refresh` |
+| Registration gate | `ENABLE_REGISTRATION` env flag; prod uses `false` — `POST /api/auth/register` returns **403** |
 | Error responses | Stack traces gated behind `config.isDeveloping` — not exposed in production |
 | Config validation | All environment variables validated at startup via Zod schemas |
 | MongoDB access | Not exposed outside the Docker network — only reachable via `mongo` hostname |

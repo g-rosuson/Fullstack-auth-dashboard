@@ -8,6 +8,7 @@ import {
     dbRetryDelayMsSchema,
     enableHttpRateLimitSchema,
     enableLoggingSchema,
+    enableRegistrationSchema,
     maxDbRetriesSchema,
     mongoDbNameSchema,
     mongoJobsCollectionNameSchema,
@@ -29,6 +30,7 @@ import {
  * - MONGO_JOBS_COLLECTION_NAME (required, non-empty string)
  * - MAX_DB_RETRIES (optional, positive integer, default: 3)
  * - DB_RETRY_DELAY_MS (optional, positive integer, default: 5000)
+ * - ENABLE_REGISTRATION (required, "true" or "false")
  *
  * @returns Validated common configuration
  * @throws SchemaValidationException if validation fails
@@ -124,6 +126,16 @@ export const validateCommonEnvironmentVariables = () => {
 
     const enableLogging = enableLoggingResult.data === 'true';
 
+    const enableRegistrationResult = parseSchema(enableRegistrationSchema, process.env.ENABLE_REGISTRATION);
+
+    if (!enableRegistrationResult.success) {
+        throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, {
+            issues: enableRegistrationResult.issues,
+        });
+    }
+
+    const enableRegistration = enableRegistrationResult.data === 'true';
+
     const portResult = parseSchema(portSchema, process.env.PORT);
 
     if (!portResult.success) {
@@ -144,5 +156,6 @@ export const validateCommonEnvironmentVariables = () => {
         dbRetryDelayMs: dbRetryDelayMsResult.data,
         enableLogging,
         enableHttpRateLimit,
+        enableRegistration,
     };
 };

@@ -1,4 +1,5 @@
 import localConstants from './constants';
+import config from 'config';
 import constants from 'shared/constants';
 
 import type { Express } from 'express';
@@ -44,6 +45,21 @@ describe('Integration: auth HTTP', () => {
 
     // Register scenarios share one email and rely on a stable DB between two POSTs in REG-002.
     describe.sequential(`POST ${constants.routes.auth.register}`, () => {
+        it('[AUTH-REG-011] returns forbidden when registration is disabled via config', async () => {
+            const previous = config.enableRegistration;
+            config.enableRegistration = false;
+
+            try {
+                const res = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
+
+                expect(res.status).toBe(403);
+                expect(res.body.success).toBe(false);
+                expect(res.body.code).toBe('FORBIDDEN_ERROR');
+            } finally {
+                config.enableRegistration = previous;
+            }
+        });
+
         it('[AUTH-REG-001][AUTH-TOK-001][AUTH-TOK-002][AUTH-TOK-003] returns a valid access token and sets a refresh cookie on successful registration', async () => {
             const res = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
             expect(res.status).toBe(200);

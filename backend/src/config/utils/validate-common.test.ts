@@ -9,6 +9,7 @@ describe('validateCommonEnvironmentVariables', () => {
 
     beforeEach(() => {
         process.env = { ...originalEnv };
+        process.env.ENABLE_REGISTRATION = 'true';
     });
 
     afterEach(() => {
@@ -25,6 +26,7 @@ describe('validateCommonEnvironmentVariables', () => {
             const mongoJobsCollectionNameValue = 'test-jobs-collection';
             const enableHttpRateLimitValue = 'false';
             const enableLoggingValue = 'true';
+            const enableRegistrationValue = 'true';
 
             process.env.ACCESS_TOKEN_SECRET = accessTokenSecretValue;
             process.env.REFRESH_TOKEN_SECRET = refreshTokenSecretValue;
@@ -34,6 +36,7 @@ describe('validateCommonEnvironmentVariables', () => {
             process.env.MONGO_JOBS_COLLECTION_NAME = mongoJobsCollectionNameValue;
             process.env.ENABLE_HTTP_RATE_LIMIT = enableHttpRateLimitValue;
             process.env.ENABLE_LOGGING = enableLoggingValue;
+            process.env.ENABLE_REGISTRATION = enableRegistrationValue;
 
             const result = validateCommonEnvironmentVariables();
 
@@ -49,6 +52,7 @@ describe('validateCommonEnvironmentVariables', () => {
                 dbRetryDelayMs: 5000,
                 enableHttpRateLimit: false,
                 enableLogging: true,
+                enableRegistration: true,
             });
         });
     });
@@ -110,6 +114,12 @@ describe('validateCommonEnvironmentVariables', () => {
             process.env.REFRESH_TOKEN_SECRET = 'valid-secret';
             process.env.MONGO_URI = 'mongodb://localhost:27017';
             process.env.MONGO_DB_NAME = '';
+
+            expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
+        });
+
+        it('should throw SchemaValidationException for invalid ENABLE_REGISTRATION', () => {
+            process.env.ENABLE_REGISTRATION = 'yes';
 
             expect(() => validateCommonEnvironmentVariables()).toThrow(SchemaValidationException);
         });

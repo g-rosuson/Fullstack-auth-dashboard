@@ -3,6 +3,7 @@
  * Error messages used by exceptions in the application.
  */
 export enum ErrorMessage {
+    REGISTRATION_DISABLED = 'Registration is disabled',
     USER_NOT_FOUND = 'User not found',
     USER_ALREADY_EXISTS = 'User already exists',
     USER_PASSWORD_WRONG = 'Wrong credentials',
@@ -53,4 +54,5 @@ export enum EnvErrorMessage {
     MONGO_JOBS_COLLECTION_NAME_REQUIRED = 'MONGO_JOBS_COLLECTION_NAME is required',
     DISABLE_HTTP_RATE_LIMIT_INVALID = 'DISABLE_HTTP_RATE_LIMIT must be a boolean string',
     DISABLE_LOGGING_INVALID = 'DISABLE_LOGGING must be a boolean string',
+    ENABLE_REGISTRATION_INVALID = 'ENABLE_REGISTRATION must be "true" or "false"',
 }

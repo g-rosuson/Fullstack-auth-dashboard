@@ -3,6 +3,7 @@
  * Error codes for categorizing different kinds of exceptions.
  */
 export enum ErrorCode {
+    FORBIDDEN_ERROR = 'FORBIDDEN_ERROR',
     VALIDATION_ERROR = 'VALIDATION_ERROR',
     AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
     AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',

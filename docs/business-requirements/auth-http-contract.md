@@ -34,8 +34,11 @@
 | **AUTH-REG-001** | Given a valid registration payload, the API creates the user, responds **200**, **`success: true`**, returns an access token in **`data`** satisfying **AUTH-TOK-001**, and sets the refresh cookie satisfying **AUTH-TOK-002** and **AUTH-TOK-003**. |
 | **AUTH-REG-002** | Registering the same **email** twice MUST fail with **409**, **`success: false`**, and error code **`CONFLICT_ERROR`**. |
 | **AUTH-REG-010** | If the body fails validation (invalid email, missing email, password not meeting policy, missing password, invalid or missing confirmation password, missing first name, or missing last name), the API responds **400**, **`success: false`**, **`VALIDATION_ERROR`**. |
+| **AUTH-REG-011** | When **`ENABLE_REGISTRATION=false`**, `POST /api/auth/register` MUST respond **403**, **`success: false`**, error code **`FORBIDDEN_ERROR`**, and MUST NOT create a user. |
 
 Password policy (complexity, confirmation match) is defined by the server’s registration schema; clients SHOULD mirror those rules in UX to reduce failed submits.
+
+Production sets **`ENABLE_REGISTRATION=false`** in `backend/.env.prod`; integration and E2E use **`true`** so register contract tests keep running. The gate is enforced in **`validateAuthenticationInput`** ([`auth-middleware.ts`](../../backend/src/modules/auth/auth-middleware.ts)).
 
 ---
 
@@ -81,6 +84,7 @@ Browser-level UI verification: [auth-e2e-contract.md](./auth-e2e-contract.md) (`
 | **AUTH-REG-001**, **AUTH-TOK-001**, **AUTH-TOK-002**, **AUTH-TOK-003** | Title starts with `[AUTH-REG-001][AUTH-TOK-001][AUTH-TOK-002][AUTH-TOK-003]` — successful registration |
 | **AUTH-REG-002** | `[AUTH-REG-002]` — duplicate email |
 | **AUTH-REG-010** | `[AUTH-REG-010]` — eight validation scenarios |
+| **AUTH-REG-011** | `[AUTH-REG-011]` — registration disabled (`ENABLE_REGISTRATION=false`) |
 | **AUTH-LOG-001**, **AUTH-TOK-001**, **AUTH-TOK-002**, **AUTH-TOK-003** | Title starts with `[AUTH-LOG-001][AUTH-TOK-001]...` — successful login |
 | **AUTH-LOG-002** | `[AUTH-LOG-002]` — wrong password, wrong email, unknown user |
 | **AUTH-OUT-001** | `[AUTH-OUT-001]` |
