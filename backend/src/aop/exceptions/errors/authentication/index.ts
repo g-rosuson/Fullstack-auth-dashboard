@@ -31,3 +31,17 @@ export class TokenException extends BaseException {
         super(message, HttpStatusCode.UNAUTHORIZED, ErrorCode.AUTHENTICATION_ERROR, context);
     }
 }
+
+/**
+ * Exception thrown when access is forbidden.
+ * Used when user is not authorized to access a resource.
+ */
+export class ForbiddenException extends BaseException {
+    /**
+     * @param message Human-readable error message
+     * @param context Additional context information
+     */
+    constructor(message: string, context: ExceptionContext = {}) {
+        super(message, HttpStatusCode.FORBIDDEN, ErrorCode.FORBIDDEN_ERROR, context);
+    }
+}

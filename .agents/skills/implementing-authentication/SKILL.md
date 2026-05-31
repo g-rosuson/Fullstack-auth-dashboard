@@ -61,11 +61,17 @@ Guide complete, end-to-end implementation of authentication across the Express b
 3. `const { accessToken } = jwtService.createTokens(result.data)`.
 4. Respond `{ success: true, data: accessToken, meta: { timestamp: Date.now() } }`.
 
+## Backend — registration gate
+
+- **`ENABLE_REGISTRATION`** (`"true"` | `"false"`) is validated in `validate-common.ts` and exposed as `config.enableRegistration`.
+- **`validateAuthenticationInput`** rejects `POST /api/auth/register` with **`ForbiddenException`** (403, `FORBIDDEN_ERROR`) when `enableRegistration` is false — before Zod schema validation.
+- Production: `ENABLE_REGISTRATION=false` in `backend/.env.prod`. Tests/E2E: `true`.
+
 ## Backend — routing wire-up
 
 ```
 router.post(constants.routes.auth.login,   loginLimiter,   validateUserInput, validateAuthenticationInput, login);
-router.post(constants.routes.auth.register, registerLimiter, validateUserInput, validateAuthenticationInput, register);
+router.post(constants.routes.auth.register, validateUserInput, registerLimiter, validateAuthenticationInput, register);
 router.post(constants.routes.auth.logout,  validateRefreshToken, logout);
 router.get(constants.routes.auth.refresh,  refreshLimiter,  validateRefreshToken, renewAccessToken);
 ```

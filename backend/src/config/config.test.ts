@@ -16,6 +16,7 @@ describe('config', () => {
             expect(config).toHaveProperty('mongoJobsCollectionName');
             expect(config).toHaveProperty('enableHttpRateLimit');
             expect(config).toHaveProperty('enableLogging');
+            expect(config).toHaveProperty('enableRegistration');
         });
 
         it('should have correct data types for all properties', () => {
@@ -30,6 +31,7 @@ describe('config', () => {
             expect(typeof config.mongoJobsCollectionName).toBe('string');
             expect(typeof config.enableHttpRateLimit).toBe('boolean');
             expect(typeof config.enableLogging).toBe('boolean');
+            expect(typeof config.enableRegistration).toBe('boolean');
         });
 
         it('should have non-empty string values for required string properties', () => {

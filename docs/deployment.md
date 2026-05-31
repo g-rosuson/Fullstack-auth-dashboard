@@ -49,6 +49,8 @@ Internet
 
 None of these files are committed. They must be created manually on each server.
 
+Set **`ENABLE_REGISTRATION=false`** in `backend/.env.prod` to block public sign-up (`POST /api/auth/register` returns 403). Seed the first user via `curl` while the flag is still `true`, or insert into Mongo after lockdown (see [VPS Setup Guide](./guides/vps-setup.md)).
+
 ---
 
 ## Monitoring

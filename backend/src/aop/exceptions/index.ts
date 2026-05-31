@@ -7,7 +7,7 @@
 export { InputValidationException, SchemaValidationException } from './errors/validation';
 
 // Authentication and authorization exceptions
-export { TokenException, UnauthorizedException } from './errors/authentication';
+export { ForbiddenException, TokenException, UnauthorizedException } from './errors/authentication';
 
 // Resource-related exceptions
 export { BusinessLogicException, ConflictException, ResourceNotFoundException } from './errors/resource';

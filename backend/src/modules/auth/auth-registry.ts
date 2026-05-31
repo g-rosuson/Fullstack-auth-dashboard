@@ -43,6 +43,9 @@ authRegistry.registerPath({
                 },
             },
         },
+        403: {
+            description: 'Registration is disabled',
+        },
     },
     request: {
         body: {

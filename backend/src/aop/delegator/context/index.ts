@@ -8,6 +8,7 @@ import type { Delegator } from 'aop/delegator';
 export class DelegatorContext {
     delegate;
     register;
+    removeJob;
     runningJobs;
 
     /**
@@ -17,6 +18,7 @@ export class DelegatorContext {
     constructor(delegator: Delegator) {
         this.delegate = delegator.delegate;
         this.register = delegator.register;
+        this.removeJob = delegator.removeJob;
         this.runningJobs = delegator.runningJobs;
     }
 }

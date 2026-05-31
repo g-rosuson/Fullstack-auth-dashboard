@@ -26,6 +26,7 @@ export default defineConfig({
             MONGO_USER_COLLECTION_NAME: 'test-user-collection',
             ENABLE_HTTP_RATE_LIMIT: 'false',
             ENABLE_LOGGING: 'true',
+            ENABLE_REGISTRATION: 'true',
         },
     },
 });

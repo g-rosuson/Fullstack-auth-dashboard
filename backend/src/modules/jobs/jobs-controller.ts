@@ -128,8 +128,9 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
         // Start a new transaction
         session.startTransaction();
 
-        // Don't allow updating a job if its tools are running
-        if (req.context.delegator.runningJobs.has(req.params.id)) {
+        // Don't allow updating a job if its tools are running for this user
+        const runningJob = req.context.delegator.runningJobs.get(req.params.id);
+        if (runningJob?.userId === req.context.user.id) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING);
         }
 
@@ -194,6 +195,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
         } else if (updateJobPayload.schedule === null) {
             // If the schedule is null, delete the job from the scheduler
             req.context.scheduler.delete(updateJobPayload.id);
+            req.context.delegator.removeJob(updateJobPayload.id);
 
             if (req.body.runJob) {
                 // If the job should run again and there's no schedule, delegate it immediately
@@ -231,14 +233,51 @@ const deleteJob = async (req: Request<IdRouteParam>, res: Response) => {
     const { id } = req.params;
     const userId = req.context.user.id;
 
-    // Delete the job from the database
-    const result = await req.context.db.repository.jobs.delete(id, userId);
+    const runningJob = req.context.delegator.runningJobs.get(id);
+    if (runningJob?.userId === userId) {
+        throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_DELETED_WHILE_RUNNING);
+    }
 
-    // Respond with the id of the deleted job
-    res.status(HttpStatusCode.OK).json({
-        success: true,
-        data: { id: result.id },
-    });
+    /**
+     * Wrap the database delete in a transaction so it can roll back on failure.
+     * Scheduler and delegator cleanup run only after commit (they are not transactional).
+     */
+    const session = req.context.db.transaction.startSession();
+    let isCommitted = false;
+
+    try {
+        // Start a new transaction
+        session.startTransaction();
+
+        // Delete the job from the database
+        const result = await req.context.db.repository.jobs.delete(id, userId, session);
+
+        // Commit the transaction
+        await session.commitTransaction();
+        isCommitted = true;
+
+        // Remove the job from the scheduler and delegator
+        req.context.scheduler.delete(id);
+        req.context.delegator.removeJob(id);
+
+        // Respond with the id of the deleted job
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            data: { id: result.id },
+        });
+    } catch (error) {
+        if (!isCommitted) {
+            // Abort the transaction if there's an error before commit
+            await session.abortTransaction();
+        }
+
+        logger.error('Failed to delete job', { error: error as Error });
+
+        // Re-throw the error to be handled by the error middleware
+        throw error;
+    } finally {
+        await session.endSession();
+    }
 };
 
 /**

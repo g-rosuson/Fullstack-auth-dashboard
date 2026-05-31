@@ -826,7 +826,7 @@ describe('Integration: jobs HTTP', () => {
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${tokenA}`)
-                .send(buildJobWithoutSchedulePayload('DELETE iso'));
+                .send(buildJobWithSchedulePayload('DELETE iso'));
 
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
@@ -852,7 +852,7 @@ describe('Integration: jobs HTTP', () => {
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithoutSchedulePayload('To delete'));
+                .send(buildJobWithSchedulePayload('To delete'));
 
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
