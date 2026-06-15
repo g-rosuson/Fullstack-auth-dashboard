@@ -154,10 +154,14 @@ describe('Button component', () => {
         expect(onClickMock).toHaveBeenCalledTimes(1);
     });
 
-    // Test the "type" prop
     it('applies the "type" prop correctly', () => {
         const { getByRole } = renderButton({ type: 'reset' });
         expect(getByRole('button')).toHaveProperty('type', 'reset');
+    });
+
+    it('applies the "size" prop correctly', () => {
+        const { getByRole } = renderButton({ size: 'icon-lg' });
+        expect(getByRole('button')).toHaveAttribute('data-size', 'icon-lg');
     });
 
     it('submits the form when type="submit"', async () => {
