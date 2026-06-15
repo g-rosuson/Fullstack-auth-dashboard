@@ -37,7 +37,7 @@ const Sidebar = () => {
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu className="gap-1">
+                        <SidebarMenu className="gap-2 p-2">
                             {sidebarNavItems.map(item => {
                                 const Icon = item.icon;
                                 const isActive = pathname === item.route;

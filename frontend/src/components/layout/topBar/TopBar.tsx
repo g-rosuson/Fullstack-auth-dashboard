@@ -93,7 +93,7 @@ const TopBar = () => {
     const themeButtonAriaLabel = `Toggle theme to ${nextThemeForAriaLabel} mode`;
 
     return (
-        <header className="sticky top-0 flex w-full items-center justify-between border-b border-border bg-surface p-2">
+        <header className="sticky top-0 flex w-full items-center justify-between border-b border-border bg-surface p-4">
             <div>
                 <Button
                     variant="outline"
