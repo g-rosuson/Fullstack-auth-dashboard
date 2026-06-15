@@ -9,11 +9,17 @@ import { buttonVariants } from '@/components/ui/button';
 type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
 
 /**
+ * Button size types
+ */
+type ButtonSize = VariantProps<typeof buttonVariants>['size'];
+
+/**
  * Base button props
  */
 type BaseProps = {
     testId?: string;
     type?: ButtonHTMLAttributes<HTMLButtonElement>['type'];
+    size?: ButtonSize;
     variant?: ButtonVariant;
     disabled?: boolean;
     hidden?: boolean;
