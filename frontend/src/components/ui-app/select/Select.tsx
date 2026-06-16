@@ -14,7 +14,12 @@ const Select = <V extends string>({ label, options, id, value, placeholder, onCh
         <div className="w-full flex flex-col gap-2">
             <FieldLabel htmlFor={id}>{label}</FieldLabel>
 
-            <NativeSelect id={id} value={value} onChange={handleChange} className={className}>
+            <NativeSelect
+                id={id}
+                value={value}
+                onChange={handleChange}
+                className={className}
+                selectClassName={value === '' ? 'text-muted-foreground' : undefined}>
                 <NativeSelectOption value="">{placeholder}</NativeSelectOption>
 
                 {options.map(option => (
