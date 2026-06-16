@@ -205,7 +205,7 @@ const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: J
                             name="name"
                             label="Name"
                             type="text"
-                            placeholder="Job name"
+                            placeholder="Enter the job name..."
                             value={state.name}
                             onChange={onFieldChange}
                             required
@@ -257,7 +257,7 @@ const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: J
                             <div className="flex flex-col items-center gap-3 sm:flex-row">
                                 <DatePicker
                                     label="Start date"
-                                    placeholder="Pick a start date"
+                                    placeholder="Select a start date..."
                                     value={state.startDate}
                                     onChange={value => onDateChange('startDate', value)}
                                     disabled={!state.scheduleType}
@@ -268,7 +268,7 @@ const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: J
                                     name="startTime"
                                     label="Start time"
                                     type="time"
-                                    placeholder="Pick a start time"
+                                    placeholder="Select a start time..."
                                     value={state.startTime}
                                     onChange={onFieldChange}
                                     disabled={!state.scheduleType}
@@ -279,7 +279,7 @@ const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: J
                             <div className="flex flex-col items-center gap-3 sm:flex-row">
                                 <DatePicker
                                     label="End date"
-                                    placeholder="Pick an end date"
+                                    placeholder="Select an end date..."
                                     value={state.endDate}
                                     onChange={value => onDateChange('endDate', value)}
                                     disabled={!state.scheduleType}
@@ -289,7 +289,7 @@ const JobFormSheet = ({ job, isOpen, onOpenChange, onCreateJob, onUpdateJob }: J
                                     name="endTime"
                                     label="End time"
                                     type="time"
-                                    placeholder="Pick an end time"
+                                    placeholder="Select an end time..."
                                     value={state.endTime}
                                     onChange={onFieldChange}
                                     disabled={!state.scheduleType}

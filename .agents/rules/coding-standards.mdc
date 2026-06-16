@@ -16,6 +16,7 @@ Enforce language-level TypeScript conventions that apply identically to both pac
 - DO NOT use `any`. Use `unknown` and narrow with Zod schemas or type guards.
 - Derive types from Zod schemas using `z.infer<typeof schema>`. DO NOT write duplicate type definitions by hand.
 - Use `type` imports (`import type { Foo }`) for type-only symbols.
+- In switch statements over discriminated unions or enums, use a `never` check in the default case so newly added variants cause compile-time failures until handled.
 
 ## Naming (shared across both packages)
 

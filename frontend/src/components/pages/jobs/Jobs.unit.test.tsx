@@ -85,9 +85,9 @@ vi.mock('./components/jobSheet/JobSheet', () => ({
  * Mock the Button component.
  */
 vi.mock('@/components/ui-app/button/Button', () => ({
-    default: ({ disabled, label, onClick }: any) => (
-        <button disabled={disabled} onClick={onClick}>
-            {label}
+    default: ({ disabled, label, ariaLabel, icon, onClick }: any) => (
+        <button disabled={disabled} onClick={onClick} aria-label={ariaLabel}>
+            {icon ?? label ?? null}
         </button>
     ),
 }));
@@ -131,6 +131,11 @@ const getStreamHandlers = () => {
 };
 
 /**
+ * The placeholder message.
+ */
+const PLACEHOLDER_MESSAGE = 'No jobs exist yet, create your first job to get started.';
+
+/**
  * Initial render tests.
  */
 describe('Jobs page: initial render', () => {
@@ -146,22 +151,23 @@ describe('Jobs page: initial render', () => {
         expect(screen.getByRole('heading', { level: 1, name: 'Jobs' })).toBeInTheDocument();
     });
 
-    it('renders the create job button', () => {
-        // Keep fetch pending so this test stays purely synchronous.
-        (api.service.resources.jobs.getAll as Mock).mockReturnValue(new Promise(() => {}));
-        render(<Jobs />);
-
-        expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
-    });
-
-    it('shows loading state and disables UI elements when jobs are fetched', () => {
+    it('shows loading state', () => {
         // getAll never resolves so the component stays in loading state
         (api.service.resources.jobs.getAll as Mock).mockReturnValue(new Promise(() => {}));
 
         render(<Jobs />);
 
         expect(screen.getByRole('status')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Create job' })).toBeDisabled();
+    });
+
+    it('does not show placeholder or create button while loading', () => {
+        (api.service.resources.jobs.getAll as Mock).mockReturnValue(new Promise(() => {}));
+
+        render(<Jobs />);
+
+        expect(screen.getByRole('status')).toBeInTheDocument();
+        expect(screen.queryByText(PLACEHOLDER_MESSAGE)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Create job' })).not.toBeInTheDocument();
     });
 
     it('hides loading state, shows cards and enables UI elements after jobs are fetched', async () => {
@@ -173,7 +179,6 @@ describe('Jobs page: initial render', () => {
 
         // Loading state is visible immediately while the request is in-flight
         expect(screen.getByRole('status')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Create job' })).toBeDisabled();
 
         // After the fetch resolves the spinner is gone and cards are shown
         await waitFor(() => {
@@ -183,13 +188,68 @@ describe('Jobs page: initial render', () => {
             expect(screen.getByRole('article', { name: 'Job card Beta' })).toBeInTheDocument();
         });
     });
+});
 
-    // TODO: Add placeholder test when we add a placeholder
-    it('does not render cards and shows placeholder when no jobs exist', () => {
-        // Keep fetch pending so the test does not race with async updates.
-        (api.service.resources.jobs.getAll as Mock).mockReturnValue(new Promise(() => {}));
+describe('Jobs page: empty state', () => {
+    afterEach(() => {
+        vi.resetAllMocks();
+    });
+
+    it('shows placeholder when no jobs exist after fetch completes', async () => {
+        (api.service.resources.jobs.getAll as Mock).mockResolvedValue({
+            data: [],
+        });
+
         render(<Jobs />);
-        expect(screen.queryByRole('article')).not.toBeInTheDocument();
+
+        await waitFor(() => {
+            expect(screen.queryByRole('status')).not.toBeInTheDocument();
+            expect(screen.getByText(PLACEHOLDER_MESSAGE)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
+            expect(screen.queryByRole('article')).not.toBeInTheDocument();
+        });
+    });
+
+    it('does not show placeholder message when jobs exist', async () => {
+        (api.service.resources.jobs.getAll as Mock).mockResolvedValue({
+            data: [buildJob()],
+        });
+
+        render(<Jobs />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('article', { name: 'Job card Alpha' })).toBeInTheDocument();
+            expect(screen.queryByText(PLACEHOLDER_MESSAGE)).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
+        });
+    });
+
+    it('shows placeholder after deleting the last job', async () => {
+        (api.service.resources.jobs.getAll as Mock).mockResolvedValue({
+            data: [buildJob()],
+        });
+        (api.service.resources.jobs.deleteById as Mock).mockResolvedValue({});
+
+        render(<Jobs />);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Delete Alpha' })).toBeInTheDocument();
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Delete Alpha' }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Delete confirmation action' })).toBeInTheDocument();
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Delete confirmation action' }));
+
+        await waitFor(() => {
+            expect(api.service.resources.jobs.deleteById).toHaveBeenCalledWith('job-1');
+            expect(screen.queryByRole('article', { name: 'Job card Alpha' })).not.toBeInTheDocument();
+            expect(screen.getByText(PLACEHOLDER_MESSAGE)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
+        });
     });
 });
 
@@ -203,7 +263,11 @@ describe('Jobs page: sheet and dialog flows', () => {
             data: [],
         });
         render(<Jobs />);
-        expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
+        });
+
         expect(screen.queryByRole('region', { name: 'Job form sheet' })).not.toBeInTheDocument();
 
         await userEvent.click(screen.getByRole('button', { name: 'Create job' }));
@@ -248,10 +312,15 @@ describe('Jobs page: job CRUD flows', () => {
         (api.service.resources.jobs.create as Mock).mockResolvedValue({
             data: buildJob({ id: 'job-2', name: 'Beta' }),
         });
-        await userEvent.click(screen.getByRole('button', { name: 'Create job' }));
-        await userEvent.click(screen.getByRole('button', { name: 'Create job sheet action' }));
+
+        await waitFor(async () => {
+            await userEvent.click(screen.getByRole('button', { name: 'Create job' }));
+            await userEvent.click(screen.getByRole('button', { name: 'Create job sheet action' }));
+        });
+
         await waitFor(() => {
             expect(api.service.resources.jobs.create).toHaveBeenCalledWith(mockCreatePayload);
+            expect(screen.queryByText(PLACEHOLDER_MESSAGE)).not.toBeInTheDocument();
             expect(screen.getByRole('article', { name: 'Job card Beta' })).toBeInTheDocument();
             expect(screen.queryByRole('region', { name: 'Job form sheet' })).not.toBeInTheDocument();
         });

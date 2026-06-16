@@ -4,15 +4,16 @@ import { Button as ShadcnButton } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
 const Button = (props: ButtonProps) => {
-    const { type, variant, disabled, hidden, isLoading, icon, ariaLabel, label, onClick } = props;
+    const { type, size, variant, disabled, hidden, isLoading, icon, ariaLabel, label, onClick } = props;
 
     const content = icon ?? label ?? null;
 
     return (
         <ShadcnButton
+            className="p-2"
             type={type}
             variant={variant}
-            size={icon ? 'icon' : 'default'}
+            size={size || 'default'}
             onClick={isLoading ? undefined : onClick}
             disabled={disabled || isLoading}
             hidden={hidden}

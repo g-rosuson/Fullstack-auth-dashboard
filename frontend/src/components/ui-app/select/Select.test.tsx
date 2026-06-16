@@ -81,6 +81,18 @@ describe('Select component', () => {
             expect(getSelectControl()).toHaveValue('');
             expect(getSelectControl()).toHaveDisplayValue('Pick a fruit');
         });
+
+        it('applies muted text on the control when value is empty', () => {
+            renderSelect({ value: '' });
+
+            expect(getSelectControl()).toHaveClass('text-muted-foreground');
+        });
+
+        it('does not apply muted text on the control when a value is selected', () => {
+            renderSelect({ value: 'apple' });
+
+            expect(getSelectControl()).not.toHaveClass('text-muted-foreground');
+        });
     });
 
     describe('user input', () => {

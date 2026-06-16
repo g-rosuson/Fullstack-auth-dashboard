@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { PlusIcon } from 'lucide-react';
 
 import JobCard from './components/jobCard/JobCard';
 import JobDetailSheet from './components/jobDetailSheet/JobDetailSheet';
 import JobFormSheet from './components/jobSheet/JobSheet';
+import Placeholder from './components/placeholder/Placeholder';
 import Button from '@/components/ui-app/button/Button';
 import ConfirmationDialog from '@/components/ui-app/confirmationDialog/ConfirmationDialog';
 import Heading from '@/components/ui-app/heading/Heading';
@@ -270,21 +272,10 @@ const Jobs = () => {
         };
     }, []);
 
-    // Determine content
-    let content = (
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {state.jobs.map(job => (
-                <JobCard
-                    key={job.id}
-                    job={job}
-                    isRunning={state.runningJobs.includes(job.id)}
-                    onOpen={() => toggleJobDetailSheet(job)}
-                    onEdit={() => toggleJobFormSheet(job)}
-                    onDelete={toggleConfirmationDialog}
-                />
-            ))}
-        </section>
-    );
+    /**
+     * Determines the content to render based on the state.
+     */
+    let content = null;
 
     if (state.isLoading) {
         content = (
@@ -292,17 +283,44 @@ const Jobs = () => {
                 <Spinner />
             </div>
         );
+    } else {
+        const hasJobs = state.jobs.length > 0;
+
+        if (!hasJobs) {
+            content = <Placeholder openFormSheet={() => toggleJobFormSheet()} />;
+        } else {
+            content = (
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {state.jobs.map(job => (
+                        <JobCard
+                            key={job.id}
+                            job={job}
+                            isRunning={state.runningJobs.includes(job.id)}
+                            onOpen={() => toggleJobDetailSheet(job)}
+                            onEdit={() => toggleJobFormSheet(job)}
+                            onDelete={toggleConfirmationDialog}
+                        />
+                    ))}
+
+                    <div className="fixed bottom-4 right-4">
+                        <Button
+                            icon={<PlusIcon />}
+                            size="icon-lg"
+                            disabled={state.isLoading}
+                            ariaLabel="Create job"
+                            onClick={() => toggleJobFormSheet()}
+                        />
+                    </div>
+                </section>
+            );
+        }
     }
 
     return (
         <section className="h-full flex flex-col">
-            <section className="flex justify-between mb-4">
-                <Heading size="l" level={1}>
-                    Jobs
-                </Heading>
-
-                <Button disabled={state.isLoading} label="Create job" onClick={() => toggleJobFormSheet()} />
-            </section>
+            <Heading size="l" level={1} className="mb-4">
+                Jobs
+            </Heading>
 
             {content}
 

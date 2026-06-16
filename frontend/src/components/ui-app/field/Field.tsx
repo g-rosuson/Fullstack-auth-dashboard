@@ -27,6 +27,7 @@ const Field: React.FC<FieldProps> = ({ label, type, placeholder, required, name,
                 required={required}
                 onChange={onChange}
                 disabled={disabled}
+                className={value === '' ? 'text-muted-foreground' : undefined}
             />
         </ShadcnField>
     );

@@ -54,7 +54,10 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
                         id={triggerId}
                         variant="outline"
                         disabled={disabled}
-                        className={cn('w-full justify-start font-normal', !value && 'text-muted-foreground')}>
+                        className={cn(
+                            'w-full justify-start font-normal border-input bg-muted hover:bg-muted-hover',
+                            !value && 'text-muted-foreground'
+                        )}>
                         <CalendarIcon />
                         {value ? format(value, 'PPP') : placeholder}
 
@@ -71,7 +74,7 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
                     </Button>
                 </PopoverTrigger>
 
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-surface hover:bg-surface-hover" align="start">
                     <Calendar mode="single" selected={value} onSelect={onSelect} autoFocus />
                 </PopoverContent>
             </Popover>
