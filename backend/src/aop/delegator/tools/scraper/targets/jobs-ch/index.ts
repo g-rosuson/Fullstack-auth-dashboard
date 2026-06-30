@@ -9,6 +9,7 @@ import type {
     ScraperTarget,
     ScraperTargetConfig,
 } from '../../types';
+import type { SemanticSearchResponse } from './types';
 import type { Page } from 'playwright';
 import type { ExecutionScraperToolTargetListing } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
@@ -17,14 +18,198 @@ import { chromium } from 'playwright';
 import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
 /**
- * Build a search URL for jobs.ch with keyword and pagination params.
+ * Parse structured description sections from a jobs.ch description container.
+ *
+ * jobs.ch markup uses alternating section titles (in `p > strong`) and content
+ * blocks (paragraphs or list items). The first direct child of the description
+ * container is a CTA box ("You are a great fit for this position.") which we
+ * skip.
  */
-function buildSearchUrl(keywords: string[], pageIndex: number): string {
+export function parseDescriptionSections(
+    containerElement: Element,
+    selectors: {
+        allSpans: string;
+        titleContainer: string;
+        paragraph: string;
+        listItem: string;
+        strong: string;
+    }
+): ScraperDescriptionSection[] {
+    const sections: ScraperDescriptionSection[] = [];
+    let current: ScraperDescriptionSection | null = null;
+
+    const children = Array.from(containerElement.children);
+    let firstChildSkipped = false;
+
+    for (const child of children) {
+        // Skip the first child (CTA box).
+        if (!firstChildSkipped) {
+            firstChildSkipped = true;
+            continue;
+        }
+
+        const spans = Array.from(child.querySelectorAll(selectors.allSpans));
+
+        for (const span of spans) {
+            const text = span.textContent?.trim();
+            if (!text) {
+                continue;
+            }
+
+            /**
+             * Section title: a span whose closest ancestor is `p > strong`.
+             * Finalize the previous section before starting a new one.
+             */
+            if (span.closest(selectors.titleContainer)) {
+                if (current && current.blocks.length > 0) {
+                    sections.push(current);
+                }
+                current = { title: text, blocks: [] };
+                continue;
+            }
+
+            const parentParagraph = span.closest(selectors.paragraph);
+            const parentListItem = span.closest(selectors.listItem);
+
+            /**
+             * Plain paragraph (not a title): a `<p>` that doesn't contain a `<strong>`.
+             */
+            if (parentParagraph && !parentParagraph.querySelector(selectors.strong)) {
+                if (!current) {
+                    current = { blocks: [] };
+                }
+                current.blocks.push(text);
+            } else if (parentListItem) {
+                if (!current) {
+                    current = { blocks: [] };
+                }
+                current.blocks.push(text);
+            }
+        }
+    }
+
+    if (current && current.blocks.length > 0) {
+        sections.push(current);
+    }
+
+    return sections;
+}
+
+/**
+ * Parse label/value information items from a jobs.ch vacancy info container.
+ *
+ * Each list item has 2 text spans — the first is the label, the second the
+ * value. SVG-only spans (icons) are filtered out.
+ */
+export function parseInformationItems(
+    containerElement: Element,
+    selectors: {
+        list: string;
+        listItem: string;
+        span: string;
+        svg: string;
+    }
+): ScraperInformationItem[] {
+    const items: ScraperInformationItem[] = [];
+
+    const list = containerElement.querySelector(selectors.list);
+    if (!list) {
+        return items;
+    }
+
+    const listItems = Array.from(list.querySelectorAll(selectors.listItem));
+
+    for (const listItem of listItems) {
+        const spans = Array.from(listItem.querySelectorAll(selectors.span));
+        const texts: string[] = [];
+
+        for (const span of spans) {
+            const hasSvg = span.querySelector(selectors.svg) !== null;
+            if (hasSvg) {
+                continue;
+            }
+
+            const text = span.textContent?.trim();
+            if (text) {
+                texts.push(text);
+            }
+        }
+
+        if (texts.length >= 2) {
+            items.push({ label: texts[0], value: texts[1] as string });
+        } else if (texts.length === 1) {
+            items.push({ label: '', value: texts[0] as string });
+        }
+    }
+
+    return items;
+}
+
+/**
+ * Extract company name text from a `[data-cy="company-link"]` element.
+ */
+export function parseCompanyNameFromLink(element: Element, spanSelector: string): string | null {
+    const span = element.querySelector(spanSelector);
+    return span?.textContent?.trim() ?? null;
+}
+
+/**
+ * Extract company name text from a `[data-cy="vacancy-logo"]` element,
+ * skipping spans that only contain an SVG logo.
+ */
+export function parseCompanyNameFromVacancyLogo(element: Element, args: { span: string; svg: string }): string | null {
+    const spans = Array.from(element.querySelectorAll(args.span));
+    for (const span of spans) {
+        const hasSvg = span.querySelector(args.svg) !== null;
+        if (hasSvg) {
+            continue;
+        }
+        const text = span.textContent?.trim();
+        if (text) {
+            return text;
+        }
+    }
+    return null;
+}
+
+/**
+ * Fetch one page of vacancy IDs from the jobs.ch semantic search API.
+ */
+async function fetchSemanticSearchPage(
+    page: Page,
+    query: string,
+    pageIndex: number,
+    scraperTargetConfig: ScraperTargetConfig
+): Promise<SemanticSearchResponse> {
     const params = new URLSearchParams({
-        term: keywords.join(' '),
+        query,
+        rows: constants.configuration.semanticSearchRows.toString(),
         page: pageIndex.toString(),
     });
-    return `${constants.configuration.baseUrl}?${params.toString()}`;
+    const url = `${constants.configuration.semanticSearchApiUrl}?${params.toString()}`;
+
+    return retryWithFixedInterval(
+        async () => {
+            const response = await page.request.get(url, {
+                headers: {
+                    Accept: 'application/json',
+                    Origin: constants.configuration.siteOrigin,
+                    Referer: `${constants.configuration.siteOrigin}/`,
+                },
+            });
+
+            if (!response.ok()) {
+                throw new Error(`Semantic search request failed with status ${response.status()}`);
+            }
+
+            return response.json() as Promise<SemanticSearchResponse>;
+        },
+        {
+            maxAttempts: scraperTargetConfig.totalAttempts,
+            delayMs: scraperTargetConfig.retryDelayMs,
+            operationName: 'fetch semantic search page',
+        }
+    );
 }
 
 /**
@@ -50,66 +235,7 @@ async function extractDescriptions(page: Page): Promise<ScraperDescriptionSectio
         return [];
     }
 
-    return container.evaluate((containerElement, selectors) => {
-        const sections: { title?: string; blocks: string[] }[] = [];
-        let current: { title?: string; blocks: string[] } | null = null;
-
-        const children = Array.from(containerElement.children);
-        let firstChildSkipped = false;
-
-        for (const child of children) {
-            // Skip the first child (CTA box).
-            if (!firstChildSkipped) {
-                firstChildSkipped = true;
-                continue;
-            }
-
-            const spans = Array.from(child.querySelectorAll(selectors.allSpans));
-
-            for (const span of spans) {
-                const text = span.textContent?.trim();
-                if (!text) {
-                    continue;
-                }
-
-                /**
-                 * Section title: a span whose closest ancestor is `p > strong`.
-                 * Finalize the previous section before starting a new one.
-                 */
-                if (span.closest(selectors.titleContainer)) {
-                    if (current && current.blocks.length > 0) {
-                        sections.push(current);
-                    }
-                    current = { title: text, blocks: [] };
-                    continue;
-                }
-
-                const parentParagraph = span.closest(selectors.paragraph);
-                const parentListItem = span.closest(selectors.listItem);
-
-                /**
-                 * Plain paragraph (not a title): a `<p>` that doesn't contain a `<strong>`.
-                 */
-                if (parentParagraph && !parentParagraph.querySelector(selectors.strong)) {
-                    if (!current) {
-                        current = { blocks: [] };
-                    }
-                    current.blocks.push(text);
-                } else if (parentListItem) {
-                    if (!current) {
-                        current = { blocks: [] };
-                    }
-                    current.blocks.push(text);
-                }
-            }
-        }
-
-        if (current && current.blocks.length > 0) {
-            sections.push(current);
-        }
-
-        return sections;
-    }, constants.selectors.descriptionParsing);
+    return container.evaluate(parseDescriptionSections, constants.selectors.descriptionParsing);
 }
 
 /**
@@ -125,41 +251,7 @@ async function extractInformations(page: Page): Promise<ScraperInformationItem[]
         return [];
     }
 
-    return container.evaluate((containerElement, selectors) => {
-        const items: ScraperInformationItem[] = [];
-
-        const list = containerElement.querySelector(selectors.list);
-        if (!list) {
-            return items;
-        }
-
-        const listItems = Array.from(list.querySelectorAll(selectors.listItem));
-
-        for (const listItem of listItems) {
-            const spans = Array.from(listItem.querySelectorAll(selectors.span));
-            const texts: string[] = [];
-
-            for (const span of spans) {
-                const hasSvg = span.querySelector(selectors.svg) !== null;
-                if (hasSvg) {
-                    continue;
-                }
-
-                const text = span.textContent?.trim();
-                if (text) {
-                    texts.push(text);
-                }
-            }
-
-            if (texts.length >= 2) {
-                items.push({ label: texts[0], value: texts[1] as string });
-            } else if (texts.length === 1) {
-                items.push({ label: '', value: texts[0] as string });
-            }
-        }
-
-        return items;
-    }, constants.selectors.informationParsing);
+    return container.evaluate(parseInformationItems, constants.selectors.informationParsing);
 }
 
 /**
@@ -175,10 +267,7 @@ async function extractCompanyName(page: Page): Promise<ScraperInformationItem | 
 
     const companyLink = await page.$(constants.selectors.companyNameSelector);
     if (companyLink) {
-        const value = await companyLink.evaluate((element, spanSelector) => {
-            const span = element.querySelector(spanSelector);
-            return span?.textContent?.trim() ?? null;
-        }, parsing.span);
+        const value = await companyLink.evaluate(parseCompanyNameFromLink, parsing.span);
 
         if (value) {
             return { label: parsing.label, value };
@@ -187,23 +276,10 @@ async function extractCompanyName(page: Page): Promise<ScraperInformationItem | 
 
     const vacancyLogo = await page.$(constants.selectors.vacancyLogoSelector);
     if (vacancyLogo) {
-        const value = await vacancyLogo.evaluate(
-            (element, args) => {
-                const spans = Array.from(element.querySelectorAll(args.span)) as HTMLSpanElement[];
-                for (const span of spans) {
-                    const hasSvg = span.querySelector(args.svg) !== null;
-                    if (hasSvg) {
-                        continue;
-                    }
-                    const text = span.textContent?.trim();
-                    if (text) {
-                        return text;
-                    }
-                }
-                return null;
-            },
-            { span: parsing.span, svg: parsing.svg }
-        );
+        const value = await vacancyLogo.evaluate(parseCompanyNameFromVacancyLogo, {
+            span: parsing.span,
+            svg: parsing.svg,
+        });
 
         if (value) {
             return { label: parsing.label, value };
@@ -246,8 +322,7 @@ async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionSc
 /**
  * jobs.ch target.
  *
- * Strategy: walk listing URLs by pagination, collect vacancy detail URLs, then scrape
- * each detail page sequentially on one tab.
+ * Strategy: paginate the semantic search API for vacancy IDs, then scrape each detail page sequentially.
  */
 const jobsChTarget: ScraperTarget = {
     async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]> {
@@ -255,91 +330,27 @@ const jobsChTarget: ScraperTarget = {
         const page = await browser.newPage();
 
         try {
-            // Dedupe and determine job detail URLs
+            /**
+             * Collect vacancy detail URLs via the semantic search API.
+             *
+             * DOM pagination in headless Playwright stops around ~100 results; the API exposes the full result set.
+             */
+            const query = scraperTargetConfig.keywords.join(' ');
             const jobDetailUrlSet = new Set<string>();
-
-            const jobDetailUrlPrefix = constants.configuration.detailUrlPrefix;
-            const { maxPages } = scraperTargetConfig;
             let currentPageIndex = 1;
 
-            /**
-             * Re-evaluate each iteration: `maxPages === 0` means unlimited (stop only on URL `break`);
-             * otherwise stop after `goto`/`scrape` for pages `1 … maxPages` (see `finally` increment).
-             */
-            while (maxPages === 0 || currentPageIndex <= maxPages) {
-                /**
-                 * Retry navigation to the search result page up to 3 times with a 1 second delay between attempts.
-                 */
-                try {
-                    await retryWithFixedInterval(
-                        async () => {
-                            await page.goto(buildSearchUrl(scraperTargetConfig.keywords, currentPageIndex));
-                            await page.waitForSelector(constants.selectors.resultsContainer);
-                        },
-                        {
-                            maxAttempts: scraperTargetConfig.totalAttempts,
-                            delayMs: scraperTargetConfig.retryDelayMs,
-                            operationName: 'navigate to search result page',
-                        }
-                    );
+            while (scraperTargetConfig.maxPages === 0 || currentPageIndex <= scraperTargetConfig.maxPages) {
+                const searchPage = await fetchSemanticSearchPage(page, query, currentPageIndex, scraperTargetConfig);
 
-                    /**
-                     * Skip this on page 1: the first results page drops `page=1`
-                     * from the URL even when listings exist, so we would quit too soon.
-                     */
-                    if (currentPageIndex > 1 && !page.url().includes(`page=${currentPageIndex}`)) {
-                        break;
-                    }
-                } catch (error) {
-                    continue;
-                } finally {
-                    // * Note: finally always runs (unless the runtime aborts), so the increment always happens—including on break.
-                    currentPageIndex++;
+                for (const document of searchPage.documents) {
+                    jobDetailUrlSet.add(`${constants.configuration.detailUrlPrefix}${document.id}`);
                 }
 
-                /**
-                 * Resolve attributes with `URL` using the listing document URL as base so
-                 * relative `/en/vacancies/detail/…`-style `href`s are kept; filter by prefix.
-                 */
-                const listingBaseHref = page.url();
-
-                const jobDetailUrls = await page.$$eval(
-                    constants.selectors.itemSelector,
-                    (elements, args) => {
-                        const prefix = args.jobDetailUrlPrefix;
-                        const baseHref = args.listingBaseHref;
-                        const absolute: string[] = [];
-
-                        for (const el of elements) {
-                            try {
-                                const raw = el.getAttribute('href');
-
-                                if (!raw?.trim()) {
-                                    continue;
-                                }
-
-                                const url = new URL(raw.trim(), baseHref);
-
-                                if (url.href.startsWith(prefix)) {
-                                    absolute.push(url.href);
-                                }
-                            } catch {
-                                /* malformed URL, continue to the next one */
-                                continue;
-                            }
-                        }
-
-                        return absolute;
-                    },
-                    {
-                        jobDetailUrlPrefix,
-                        listingBaseHref,
-                    }
-                );
-
-                for (const url of jobDetailUrls) {
-                    jobDetailUrlSet.add(url);
+                if (searchPage.documents.length === 0 || currentPageIndex >= searchPage.numPages) {
+                    break;
                 }
+
+                currentPageIndex += 1;
             }
 
             /**
