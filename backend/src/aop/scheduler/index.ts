@@ -210,7 +210,7 @@ export class Scheduler {
      */
     public schedule(payload: SchedulePayload): void {
         const jobId = payload.jobId;
-        const startDate = new Date(payload.startDate);
+        const startDate = new Date(payload.startDate); // startDate = nextRun or a startDate in the future validated by the controller
         const endDate = payload.endDate ? new Date(payload.endDate) : null;
         const now = new Date();
 
