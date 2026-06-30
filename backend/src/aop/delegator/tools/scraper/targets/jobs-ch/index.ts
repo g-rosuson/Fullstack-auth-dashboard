@@ -18,6 +18,161 @@ import { chromium } from 'playwright';
 import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
 /**
+ * Parse structured description sections from a jobs.ch description container.
+ *
+ * jobs.ch markup uses alternating section titles (in `p > strong`) and content
+ * blocks (paragraphs or list items). The first direct child of the description
+ * container is a CTA box ("You are a great fit for this position.") which we
+ * skip.
+ */
+export function parseDescriptionSections(
+    containerElement: Element,
+    selectors: {
+        allSpans: string;
+        titleContainer: string;
+        paragraph: string;
+        listItem: string;
+        strong: string;
+    }
+): ScraperDescriptionSection[] {
+    const sections: ScraperDescriptionSection[] = [];
+    let current: ScraperDescriptionSection | null = null;
+
+    const children = Array.from(containerElement.children);
+    let firstChildSkipped = false;
+
+    for (const child of children) {
+        // Skip the first child (CTA box).
+        if (!firstChildSkipped) {
+            firstChildSkipped = true;
+            continue;
+        }
+
+        const spans = Array.from(child.querySelectorAll(selectors.allSpans));
+
+        for (const span of spans) {
+            const text = span.textContent?.trim();
+            if (!text) {
+                continue;
+            }
+
+            /**
+             * Section title: a span whose closest ancestor is `p > strong`.
+             * Finalize the previous section before starting a new one.
+             */
+            if (span.closest(selectors.titleContainer)) {
+                if (current && current.blocks.length > 0) {
+                    sections.push(current);
+                }
+                current = { title: text, blocks: [] };
+                continue;
+            }
+
+            const parentParagraph = span.closest(selectors.paragraph);
+            const parentListItem = span.closest(selectors.listItem);
+
+            /**
+             * Plain paragraph (not a title): a `<p>` that doesn't contain a `<strong>`.
+             */
+            if (parentParagraph && !parentParagraph.querySelector(selectors.strong)) {
+                if (!current) {
+                    current = { blocks: [] };
+                }
+                current.blocks.push(text);
+            } else if (parentListItem) {
+                if (!current) {
+                    current = { blocks: [] };
+                }
+                current.blocks.push(text);
+            }
+        }
+    }
+
+    if (current && current.blocks.length > 0) {
+        sections.push(current);
+    }
+
+    return sections;
+}
+
+/**
+ * Parse label/value information items from a jobs.ch vacancy info container.
+ *
+ * Each list item has 2 text spans — the first is the label, the second the
+ * value. SVG-only spans (icons) are filtered out.
+ */
+export function parseInformationItems(
+    containerElement: Element,
+    selectors: {
+        list: string;
+        listItem: string;
+        span: string;
+        svg: string;
+    }
+): ScraperInformationItem[] {
+    const items: ScraperInformationItem[] = [];
+
+    const list = containerElement.querySelector(selectors.list);
+    if (!list) {
+        return items;
+    }
+
+    const listItems = Array.from(list.querySelectorAll(selectors.listItem));
+
+    for (const listItem of listItems) {
+        const spans = Array.from(listItem.querySelectorAll(selectors.span));
+        const texts: string[] = [];
+
+        for (const span of spans) {
+            const hasSvg = span.querySelector(selectors.svg) !== null;
+            if (hasSvg) {
+                continue;
+            }
+
+            const text = span.textContent?.trim();
+            if (text) {
+                texts.push(text);
+            }
+        }
+
+        if (texts.length >= 2) {
+            items.push({ label: texts[0], value: texts[1] as string });
+        } else if (texts.length === 1) {
+            items.push({ label: '', value: texts[0] as string });
+        }
+    }
+
+    return items;
+}
+
+/**
+ * Extract company name text from a `[data-cy="company-link"]` element.
+ */
+export function parseCompanyNameFromLink(element: Element, spanSelector: string): string | null {
+    const span = element.querySelector(spanSelector);
+    return span?.textContent?.trim() ?? null;
+}
+
+/**
+ * Extract company name text from a `[data-cy="vacancy-logo"]` element,
+ * skipping spans that only contain an SVG logo.
+ */
+export function parseCompanyNameFromVacancyLogo(element: Element, args: { span: string; svg: string }): string | null {
+    const spans = Array.from(element.querySelectorAll(args.span));
+    for (const span of spans) {
+        const hasSvg = span.querySelector(args.svg) !== null;
+        if (hasSvg) {
+            continue;
+        }
+        const text = span.textContent?.trim();
+        if (text) {
+            return text;
+        }
+    }
+    return null;
+}
+
+/**
  * Fetch one page of vacancy IDs from the jobs.ch semantic search API.
  */
 async function fetchSemanticSearchPage(
@@ -80,66 +235,7 @@ async function extractDescriptions(page: Page): Promise<ScraperDescriptionSectio
         return [];
     }
 
-    return container.evaluate((containerElement, selectors) => {
-        const sections: { title?: string; blocks: string[] }[] = [];
-        let current: { title?: string; blocks: string[] } | null = null;
-
-        const children = Array.from(containerElement.children);
-        let firstChildSkipped = false;
-
-        for (const child of children) {
-            // Skip the first child (CTA box).
-            if (!firstChildSkipped) {
-                firstChildSkipped = true;
-                continue;
-            }
-
-            const spans = Array.from(child.querySelectorAll(selectors.allSpans));
-
-            for (const span of spans) {
-                const text = span.textContent?.trim();
-                if (!text) {
-                    continue;
-                }
-
-                /**
-                 * Section title: a span whose closest ancestor is `p > strong`.
-                 * Finalize the previous section before starting a new one.
-                 */
-                if (span.closest(selectors.titleContainer)) {
-                    if (current && current.blocks.length > 0) {
-                        sections.push(current);
-                    }
-                    current = { title: text, blocks: [] };
-                    continue;
-                }
-
-                const parentParagraph = span.closest(selectors.paragraph);
-                const parentListItem = span.closest(selectors.listItem);
-
-                /**
-                 * Plain paragraph (not a title): a `<p>` that doesn't contain a `<strong>`.
-                 */
-                if (parentParagraph && !parentParagraph.querySelector(selectors.strong)) {
-                    if (!current) {
-                        current = { blocks: [] };
-                    }
-                    current.blocks.push(text);
-                } else if (parentListItem) {
-                    if (!current) {
-                        current = { blocks: [] };
-                    }
-                    current.blocks.push(text);
-                }
-            }
-        }
-
-        if (current && current.blocks.length > 0) {
-            sections.push(current);
-        }
-
-        return sections;
-    }, constants.selectors.descriptionParsing);
+    return container.evaluate(parseDescriptionSections, constants.selectors.descriptionParsing);
 }
 
 /**
@@ -155,41 +251,7 @@ async function extractInformations(page: Page): Promise<ScraperInformationItem[]
         return [];
     }
 
-    return container.evaluate((containerElement, selectors) => {
-        const items: ScraperInformationItem[] = [];
-
-        const list = containerElement.querySelector(selectors.list);
-        if (!list) {
-            return items;
-        }
-
-        const listItems = Array.from(list.querySelectorAll(selectors.listItem));
-
-        for (const listItem of listItems) {
-            const spans = Array.from(listItem.querySelectorAll(selectors.span));
-            const texts: string[] = [];
-
-            for (const span of spans) {
-                const hasSvg = span.querySelector(selectors.svg) !== null;
-                if (hasSvg) {
-                    continue;
-                }
-
-                const text = span.textContent?.trim();
-                if (text) {
-                    texts.push(text);
-                }
-            }
-
-            if (texts.length >= 2) {
-                items.push({ label: texts[0], value: texts[1] as string });
-            } else if (texts.length === 1) {
-                items.push({ label: '', value: texts[0] as string });
-            }
-        }
-
-        return items;
-    }, constants.selectors.informationParsing);
+    return container.evaluate(parseInformationItems, constants.selectors.informationParsing);
 }
 
 /**
@@ -205,10 +267,7 @@ async function extractCompanyName(page: Page): Promise<ScraperInformationItem | 
 
     const companyLink = await page.$(constants.selectors.companyNameSelector);
     if (companyLink) {
-        const value = await companyLink.evaluate((element, spanSelector) => {
-            const span = element.querySelector(spanSelector);
-            return span?.textContent?.trim() ?? null;
-        }, parsing.span);
+        const value = await companyLink.evaluate(parseCompanyNameFromLink, parsing.span);
 
         if (value) {
             return { label: parsing.label, value };
@@ -217,23 +276,10 @@ async function extractCompanyName(page: Page): Promise<ScraperInformationItem | 
 
     const vacancyLogo = await page.$(constants.selectors.vacancyLogoSelector);
     if (vacancyLogo) {
-        const value = await vacancyLogo.evaluate(
-            (element, args) => {
-                const spans = Array.from(element.querySelectorAll(args.span)) as HTMLSpanElement[];
-                for (const span of spans) {
-                    const hasSvg = span.querySelector(args.svg) !== null;
-                    if (hasSvg) {
-                        continue;
-                    }
-                    const text = span.textContent?.trim();
-                    if (text) {
-                        return text;
-                    }
-                }
-                return null;
-            },
-            { span: parsing.span, svg: parsing.svg }
-        );
+        const value = await vacancyLogo.evaluate(parseCompanyNameFromVacancyLogo, {
+            span: parsing.span,
+            svg: parsing.svg,
+        });
 
         if (value) {
             return { label: parsing.label, value };
