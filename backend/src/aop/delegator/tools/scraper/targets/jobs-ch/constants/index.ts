@@ -27,8 +27,10 @@ const constants = {
         },
     },
     configuration: {
-        baseUrl: 'https://www.jobs.ch/en/vacancies/',
         detailUrlPrefix: 'https://www.jobs.ch/en/vacancies/detail/',
+        semanticSearchApiUrl: 'https://job-search-api.jobs.ch/search/semantic',
+        semanticSearchRows: 20,
+        siteOrigin: 'https://www.jobs.ch',
     },
 } as const;
 

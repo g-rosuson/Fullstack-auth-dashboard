@@ -9,6 +9,7 @@ import type {
     ScraperTarget,
     ScraperTargetConfig,
 } from '../../types';
+import type { SemanticSearchResponse } from './types';
 import type { Page } from 'playwright';
 import type { ExecutionScraperToolTargetListing } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
 
@@ -17,14 +18,43 @@ import { chromium } from 'playwright';
 import { retryWithFixedInterval } from 'utils/async/utils-async-retry';
 
 /**
- * Build a search URL for jobs.ch with keyword and pagination params.
+ * Fetch one page of vacancy IDs from the jobs.ch semantic search API.
  */
-function buildSearchUrl(keywords: string[], pageIndex: number): string {
+async function fetchSemanticSearchPage(
+    page: Page,
+    query: string,
+    pageIndex: number,
+    scraperTargetConfig: ScraperTargetConfig
+): Promise<SemanticSearchResponse> {
     const params = new URLSearchParams({
-        term: keywords.join(' '),
+        query,
+        rows: constants.configuration.semanticSearchRows.toString(),
         page: pageIndex.toString(),
     });
-    return `${constants.configuration.baseUrl}?${params.toString()}`;
+    const url = `${constants.configuration.semanticSearchApiUrl}?${params.toString()}`;
+
+    return retryWithFixedInterval(
+        async () => {
+            const response = await page.request.get(url, {
+                headers: {
+                    Accept: 'application/json',
+                    Origin: constants.configuration.siteOrigin,
+                    Referer: `${constants.configuration.siteOrigin}/`,
+                },
+            });
+
+            if (!response.ok()) {
+                throw new Error(`Semantic search request failed with status ${response.status()}`);
+            }
+
+            return response.json() as Promise<SemanticSearchResponse>;
+        },
+        {
+            maxAttempts: scraperTargetConfig.totalAttempts,
+            delayMs: scraperTargetConfig.retryDelayMs,
+            operationName: 'fetch semantic search page',
+        }
+    );
 }
 
 /**
@@ -246,8 +276,7 @@ async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionSc
 /**
  * jobs.ch target.
  *
- * Strategy: walk listing URLs by pagination, collect vacancy detail URLs, then scrape
- * each detail page sequentially on one tab.
+ * Strategy: paginate the semantic search API for vacancy IDs, then scrape each detail page sequentially.
  */
 const jobsChTarget: ScraperTarget = {
     async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]> {
@@ -255,91 +284,27 @@ const jobsChTarget: ScraperTarget = {
         const page = await browser.newPage();
 
         try {
-            // Dedupe and determine job detail URLs
+            /**
+             * Collect vacancy detail URLs via the semantic search API.
+             *
+             * DOM pagination in headless Playwright stops around ~100 results; the API exposes the full result set.
+             */
+            const query = scraperTargetConfig.keywords.join(' ');
             const jobDetailUrlSet = new Set<string>();
-
-            const jobDetailUrlPrefix = constants.configuration.detailUrlPrefix;
-            const { maxPages } = scraperTargetConfig;
             let currentPageIndex = 1;
 
-            /**
-             * Re-evaluate each iteration: `maxPages === 0` means unlimited (stop only on URL `break`);
-             * otherwise stop after `goto`/`scrape` for pages `1 … maxPages` (see `finally` increment).
-             */
-            while (maxPages === 0 || currentPageIndex <= maxPages) {
-                /**
-                 * Retry navigation to the search result page up to 3 times with a 1 second delay between attempts.
-                 */
-                try {
-                    await retryWithFixedInterval(
-                        async () => {
-                            await page.goto(buildSearchUrl(scraperTargetConfig.keywords, currentPageIndex));
-                            await page.waitForSelector(constants.selectors.resultsContainer);
-                        },
-                        {
-                            maxAttempts: scraperTargetConfig.totalAttempts,
-                            delayMs: scraperTargetConfig.retryDelayMs,
-                            operationName: 'navigate to search result page',
-                        }
-                    );
+            while (scraperTargetConfig.maxPages === 0 || currentPageIndex <= scraperTargetConfig.maxPages) {
+                const searchPage = await fetchSemanticSearchPage(page, query, currentPageIndex, scraperTargetConfig);
 
-                    /**
-                     * Skip this on page 1: the first results page drops `page=1`
-                     * from the URL even when listings exist, so we would quit too soon.
-                     */
-                    if (currentPageIndex > 1 && !page.url().includes(`page=${currentPageIndex}`)) {
-                        break;
-                    }
-                } catch (error) {
-                    continue;
-                } finally {
-                    // * Note: finally always runs (unless the runtime aborts), so the increment always happens—including on break.
-                    currentPageIndex++;
+                for (const document of searchPage.documents) {
+                    jobDetailUrlSet.add(`${constants.configuration.detailUrlPrefix}${document.id}`);
                 }
 
-                /**
-                 * Resolve attributes with `URL` using the listing document URL as base so
-                 * relative `/en/vacancies/detail/…`-style `href`s are kept; filter by prefix.
-                 */
-                const listingBaseHref = page.url();
-
-                const jobDetailUrls = await page.$$eval(
-                    constants.selectors.itemSelector,
-                    (elements, args) => {
-                        const prefix = args.jobDetailUrlPrefix;
-                        const baseHref = args.listingBaseHref;
-                        const absolute: string[] = [];
-
-                        for (const el of elements) {
-                            try {
-                                const raw = el.getAttribute('href');
-
-                                if (!raw?.trim()) {
-                                    continue;
-                                }
-
-                                const url = new URL(raw.trim(), baseHref);
-
-                                if (url.href.startsWith(prefix)) {
-                                    absolute.push(url.href);
-                                }
-                            } catch {
-                                /* malformed URL, continue to the next one */
-                                continue;
-                            }
-                        }
-
-                        return absolute;
-                    },
-                    {
-                        jobDetailUrlPrefix,
-                        listingBaseHref,
-                    }
-                );
-
-                for (const url of jobDetailUrls) {
-                    jobDetailUrlSet.add(url);
+                if (searchPage.documents.length === 0 || currentPageIndex >= searchPage.numPages) {
+                    break;
                 }
+
+                currentPageIndex += 1;
             }
 
             /**
