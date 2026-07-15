@@ -5,6 +5,6 @@ import { cronJobTypeSchema } from 'shared/schemas/cron';
 /**
  * A cron job type.
  */
-type CronJobType = z.infer<typeof cronJobTypeSchema> | null;
+type CronJobType = z.infer<typeof cronJobTypeSchema>;
 
 export type { CronJobType };

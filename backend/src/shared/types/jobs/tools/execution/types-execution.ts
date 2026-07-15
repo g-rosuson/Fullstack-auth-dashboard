@@ -18,7 +18,7 @@ type ExecutionTool = z.infer<typeof executionToolSchema>;
  * An execution schedule.
  */
 type ExecutionSchedule = {
-    type: CronJobType;
+    type: CronJobType | null;
     delegatedAt: string;
     finishedAt: string | null;
 };

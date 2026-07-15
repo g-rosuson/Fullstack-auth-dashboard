@@ -16,6 +16,8 @@ const routes = {
     },
     jobs: {
         create: basePath + jobsDomain + '/create',
+        changeScheduleStatus: basePath + jobsDomain + '/change-schedule-status/:id',
+        retrySchedule: basePath + jobsDomain + '/retry-schedule/:id',
         update: basePath + jobsDomain + '/update/:id',
         delete: basePath + jobsDomain + '/delete/:id',
         getById: basePath + jobsDomain + '/get/:id',

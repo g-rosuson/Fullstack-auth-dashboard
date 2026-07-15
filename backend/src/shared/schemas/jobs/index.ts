@@ -9,6 +9,22 @@ import { toolSchema } from './tools/schemas-tools';
 extendZodWithOpenApi(z);
 
 /**
+ * A job schedule idle status schema.
+ */
+const jobScheduleIdleStatusSchema = z.literal('idle').openapi('JobScheduleIdleStatus');
+
+/**
+ * A job schedule stopped status schema.
+ */
+const jobScheduleStoppedStatusSchema = z.literal('stopped').openapi('JobScheduleStoppedStatus');
+
+/**
+ * Persisted schedule status — mirrors node-cron user intent (`idle` | `stopped`), survives server restart.
+ * Client maps `idle`/`running` to an "Active" label; `running` is runtime-only and not persisted.
+ */
+const jobScheduleStatusSchema = z.union([jobScheduleIdleStatusSchema, jobScheduleStoppedStatusSchema]);
+
+/**
  * A job schedule schema.
  */
 const jobScheduleSchema = z
@@ -19,6 +35,7 @@ const jobScheduleSchema = z
         // - Guarantees timezone is explicitly defined (no implicit local time)
         startDate: z.string().datetime({ offset: true }),
         endDate: z.string().datetime({ offset: true }).nullable(),
+        status: jobScheduleStatusSchema,
     })
     .openapi('JobSchedule');
 
@@ -55,4 +72,12 @@ const deleteJobResultSchema = z
     })
     .openapi('DeleteJobResult');
 
-export { jobScheduleSchema, jobDocumentSchema, jobSchema, deleteJobResultSchema };
+export {
+    jobScheduleSchema,
+    jobScheduleIdleStatusSchema,
+    jobScheduleStoppedStatusSchema,
+    jobScheduleStatusSchema,
+    jobDocumentSchema,
+    jobSchema,
+    deleteJobResultSchema,
+};
