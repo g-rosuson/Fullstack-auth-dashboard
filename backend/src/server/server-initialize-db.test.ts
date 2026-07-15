@@ -217,6 +217,7 @@ describe('initializeDatabase', () => {
                     name: 'Expired',
                     schedule: {
                         type: 'daily',
+                        status: 'idle',
                         startDate: '2026-01-01T08:00:00.000Z',
                         endDate: '2026-06-10T12:00:00.000Z',
                     },
@@ -238,6 +239,7 @@ describe('initializeDatabase', () => {
                     name: 'Daily report',
                     schedule: {
                         type: 'daily',
+                        status: 'idle',
                         startDate: futureStart,
                         endDate: null,
                     },
@@ -249,7 +251,7 @@ describe('initializeDatabase', () => {
             expect(mockSchedule).toHaveBeenCalledTimes(1);
             expect(mockSchedule).toHaveBeenCalledWith({
                 jobId: 'future-daily',
-                name: 'Daily report',
+                userId: 'user-42',
                 type: 'daily',
                 startDate: futureStart,
                 endDate: null,
@@ -259,7 +261,6 @@ describe('initializeDatabase', () => {
             expect(mockRegister).toHaveBeenCalledWith({
                 userId: 'user-42',
                 jobId: 'future-daily',
-                name: 'Daily report',
                 tools: minimalTools,
                 scheduleType: 'daily',
             });
@@ -276,6 +277,7 @@ describe('initializeDatabase', () => {
                     name: 'Once past',
                     schedule: {
                         type: 'once',
+                        status: 'idle',
                         startDate: '2026-06-01T08:00:00.000Z',
                         endDate: null,
                     },
@@ -299,6 +301,7 @@ describe('initializeDatabase', () => {
                     name: 'Past anchor',
                     schedule: {
                         type: 'daily',
+                        status: 'idle',
                         startDate: '2026-06-01T08:30:00.000Z',
                         endDate: '2026-12-31T23:59:59.000Z',
                     },
@@ -309,7 +312,7 @@ describe('initializeDatabase', () => {
 
             expect(mockSchedule).toHaveBeenCalledWith({
                 jobId: 'daily-past',
-                name: 'Past anchor',
+                userId: 'u1',
                 type: 'daily',
                 startDate: nextRun.toISOString(),
                 endDate: '2026-12-31T23:59:59.000Z',
@@ -327,6 +330,7 @@ describe('initializeDatabase', () => {
                     name: 'No next',
                     schedule: {
                         type: 'weekly',
+                        status: 'idle',
                         startDate: '2026-06-01T09:00:00.000Z',
                         endDate: null,
                     },
@@ -356,6 +360,7 @@ describe('initializeDatabase', () => {
                     name: 'B',
                     schedule: {
                         type: 'daily',
+                        status: 'idle',
                         startDate: '2026-01-01T08:00:00.000Z',
                         endDate: '2026-06-01T12:00:00.000Z',
                     },
@@ -366,6 +371,7 @@ describe('initializeDatabase', () => {
                     name: 'C',
                     schedule: {
                         type: 'monthly',
+                        status: 'idle',
                         startDate: futureStart,
                         endDate: null,
                     },
@@ -376,6 +382,7 @@ describe('initializeDatabase', () => {
                     name: 'D',
                     schedule: {
                         type: 'once',
+                        status: 'idle',
                         startDate: '2026-01-01T08:00:00.000Z',
                         endDate: null,
                     },
@@ -386,6 +393,7 @@ describe('initializeDatabase', () => {
                     name: 'E',
                     schedule: {
                         type: 'weekly',
+                        status: 'idle',
                         startDate: '2026-06-01T08:00:00.000Z',
                         endDate: null,
                     },

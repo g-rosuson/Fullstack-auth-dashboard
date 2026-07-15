@@ -13,12 +13,13 @@ import config from 'config';
 
 import { initializeDatabase } from './server-initialize-db';
 
-// TODO: 1. Add stop job endpoint and logic
-// TODO: 2. Add job pipeline information streaming
+// TODO: Add stop job endpoint and logic
+
+// TODO: Add job pipeline information streaming
 
 // TODO: Production: Look into capping the maxPages for the scraper tool
 
-// TODO: Monitor
+// TODO: Look into this:
 // TODO: (node:25) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
 // TODO: (Use `node --trace-deprecation ...` to show where the warning was created)
 

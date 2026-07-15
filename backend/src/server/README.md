@@ -47,9 +47,8 @@ Singleton class managing application shutdown lifecycle.
 
 **Shutdown Sequence:**
 1. Stop accepting new HTTP requests
-2. Stop all scheduled cron jobs
-3. Close database connections
-4. Exit process with appropriate code
+2. Close database connections
+3. Exit process with appropriate code
 
 **Features:**
 - 30-second timeout to prevent hangs
@@ -88,7 +87,6 @@ main.ts
 Signal Received (SIGTERM/SIGINT)
 ├── ShutdownManager.initiateShutdown()
 ├── Stop HTTP server (stop accepting requests)
-├── Stop all cron jobs
 ├── Close database connections
 └── Exit process
 ```

@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MongoClientManager } from 'aop/db/mongo/client';
 import { logger } from 'aop/logging';
-import { Scheduler } from 'aop/scheduler';
 
 import { ShutdownManager } from './server-shutdown-manager';
 
@@ -20,24 +19,6 @@ vi.mock('aop/db/mongo/client', () => ({
     MongoClientManager: {
         getInstance: vi.fn(() => ({
             disconnect: vi.fn().mockResolvedValue(undefined),
-        })),
-    },
-}));
-
-vi.mock('aop/scheduler', () => ({
-    Scheduler: {
-        getInstance: vi.fn(() => ({
-            allJobs: [
-                {
-                    id: 'job1',
-                    cronTask: { name: 'Test Job 1' },
-                },
-                {
-                    id: 'job2',
-                    cronTask: { name: 'Test Job 2' },
-                },
-            ],
-            stop: vi.fn(),
         })),
     },
 }));
@@ -81,7 +62,7 @@ describe('ShutdownManager', () => {
     });
 
     describe('getInstance', () => {
-        it('should return the same singleton instance', () => {
+        it('should return the same singleton instance', async () => {
             const instance1 = ShutdownManager.getInstance();
             const instance2 = ShutdownManager.getInstance();
 
@@ -122,13 +103,7 @@ describe('ShutdownManager', () => {
             // Verify server.close was called
             expect(mockServer.close).toHaveBeenCalled();
 
-            // Verify scheduler methods were called
             vi.waitFor(() => {
-                const mockScheduler = Scheduler.getInstance();
-                expect(mockScheduler.stop).toHaveBeenCalledTimes(2);
-                expect(mockScheduler.stop).toHaveBeenCalledWith('job1');
-                expect(mockScheduler.stop).toHaveBeenCalledWith('job2');
-
                 // Verify database disconnect was called
                 const mockMongoManager = MongoClientManager.getInstance();
                 expect(mockMongoManager.disconnect).toHaveBeenCalled();
