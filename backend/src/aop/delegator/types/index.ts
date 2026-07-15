@@ -10,7 +10,6 @@ import type { Tool } from 'shared/types/jobs/tools/types-tools';
 interface DelegationPayload {
     jobId: string;
     userId: string;
-    name: string;
     tools: Tool[];
     scheduleType: CronJobType | null;
 }

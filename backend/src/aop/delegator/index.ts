@@ -22,6 +22,13 @@ import { retryWithFixedInterval } from 'utils';
  * Singleton that routes job executions to domain-specific tools.
  * Manages job lifecycle from registration through completion.
  * Maintains queues: pendingJobs (scheduled) and runningJobs (executing).
+ *
+ * Realizes:
+ * - FR-JOBS-RUN-001 — Execute tools when the job is run (immediate or schedule fire)
+ * - FR-JOBS-RUN-002 — Persist execution outcomes
+ * - FR-JOBS-STR-001 — Emit live running / target / finished / failed activity events
+ *
+ * Controllers gate concurrent runs via `runningJobs` (FR-JOBS-RUN-004).
  */
 export class Delegator {
     private static instance: Delegator | null = null;
