@@ -1,3 +1,5 @@
+# TODO
+
 # Auth — end-to-end test requirements
 
 **Canonical source** for browser-level auth test cases. Playwright specs in [`tests/e2e/spec/auth/`](../../tests/e2e/spec/auth/) MUST implement scenarios listed here.

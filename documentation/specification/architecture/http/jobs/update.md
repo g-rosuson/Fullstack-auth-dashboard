@@ -1,0 +1,102 @@
+# HTTP — Update job
+
+`PUT /api/jobs/update/:id`
+
+Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Other-user / missing id: [HTTP-JOBS-OWN-001](./ownership.md).
+
+## HTTP-JOBS-UPD-001 — Update name, tools, and active schedule
+
+- Request:
+  - `Content-Type: application/json`
+  - Header: `Authorization: Bearer <access-token>`
+  - Path: `id` = owned job that is not running
+  - Required body fields: `name`, `tools`, `schedule`, `runJob`
+  - Values: `schedule.status` = `idle` (or other valid non-null schedule); body per OpenAPI / Zod `updateJobInputSchema`
+- Response:
+  - Status: `200`
+  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` matches the request intent
+
+Traces:
+- [FR-JOBS-UPD-001](../../../requirements/fr/jobs/lifecycle/update.md)
+
+## HTTP-JOBS-UPD-002 — Clear schedule
+
+- Request:
+  - Same shape as HTTP-JOBS-UPD-001
+  - Values: `schedule` = `null`; `runJob` = `false` or `true`
+- Response:
+  - Status: `200`
+  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule` is `null`
+
+Traces:
+- [FR-JOBS-UPD-002](../../../requirements/fr/jobs/lifecycle/update.md)
+- [FR-JOBS-RUN-001](../../../requirements/fr/jobs/execution/execution.md) (when `runJob` is `true`)
+
+## HTTP-JOBS-UPD-003 — Update with stopped schedule
+
+- Request:
+  - Same shape as HTTP-JOBS-UPD-001
+  - Values: `schedule.status` = `stopped`
+- Response:
+  - Status: `200`
+  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` = `stopped`; `nextRun` / `lastRun` are `null`
+
+Traces:
+- [FR-JOBS-UPD-004](../../../requirements/fr/jobs/lifecycle/update.md)
+- [FR-JOBS-SSC-002](../../../requirements/fr/jobs/schedule/schedule-status.md)
+
+## HTTP-JOBS-UPD-004 — Reject while running
+
+- Request:
+  - Same shape as HTTP-JOBS-UPD-001
+  - Values: `id` is currently running for this user
+- Response:
+  - Status: `422`
+  - Body: `{ success: false, code: "BUSINESS_LOGIC_ERROR", timestamp: string }`
+
+Traces:
+- [FR-JOBS-UPD-003](../../../requirements/fr/jobs/lifecycle/update.md)
+
+## HTTP-JOBS-UPD-005 — Post-save schedule failure warning
+
+- Request:
+  - Same shape as HTTP-JOBS-UPD-001 (non-null schedule)
+  - Values: otherwise valid update; scheduling fails after persist
+- Response:
+  - Status: `200`
+  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
+
+Traces:
+- [FR-JOBS-SCH-007](../../../requirements/fr/jobs/schedule/schedule.md)
+- [FR-JOBS-SCH-011](../../../requirements/fr/jobs/schedule/schedule.md)
+- [FR-JOBS-STR-004](../../../requirements/fr/jobs/execution/execution.md)
+
+## HTTP-JOBS-UPD-006 — Duplicate rename for same user
+
+- Request:
+  - Same shape as HTTP-JOBS-UPD-001
+  - Values: `name` already used by another job of this user
+- Response:
+  - Status: `409`
+  - Body: `{ success: false, code: "CONFLICT_ERROR", timestamp: string }`
+
+Traces:
+- [FR-JOBS-UNQ-002](../../../requirements/fr/jobs/lifecycle/create.md)
+
+## HTTP-JOBS-UPD-007 — Invalid body
+
+- Request:
+  - `Content-Type: application/json`
+  - Header: `Authorization: Bearer <access-token>`
+  - Path: `id` = owned job
+  - Formats: body fails OpenAPI / Zod `updateJobInputSchema`
+- Response:
+  - Status: `400`
+  - Body: `{ success: false, code: "VALIDATION_ERROR", timestamp: string, issues: […] }`
+
+Traces:
+- [FR-JOBS-TLR-001](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-SCH-001](../../../requirements/fr/jobs/schedule/schedule.md)

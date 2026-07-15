@@ -35,7 +35,7 @@ Security posture overview for the production deployment. Divided into what is al
 
 ---
 
-## Recommended hardening (do now)
+## TODO: Recommended hardening (do now)
 
 ### 1. Disable SSH password authentication
 
