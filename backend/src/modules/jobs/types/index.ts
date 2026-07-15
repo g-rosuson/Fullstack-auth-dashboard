@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+    changeJobScheduleStatusPayloadSchema,
     createJobInputSchema,
     createJobToolSchema,
     enrichedJobScheduleSchema,
@@ -9,6 +10,11 @@ import {
     updateJobInputSchema,
     updateJobToolSchema,
 } from '../schemas';
+
+/**
+ * A change cron job status payload schema.
+ */
+type ChangeCronJobStatusPayload = z.infer<typeof changeJobScheduleStatusPayloadSchema>;
 
 /**
  * A create job tool schema.
@@ -46,6 +52,7 @@ type EnrichedJob = z.infer<typeof enrichedJobSchema>;
 type IdRouteParam = z.infer<typeof idRouteParamSchema>;
 
 export type {
+    ChangeCronJobStatusPayload,
     CreateJobInput,
     CreateJobTool,
     EnrichedJob,

@@ -6,17 +6,23 @@ import constants from 'shared/constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
-import { createJobInputSchema, idRouteParamSchema, paginatedRouteParamSchema, updateJobInputSchema } from './schemas';
+import {
+    changeJobScheduleStatusPayloadSchema,
+    createJobInputSchema,
+    idRouteParamSchema,
+    paginatedRouteParamSchema,
+    updateJobInputSchema,
+} from './schemas';
 import { validateToolsSchema } from './validators/jobs-validators';
 
 /**
- * Validates that the request body adhears to the corresponding schema.
- * @param req Express request object with typed body
- * @param _res Express response object
- * @param next Express next function
+ * Validates create/update job body (schema + tools + schedule rules).
+ *
+ * FR-JOBS-TLR-001…006 — Tool presence, types, keywords/maxPages/subject/body, stable ids
+ * FR-JOBS-SCH-001 / SCH-002 / SCH-003 / SCH-006 — Schedule set/change validity (start, end, types, expired end)
+ * FR-JOBS-ONCE-001 — Once schedules must not include an end time
  */
-const validatePayload = (req: Request, _res: Response, next: NextFunction) => {
-    // Validate the payload against the schema
+const validateCreateOrUpdateJobPayload = (req: Request, _res: Response, next: NextFunction) => {
     const schema = req.path === constants.routes.jobs.create ? createJobInputSchema : updateJobInputSchema;
 
     const validatedPayload = validateRequestPayload(schema, req.body, ErrorMessage.JOBS_SCHEMA_VALIDATION_FAILED);
@@ -29,10 +35,26 @@ const validatePayload = (req: Request, _res: Response, next: NextFunction) => {
 };
 
 /**
- * Validates that the request id query params adhears to the corresponding schema.
- * @param req Express request object with typed query params
- * @param _res Express response object
- * @param next Express next function
+ * Validates change-schedule-status body (`status` = idle | stopped).
+ *
+ * FR-JOBS-SSC-001 — Owner may set schedule status to active (`idle`) or stopped
+ */
+const validateChangeScheduleStatusPayload = (req: Request, _res: Response, next: NextFunction) => {
+    const validatedPayload = validateRequestPayload(
+        changeJobScheduleStatusPayloadSchema,
+        req.body,
+        ErrorMessage.JOBS_SCHEMA_VALIDATION_FAILED
+    );
+
+    req.body = validatedPayload;
+
+    next();
+};
+
+/**
+ * Validates `:id` path params for id-scoped job routes.
+ *
+ * FR-JOBS-GET-001 — Job identity required to fetch (and shared by update/delete/status/retry params)
  */
 const validateIdQueryParams = (req: Request, _res: Response, next: NextFunction) => {
     const validatedPayload = validateRequestPayload(
@@ -47,10 +69,9 @@ const validateIdQueryParams = (req: Request, _res: Response, next: NextFunction)
 };
 
 /**
- * Validates that the request pagination query params adhears to the corresponding schema.
- * @param req Express request object with typed query params
- * @param _res Express response object
- * @param next Express next function
+ * Validates list pagination query (`limit`, `offset`).
+ *
+ * FR-JOBS-LST-002 — Limit and offset the list of jobs
  */
 const validatePaginationQueryParams = (req: Request, _res: Response, next: NextFunction) => {
     const validatedPayload = validateRequestPayload(
@@ -65,4 +86,9 @@ const validatePaginationQueryParams = (req: Request, _res: Response, next: NextF
     next();
 };
 
-export { validatePayload, validateIdQueryParams, validatePaginationQueryParams };
+export {
+    validateCreateOrUpdateJobPayload,
+    validateChangeScheduleStatusPayload,
+    validateIdQueryParams,
+    validatePaginationQueryParams,
+};

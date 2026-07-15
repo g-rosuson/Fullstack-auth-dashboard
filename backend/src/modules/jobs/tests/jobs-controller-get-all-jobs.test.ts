@@ -5,6 +5,11 @@ import { HttpStatusCode } from 'shared/enums/http-status-codes';
 import type { Request, Response } from 'express';
 
 /**
+ * Verification: unit proofs for list-jobs HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see documentation/architecture/http/jobs/read.md
+ */
+
+/**
  * Mocks for the get all jobs function.
  */
 const mockGetAllByUserId = vi.fn();
@@ -40,13 +45,13 @@ const buildRequest = (query: Record<string, string> = {}) =>
         },
     }) as unknown as Request;
 
-describe('jobs-controller', () => {
+describe('jobs-controller getAllJobs', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockResponseStatus.mockReturnValue(mockResponse);
     });
 
-    describe('getAllJobs', () => {
+    describe('[HTTP-JOBS-LST-001]', () => {
         it('should fetch paginated jobs using parsed limit and offset query params', async () => {
             const mockRequest = buildRequest({
                 limit: '10',
@@ -70,6 +75,9 @@ describe('jobs-controller', () => {
                 limit: 10,
                 offset: 20,
                 count: 2,
+                meta: {
+                    timestamp: expect.any(String),
+                },
             });
         });
 
@@ -90,6 +98,9 @@ describe('jobs-controller', () => {
                 limit: 0,
                 offset: 0,
                 count: 1,
+                meta: {
+                    timestamp: expect.any(String),
+                },
             });
         });
 
@@ -137,6 +148,9 @@ describe('jobs-controller', () => {
                 limit: 0,
                 offset: 0,
                 count: 2,
+                meta: {
+                    timestamp: expect.any(String),
+                },
             });
         });
     });

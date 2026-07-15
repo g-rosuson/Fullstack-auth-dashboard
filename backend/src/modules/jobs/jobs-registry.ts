@@ -120,6 +120,24 @@ jobsRegistry.registerPath({
 });
 
 jobsRegistry.registerPath({
+    method: 'post',
+    path: constants.routes.jobs.retrySchedule,
+    responses: {
+        200: {
+            description: 'Schedule runtime attach retried for the saved job intent',
+            content: {
+                'application/json': {
+                    schema: enrichedJobSchema,
+                },
+            },
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
+    },
+});
+
+jobsRegistry.registerPath({
     method: 'get',
     path: constants.routes.jobs.streamAll,
     responses: {

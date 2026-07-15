@@ -7,6 +7,11 @@ import constants from 'shared/constants';
 import type { Request, Response } from 'express';
 
 /**
+ * Verification: unit proofs for stream-jobs HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see documentation/architecture/http/jobs/stream.md
+ */
+
+/**
  * Mocks for the request and response objects.
  */
 const mockResponseWrite = vi.fn();
@@ -28,6 +33,9 @@ const mockRequest = {
                 ['job-id-2', { userId: 'user-id-2' }],
             ]),
         },
+        scheduler: {
+            getAllJobs: vi.fn(() => []),
+        },
         emitter: {
             allEmittedJobTargetEvents: [
                 { jobId: 'job-id-1', userId: 'user-id-1', type: constants.events.jobs.targetFinished },
@@ -39,7 +47,7 @@ const mockRequest = {
     on: mockRequestOn,
 } as unknown as Request;
 
-describe('jobs-controller', () => {
+describe('jobs-controller streamJobs', () => {
     /**
      * Parses the mock write function to return the events.
      * @param mockWrite The mock write function to parse
@@ -61,12 +69,12 @@ describe('jobs-controller', () => {
             });
     };
 
-    describe('streamJobs', () => {
-        beforeEach(() => {
-            vi.clearAllMocks();
-            streamJobs(mockRequest, mockResponse);
-        });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        streamJobs(mockRequest, mockResponse);
+    });
 
+    describe('[HTTP-JOBS-STR-001]', () => {
         it('should handle header setup correctly', () => {
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
@@ -74,7 +82,36 @@ describe('jobs-controller', () => {
             expect(mockResponseFlushHeaders).toHaveBeenCalled();
         });
 
-        it('should emit events in correct order for correct user', () => {
+        it('should detach listeners when the connection is closed', () => {
+            const closeHandler = (mockRequestOn as Mock).mock.calls[0][1];
+
+            closeHandler?.();
+
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.runningJobs,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.scheduledJobs,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.targetFinished,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.jobFinished,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.jobFailed,
+                expect.any(Function)
+            );
+        });
+    });
+
+    describe('[HTTP-JOBS-STR-002]', () => {
+        it('should emit running-jobs, scheduled-jobs, then replayed target events for the correct user', () => {
             const events = parseSSE(mockResponseWrite);
 
             expect(events).toEqual([
@@ -83,6 +120,14 @@ describe('jobs-controller', () => {
                     data: {
                         runningJobs: ['job-id-1'],
                         type: constants.events.jobs.runningJobs,
+                    },
+                },
+                {
+                    event: constants.events.jobs.scheduledJobs,
+                    data: {
+                        scheduledJobs: [],
+                        type: constants.events.jobs.scheduledJobs,
+                        userId: 'user-id-1',
                     },
                 },
                 {
@@ -96,12 +141,72 @@ describe('jobs-controller', () => {
             ]);
         });
 
+        describe('when a buffered target event belongs to a job that is no longer running', () => {
+            const replayRequestOn = vi.fn();
+            const replayRequest = {
+                context: {
+                    user: { id: 'user-id-1' },
+                    delegator: {
+                        runningJobs: new Map<string, { userId: string }>(),
+                    },
+                    scheduler: {
+                        getAllJobs: vi.fn(() => []),
+                    },
+                    emitter: {
+                        allEmittedJobTargetEvents: [
+                            {
+                                jobId: 'job-id-stale',
+                                userId: 'user-id-1',
+                                type: constants.events.jobs.targetFinished,
+                            },
+                        ],
+                        on: vi.fn(),
+                        off: vi.fn(),
+                    },
+                },
+                on: replayRequestOn,
+            } as unknown as Request;
+
+            beforeEach(() => {
+                vi.clearAllMocks();
+                streamJobs(replayRequest, mockResponse);
+            });
+
+            it('should not replay that target-finished event', () => {
+                const events = parseSSE(mockResponseWrite);
+
+                expect(events).toEqual([
+                    {
+                        event: constants.events.jobs.runningJobs,
+                        data: {
+                            runningJobs: [],
+                            type: constants.events.jobs.runningJobs,
+                        },
+                    },
+                    {
+                        event: constants.events.jobs.scheduledJobs,
+                        data: {
+                            scheduledJobs: [],
+                            type: constants.events.jobs.scheduledJobs,
+                            userId: 'user-id-1',
+                        },
+                    },
+                ]);
+            });
+        });
+    });
+
+    describe('[HTTP-JOBS-STR-004]', () => {
         it('should attach listeners for events', () => {
             expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
                 constants.events.jobs.runningJobs,
                 expect.any(Function)
             );
             expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.scheduledJobs,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
                 constants.events.jobs.targetFinished,
                 expect.any(Function)
             );
@@ -110,29 +215,6 @@ describe('jobs-controller', () => {
                 expect.any(Function)
             );
             expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
-                constants.events.jobs.jobFailed,
-                expect.any(Function)
-            );
-        });
-
-        it('should detach listeners when the connection is closed', () => {
-            const closeHandler = (mockRequestOn as Mock).mock.calls[0][1];
-
-            closeHandler?.();
-
-            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
-                constants.events.jobs.runningJobs,
-                expect.any(Function)
-            );
-            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
-                constants.events.jobs.targetFinished,
-                expect.any(Function)
-            );
-            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
-                constants.events.jobs.jobFinished,
-                expect.any(Function)
-            );
-            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
                 constants.events.jobs.jobFailed,
                 expect.any(Function)
             );
@@ -284,49 +366,6 @@ describe('jobs-controller', () => {
             });
 
             expect(parseSSE(mockResponseWrite)).toEqual([]);
-        });
-
-        describe('when a buffered target event belongs to a job that is no longer running', () => {
-            const replayRequestOn = vi.fn();
-            const replayRequest = {
-                context: {
-                    user: { id: 'user-id-1' },
-                    delegator: {
-                        runningJobs: new Map<string, { userId: string }>(),
-                    },
-                    emitter: {
-                        allEmittedJobTargetEvents: [
-                            {
-                                jobId: 'job-id-stale',
-                                userId: 'user-id-1',
-                                type: constants.events.jobs.targetFinished,
-                            },
-                        ],
-                        on: vi.fn(),
-                        off: vi.fn(),
-                    },
-                },
-                on: replayRequestOn,
-            } as unknown as Request;
-
-            beforeEach(() => {
-                vi.clearAllMocks();
-                streamJobs(replayRequest, mockResponse);
-            });
-
-            it('should not replay that target-finished event', () => {
-                const events = parseSSE(mockResponseWrite);
-
-                expect(events).toEqual([
-                    {
-                        event: constants.events.jobs.runningJobs,
-                        data: {
-                            runningJobs: [],
-                            type: constants.events.jobs.runningJobs,
-                        },
-                    },
-                ]);
-            });
         });
     });
 });

@@ -6,6 +6,11 @@ import type { IdRouteParam } from '../types';
 import type { Request, Response } from 'express';
 
 /**
+ * Verification: unit proofs for get-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see documentation/architecture/http/jobs/read.md
+ */
+
+/**
  * Mocks for the get job function.
  */
 const mockGetById = vi.fn();
@@ -42,13 +47,13 @@ const buildRequest = () =>
         },
     }) as unknown as Request<IdRouteParam>;
 
-describe('jobs-controller', () => {
+describe('jobs-controller getJob', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockResponseStatus.mockReturnValue(mockResponse);
     });
 
-    describe('getJob', () => {
+    describe('[HTTP-JOBS-GET-001]', () => {
         it('should fetch a job by id and respond with the job', async () => {
             const mockRequest = buildRequest();
             const job = {
@@ -69,6 +74,9 @@ describe('jobs-controller', () => {
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
                 data: job,
+                meta: {
+                    timestamp: expect.any(String),
+                },
             });
         });
 
@@ -103,6 +111,9 @@ describe('jobs-controller', () => {
                         nextRun: nextRun.toISOString(),
                         lastRun: previousRun.toISOString(),
                     },
+                },
+                meta: {
+                    timestamp: expect.any(String),
                 },
             });
         });

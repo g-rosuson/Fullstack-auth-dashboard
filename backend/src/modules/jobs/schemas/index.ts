@@ -2,7 +2,7 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { jobScheduleSchema, jobSchema } from 'shared/schemas/jobs';
+import { jobScheduleSchema, jobScheduleStatusSchema, jobSchema } from 'shared/schemas/jobs';
 import { emailToolSchema, emailToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-email';
 import { scraperToolSchema, scraperToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-scraper';
 
@@ -41,7 +41,7 @@ const createJobToolSchema = z
 const createJobInputSchema = z
     .object({
         schedule: jobScheduleSchema.nullable(),
-        tools: z.array(createJobToolSchema),
+        tools: z.array(createJobToolSchema).min(1),
         name: z.string(),
     })
     .superRefine(validateJobSchedule)
@@ -102,7 +102,7 @@ const updateJobToolSchema = z
 const updateJobInputSchema = z
     .object({
         schedule: jobScheduleSchema.nullable(),
-        tools: z.array(updateJobToolSchema),
+        tools: z.array(updateJobToolSchema).min(1),
         name: z.string(),
         runJob: z.boolean(),
     })
@@ -149,6 +149,15 @@ const paginatedRouteParamSchema = z
     })
     .openapi('PaginatedRouteParam');
 
+/**
+ * A change job schedule status payload schema.
+ */
+const changeJobScheduleStatusPayloadSchema = z
+    .object({
+        status: jobScheduleStatusSchema,
+    })
+    .openapi('ChangeJobScheduleStatusPayload');
+
 export {
     createJobInputSchema,
     createJobToolSchema,
@@ -158,4 +167,5 @@ export {
     updateJobToolSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,
+    changeJobScheduleStatusPayloadSchema,
 };
