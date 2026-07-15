@@ -4,6 +4,10 @@ globs:
 alwaysApply: false
 ---
 
+# TODO: Finish and make super concise
+
+This should include all steps, from creating FR's and NFR's and HTTP contracts to backend and frontend features
+
 # Purpose
 
 Step-by-step procedure for adding a new feature across backend and frontend packages.
@@ -15,12 +19,13 @@ Step-by-step procedure for adding a new feature across backend and frontend pack
 Create the module directory: `backend/src/modules/<name>/`
 
 Required files:
-- `<name>-controller.ts` — async handler functions
-- `<name>-middleware.ts` — Zod-based input validation middleware
-- `<name>-routing.ts` — Express Router with rate limiter → middleware → controller chain
-- `<name>-registry.ts` — OpenAPI path registration with `@asteasolutions/zod-to-openapi`
-- `schemas/` — Zod schemas for request and response
-- `types/` — TypeScript types derived from schemas (`z.infer<typeof schema>`)
+
+-   `<name>-controller.ts` — async handler functions
+-   `<name>-middleware.ts` — Zod-based input validation middleware
+-   `<name>-routing.ts` — Express Router with rate limiter → middleware → controller chain
+-   `<name>-registry.ts` — OpenAPI path registration with `@asteasolutions/zod-to-openapi`
+-   `schemas/` — Zod schemas for request and response
+-   `types/` — TypeScript types derived from schemas (`z.infer<typeof schema>`)
 
 ## 2. Register the Module Router
 
@@ -36,9 +41,10 @@ Add route constants to `shared/constants/routes`.
 ## 3. Define Repository Methods (if new collection)
 
 In `backend/src/aop/db/mongo/repository/<name>/index.ts`:
-- Create repository class extending the pattern from `UserRepository` or `JobsRepository`.
-- Validate all returned documents with `parseSchema(schema, doc)`.
-- Expose via `req.context.db.repository.<name>`.
+
+-   Create repository class extending the pattern from `UserRepository` or `JobsRepository`.
+-   Validate all returned documents with `parseSchema(schema, doc)`.
+-   Expose via `req.context.db.repository.<name>`.
 
 ## 4. Register in OpenAPI Service
 
@@ -56,27 +62,30 @@ This runs Orval against the backend OpenAPI spec and updates `src/_types/_gen/`.
 ## 6. Add Frontend API Resource
 
 Create `frontend/src/api/service/resources/<name>/`:
-- `index.ts` — functions calling `client.get`, `client.post`, `client.put`, `client.del`
-- `config.ts` — path constants
-- `types/` — local types if needed beyond `_gen`
+
+-   `index.ts` — functions calling `client.get`, `client.post`, `client.put`, `client.del`
+-   `config.ts` — path constants
+-   `types/` — local types if needed beyond `_gen`
 
 Register the resource in `frontend/src/api/index.ts`.
 
 ## 7. Add Zustand State (if needed)
 
 Create `frontend/src/store/slices/<name>/`:
-- `<name>.state.ts` — initial state shape
-- `<name>.types.ts` — `StateCreator` slice type
-- `index.ts` — `createXSlice` function
+
+-   `<name>.state.ts` — initial state shape
+-   `<name>.types.ts` — `StateCreator` slice type
+-   `index.ts` — `createXSlice` function
 
 Add selectors to `frontend/src/store/selectors/<name>/`.
 
 ## 8. Build Frontend Page/Component
 
 Create `frontend/src/components/pages/<name>/`:
-- Page component (default export)
-- Sub-components in co-located directories
-- Types in `<Component>.types.ts`
+
+-   Page component (default export)
+-   Sub-components in co-located directories
+-   Types in `<Component>.types.ts`
 
 Use `ui-app/` components. DO NOT import from `ui/` directly.
 
@@ -99,10 +108,10 @@ cd backend && npm run test:integration
 
 ## Completion Criteria
 
-- [ ] Backend module files created with correct naming convention
-- [ ] Route constants defined in `shared/constants/routes`
-- [ ] Repository validates all reads with `parseSchema`
-- [ ] Frontend types regenerated with Orval
-- [ ] Frontend API resource functions created
-- [ ] `npm run type-check` and `npm run lint` pass in both packages
-- [ ] Integration tests added covering HTTP contract
+-   [ ] Backend module files created with correct naming convention
+-   [ ] Route constants defined in `shared/constants/routes`
+-   [ ] Repository validates all reads with `parseSchema`
+-   [ ] Frontend types regenerated with Orval
+-   [ ] Frontend API resource functions created
+-   [ ] `npm run type-check` and `npm run lint` pass in both packages
+-   [ ] Integration tests added covering HTTP contract
