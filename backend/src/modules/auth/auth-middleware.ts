@@ -13,15 +13,16 @@ import { registerUserInputSchema } from './schemas';
 import { loginUserInputSchema } from './schemas';
 
 /**
- * Validates that the request body adhears to the corresponding schema.
+ * Validates register/login body against Zod schemas; gates registration when disabled.
+ *
+ * FR-AUTH-REG-003 / FR-AUTH-PWD-001 — Reject invalid register fields / password policy / confirmation mismatch
+ * FR-AUTH-REG-004 — Reject register when ENABLE_REGISTRATION is false
+ * FR-AUTH-LOG-006 — Reject login when required credentials are missing/invalid (schema)
  */
 const validateAuthenticationInput = (req: Request, _res: Response, next: NextFunction) => {
-    // Determine schema based on the request path
     const isRegistering = req.path === constants.routes.auth.register;
 
-    /**
-     * Determine if registration is disabled.
-     */
+    // FR-AUTH-REG-004
     if (isRegistering && !config.enableRegistration) {
         throw new ForbiddenException(ErrorMessage.REGISTRATION_DISABLED);
     }
@@ -40,7 +41,10 @@ const validateAuthenticationInput = (req: Request, _res: Response, next: NextFun
 };
 
 /**
- * Validates that a refreshToken request cookie exists.
+ * Requires a refreshToken cookie for logout and access-token refresh.
+ *
+ * FR-AUTH-OUT-003 — Reject logout without refresh credential
+ * FR-AUTH-REF-002 — Reject renewal without refresh credential
  */
 const validateRefreshToken = (req: Request, _res: Response, next: NextFunction) => {
     if (!req.cookies?.[constants.http.cookies.refreshToken]) {
