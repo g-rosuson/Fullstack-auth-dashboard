@@ -19,13 +19,13 @@ const initServer = async (): Promise<Express> => {
  */
 const deleteCronJobs = async (): Promise<void> => {
     const scheduler = Scheduler.getInstance();
-    for (const job of scheduler.allJobs) {
+    for (const job of scheduler.getAllJobs()) {
         scheduler.delete(job.jobId);
     }
 };
 
 /**
- * Clears all collections.
+ * Clears all collections from the integration test database.
  */
 const clearCollections = async (): Promise<void> => {
     const manager = MongoClientManager.getInstance();
@@ -36,7 +36,7 @@ const clearCollections = async (): Promise<void> => {
 };
 
 /**
- * Disconnects from MongoDB.
+ * Disconnects from the integration test database.
  */
 const disconnectMongo = async (): Promise<void> => {
     const manager = MongoClientManager.getInstance();
