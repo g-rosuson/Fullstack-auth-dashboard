@@ -9,6 +9,7 @@ import {
     jobFinishedEventSchema,
     jobTargetFinishedEventSchema,
     runningJobsEventSchema,
+    scheduledJobsEventSchema,
 } from 'shared/schemas/jobs/events/schemas-events';
 
 /**
@@ -17,6 +18,7 @@ import {
 const eventSchemas: { [T in EventType]: ZodType<EventTypeToPayloadMap[T]> } = {
     [constants.events.jobs.targetFinished]: jobTargetFinishedEventSchema,
     [constants.events.jobs.runningJobs]: runningJobsEventSchema,
+    [constants.events.jobs.scheduledJobs]: scheduledJobsEventSchema,
     [constants.events.jobs.jobFinished]: jobFinishedEventSchema,
     [constants.events.jobs.jobFailed]: jobFailedEventSchema,
 };
