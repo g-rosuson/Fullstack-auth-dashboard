@@ -10,8 +10,9 @@ import { ExceptionContext } from '../../shared/types';
 /**
  * Standard error response structure sent to clients.
  */
-export interface ErrorResponse {
+export interface ErrorResponse<TData = object> {
     success: false;
+    data?: TData;
     code: string;
     timestamp: string;
     issues?: ValidationIssue[];
