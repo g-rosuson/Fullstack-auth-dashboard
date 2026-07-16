@@ -35,6 +35,11 @@ const jobFinishedEventTypeSchema = z.literal(constants.events.jobs.jobFinished);
 const jobFailedEventTypeSchema = z.literal(constants.events.jobs.jobFailed);
 
 /**
+ * A job cancelled event type schema.
+ */
+const jobCancelledEventTypeSchema = z.literal(constants.events.jobs.jobCancelled);
+
+/**
  * A job target finished event schema.
  */
 const jobTargetFinishedEventSchema = z
@@ -110,6 +115,21 @@ const jobFailedEventSchema = z
     .openapi('JobFailedEvent');
 
 /**
+ * A job cancelled event schema.
+ */
+const jobCancelledEventSchema = z
+    .object({
+        jobId: z.string(),
+        userId: z.string(),
+        type: jobCancelledEventTypeSchema,
+        cancelledAt: z.string().datetime({ offset: true }),
+        executionId: z.string(),
+        lastRun: z.string().datetime({ offset: true }).nullable(),
+        nextRun: z.string().datetime({ offset: true }).nullable(),
+    })
+    .openapi('JobCancelledEvent');
+
+/**
  * A job event schema.
  */
 const jobEventSchema = z
@@ -119,6 +139,7 @@ const jobEventSchema = z
         scheduledJobsEventSchema,
         jobFinishedEventSchema,
         jobFailedEventSchema,
+        jobCancelledEventSchema,
     ])
     .openapi('JobEvent');
 
@@ -130,4 +151,5 @@ export {
     jobFinishedEventSchema,
     jobEventSchema,
     jobFailedEventSchema,
+    jobCancelledEventSchema,
 };

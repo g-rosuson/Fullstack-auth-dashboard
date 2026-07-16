@@ -19,6 +19,7 @@ Functional requirements for creating, reading, updating, deleting, scheduling, r
 ## Execution
 
 - [execution/execution.md](./execution/execution.md) — `FR-JOBS-RUN-*`, `FR-JOBS-STR-*`
+- [execution/stop.md](./execution/stop.md) — `FR-JOBS-STP-*`
 
 ## Tools
 

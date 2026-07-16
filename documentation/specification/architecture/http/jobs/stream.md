@@ -51,10 +51,12 @@ While connected, the client may receive further SSE events for this user only, i
 - `job-target-finished`
 - `job-finished`
 - `job-failed`
+- `job-cancelled`
 
 (Event field shapes: OpenAPI / Zod job event schemas.)
 
 Traces:
 - [FR-JOBS-STR-001](../../../requirements/fr/jobs/execution/execution.md)
 - [FR-JOBS-STR-003](../../../requirements/fr/jobs/execution/execution.md)
+- [FR-JOBS-STR-006](../../../requirements/fr/jobs/execution/execution.md)
 - [FR-JOBS-OWN-002](../../../requirements/fr/jobs/ownership/ownership.md)

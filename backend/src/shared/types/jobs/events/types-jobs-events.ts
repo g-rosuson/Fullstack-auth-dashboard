@@ -3,6 +3,7 @@ import { z } from 'zod';
 import constants from 'shared/constants';
 
 import type {
+    jobCancelledEventSchema,
     jobFailedEventSchema,
     jobFinishedEventSchema,
     jobTargetFinishedEventSchema,
@@ -25,6 +26,7 @@ type EventTypeToPayloadMap = {
     [constants.events.jobs.runningJobs]: z.infer<typeof runningJobsEventSchema>;
     [constants.events.jobs.scheduledJobs]: z.infer<typeof scheduledJobsEventSchema>;
     [constants.events.jobs.jobFailed]: z.infer<typeof jobFailedEventSchema>;
+    [constants.events.jobs.jobCancelled]: z.infer<typeof jobCancelledEventSchema>;
 };
 
 export type { EventTypeToPayloadMap, ScheduledJobEvent };

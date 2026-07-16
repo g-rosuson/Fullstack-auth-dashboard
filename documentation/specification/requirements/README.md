@@ -11,7 +11,7 @@ FRs state **what** the system shall do. NFRs state **how well**. Implementation 
 ## Layout
 
 - `fr/<domain>/` — business capability (e.g. `auth`, `jobs`)
-- `nfr/<attribute>/` — quality attribute (e.g. `security`)
+- `nfr/<attribute>/` — quality attribute (e.g. `security`, `reliability`)
 
 ## Identifiers
 

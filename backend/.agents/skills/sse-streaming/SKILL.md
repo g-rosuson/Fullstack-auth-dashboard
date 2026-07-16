@@ -66,7 +66,7 @@ Before registering live listeners, send any state that the client needs immediat
 ```typescript
 // 1. Flush current running job IDs for this user
 const runningJobIds = [...req.context.delegator.runningJobs.entries()]
-    .filter(([, job]) => job.userId === req.context.user.id)
+    .filter(([, job]) => job.payload.userId === req.context.user.id)
     .map(([jobId]) => jobId);
 
 sendSSE(res, { runningJobs: runningJobIds, type: constants.events.jobs.runningJobs });
@@ -119,7 +119,7 @@ const streamJobs = (req: Request, res: Response) => {
     // Initial state
     const runningJobIds: string[] = [];
     for (const [jobId, job] of req.context.delegator.runningJobs.entries()) {
-        if (job.userId === req.context.user.id) runningJobIds.push(jobId);
+        if (job.payload.userId === req.context.user.id) runningJobIds.push(jobId);
     }
     sendSSE(res, { runningJobs: runningJobIds, type: constants.events.jobs.runningJobs });
 

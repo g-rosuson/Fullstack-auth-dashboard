@@ -47,18 +47,27 @@ const exectutionToolTargetResultSchema = z
     .openapi('ExecutionToolTargetResult');
 
 /**
+ * Execution outcome status. Optional so legacy documents without `status` still
+ * validate on read (treat missing as completed at the consumer).
+ */
+const executionStatusSchema = z.enum(['completed', 'cancelled']).openapi('ExecutionStatus');
+
+/**
  * An execution schema.
+ * `tools` may be empty when a run is cancelled before any tool completes.
  */
 const executionSchema = z
     .object({
         schedule: executionScheduleSchema,
-        tools: z.array(executionToolSchema).min(1),
+        tools: z.array(executionToolSchema),
         executionId: z.string(),
+        status: executionStatusSchema.optional(),
     })
     .openapi('Execution');
 
 export {
     executionSchema,
+    executionStatusSchema,
     executionToolTargetSchema,
     executionToolSchema,
     exectutionToolTargetResultSchema,

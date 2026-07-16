@@ -5,6 +5,7 @@ const events = {
         scheduledJobs: 'scheduled-jobs',
         jobFinished: 'job-finished',
         jobFailed: 'job-failed',
+        jobCancelled: 'job-cancelled',
     },
 } as const;
 

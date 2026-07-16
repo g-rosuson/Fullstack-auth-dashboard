@@ -35,6 +35,7 @@ export enum ErrorMessage {
     JOBS_CANNOT_ACTIVATE_ONCE_SCHEDULE_WITH_PAST_START_DATE = 'Cannot activate a once schedule whose start time is in the past',
     JOBS_CANNOT_RETRY_SCHEDULE_WITHOUT_SCHEDULE = 'Cannot retry scheduling a job without a schedule',
     JOBS_CANNOT_RETRY_SCHEDULE_WHILE_RUNNING = 'Cannot retry scheduling a job while it is running',
+    JOBS_CANNOT_STOP_WHEN_NOT_RUNNING = 'Cannot stop a job when it is not running',
     JOBS_FAILED_TO_SCHEDULE_JOB = 'Failed to schedule job',
     JOBS_FAILED_TO_DELEGATE_JOB = 'Failed to delegate job',
     DATABASE_OPERATION_FAILED_ERROR = 'Database operation failed',

@@ -13,7 +13,7 @@ import config from 'config';
 
 import { initializeDatabase } from './server-initialize-db';
 
-// TODO: Add stop job endpoint and logic
+// TODO: Add strongly typed controller responses
 
 // TODO: Add job pipeline information streaming
 

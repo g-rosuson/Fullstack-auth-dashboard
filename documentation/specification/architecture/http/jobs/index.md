@@ -13,6 +13,7 @@ All routes below are protected: missing/invalid `Authorization: Bearer` fails as
 - Delete — `DELETE /api/jobs/delete/:id`
 - Change schedule status — `PUT /api/jobs/change-schedule-status/:id`
 - Retry schedule — `POST /api/jobs/retry-schedule/:id`
+- Stop — `POST /api/jobs/stop/:id`
 - Stream — `GET /api/jobs/stream-all`
 
 ## Files
@@ -23,6 +24,7 @@ All routes below are protected: missing/invalid `Authorization: Bearer` fails as
 - [delete.md](./delete.md) — `HTTP-JOBS-DEL-*`
 - [schedule-status.md](./schedule-status.md) — `HTTP-JOBS-SSC-*`
 - [retry-schedule.md](./retry-schedule.md) — `HTTP-JOBS-RTY-*`
+- [stop.md](./stop.md) — `HTTP-JOBS-STP-*`
 - [stream.md](./stream.md) — `HTTP-JOBS-STR-*`
 - [ownership.md](./ownership.md) — `HTTP-JOBS-OWN-*`
 
