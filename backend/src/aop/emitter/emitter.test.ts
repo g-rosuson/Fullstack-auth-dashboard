@@ -158,6 +158,23 @@ describe('Emitter', () => {
             expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobFailed, mockEmitPayload);
         });
 
+        it('handles job-cancelled events correctly', () => {
+            const mockEmitPayload = {
+                jobId: 'test-job-id',
+                userId: 'test-user-id',
+                executionId: 'exec-cancelled',
+                type: constants.events.jobs.jobCancelled,
+                cancelledAt: '2026-01-01T12:00:00.000Z',
+                lastRun: null,
+                nextRun: null,
+            };
+
+            emitter.emit(mockEmitPayload);
+
+            expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockEmitPayload);
+            expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobCancelled, mockEmitPayload);
+        });
+
         it('does not forward invalid events and logs validation failure', () => {
             const invalidPayload = {
                 type: constants.events.jobs.jobFinished,
