@@ -158,6 +158,15 @@ const changeJobScheduleStatusPayloadSchema = z
     })
     .openapi('ChangeJobScheduleStatusPayload');
 
+/**
+ * Response when a stop request is accepted.
+ */
+const stopJobResultSchema = z
+    .object({
+        jobId: z.string(),
+    })
+    .openapi('StopJobResult');
+
 export {
     createJobInputSchema,
     createJobToolSchema,
@@ -168,4 +177,5 @@ export {
     idRouteParamSchema,
     paginatedRouteParamSchema,
     changeJobScheduleStatusPayloadSchema,
+    stopJobResultSchema,
 };

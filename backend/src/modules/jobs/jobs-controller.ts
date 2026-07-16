@@ -179,7 +179,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
     try {
         // FR-JOBS-UPD-003 — Reject while running
         const runningJob = req.context.delegator.runningJobs.get(req.params.id);
-        if (runningJob?.userId === req.context.user.id) {
+        if (runningJob?.payload.userId === req.context.user.id) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING);
         }
 
@@ -314,6 +314,48 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
 };
 
 /**
+ * Requests cancellation of an in-flight job run.
+ *
+ * FR-JOBS-STP-001 — Owner may request cancellation of an in-flight run
+ * FR-JOBS-STP-002 — Reject stop when the job is not running for that owner
+ * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped; other-user ≡ not found
+ * NFR-REL-JOBS-001 — Response returns without waiting for tools to wind down
+ *
+ * Clients observe completion via SSE `job-cancelled` / `running-jobs` (FR-JOBS-STR-006).
+ */
+const stopJob = async (req: Request<IdRouteParam>, res: Response) => {
+    try {
+        const jobId = req.params.id;
+        const userId = req.context.user.id;
+
+        // FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — other-user ≡ not found
+        await req.context.db.repository.jobs.getById(jobId, userId);
+
+        // FR-JOBS-STP-002 — Reject when not running for this owner
+        const runningJob = req.context.delegator.runningJobs.get(jobId);
+        if (!runningJob || runningJob.payload.userId !== userId) {
+            throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_STOP_WHEN_NOT_RUNNING);
+        }
+
+        // FR-JOBS-STP-001 / NFR-REL-JOBS-001 — Request cancel; do not await tool teardown
+        req.context.delegator.cancel(jobId);
+
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            data: {
+                jobId,
+            },
+            meta: {
+                timestamp: new Date().toISOString(),
+            },
+        });
+    } catch (error) {
+        logger.error('Failed to stop job', { error: error as Error });
+        throw error;
+    }
+};
+
+/**
  * Deletes a job by ID.
  *
  * FR-JOBS-DEL-001 — Delete so the job is no longer available and no longer runs
@@ -327,7 +369,7 @@ const deleteJob = async (req: Request<IdRouteParam>, res: Response) => {
 
     // FR-JOBS-DEL-003 — Reject while running
     const runningJob = req.context.delegator.runningJobs.get(id);
-    if (runningJob?.userId === userId) {
+    if (runningJob?.payload.userId === userId) {
         throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_DELETED_WHILE_RUNNING);
     }
 
@@ -466,7 +508,7 @@ const changeJobScheduleStatus = async (
 
         // FR-JOBS-SSC-006 — Reject while running
         const runningJob = req.context.delegator.runningJobs.get(jobId);
-        if (runningJob?.userId === userId) {
+        if (runningJob?.payload.userId === userId) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_CHANGE_STATUS_WHILE_RUNNING);
         }
 
@@ -630,7 +672,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
         const userId = req.context.user.id;
 
         const runningJob = req.context.delegator.runningJobs.get(jobId);
-        if (runningJob?.userId === userId) {
+        if (runningJob?.payload.userId === userId) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_RETRY_SCHEDULE_WHILE_RUNNING);
         }
 
@@ -749,6 +791,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
  * FR-JOBS-STR-001 — Live stream of running jobs and execution outcomes
  * FR-JOBS-STR-003 — Present live state without full page reload (client consumes this stream)
  * FR-JOBS-STR-004 — Schedule attach/detach observable for retry (FR-JOBS-SCH-007 / SCH-011)
+ * FR-JOBS-STR-006 — Live stream includes job-cancelled events
  * FR-JOBS-OWN-002 — Events filtered to the requesting owner
  */
 const streamJobs = (req: Request, res: Response) => {
@@ -762,7 +805,7 @@ const streamJobs = (req: Request, res: Response) => {
     // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Snapshot: running jobs for this owner
     const runningJobIds: string[] = [];
     for (const [jobId, job] of req.context.delegator.runningJobs.entries()) {
-        if (job.userId === userId) {
+        if (job.payload.userId === userId) {
             runningJobIds.push(jobId);
         }
     }
@@ -831,13 +874,32 @@ const streamJobs = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.jobs.jobFailed, onJobFailed);
 
+    // FR-JOBS-STR-001 / FR-JOBS-STR-006 / FR-JOBS-OWN-002 — Live: job cancelled
+    const onJobCancelled = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobCancelled]) => {
+        if (event.userId === userId) {
+            sendSSE(res, event);
+        }
+    };
+    req.context.emitter.on(constants.events.jobs.jobCancelled, onJobCancelled);
+
     req.on('close', () => {
         req.context.emitter.off(constants.events.jobs.runningJobs, onRunningJobs);
         req.context.emitter.off(constants.events.jobs.scheduledJobs, onScheduledJobs);
         req.context.emitter.off(constants.events.jobs.targetFinished, onTargetFinished);
         req.context.emitter.off(constants.events.jobs.jobFinished, onJobFinished);
         req.context.emitter.off(constants.events.jobs.jobFailed, onJobFailed);
+        req.context.emitter.off(constants.events.jobs.jobCancelled, onJobCancelled);
     });
 };
 
-export { changeJobScheduleStatus, createJob, deleteJob, getAllJobs, getJob, retryJobSchedule, streamJobs, updateJob };
+export {
+    changeJobScheduleStatus,
+    createJob,
+    deleteJob,
+    getAllJobs,
+    getJob,
+    retryJobSchedule,
+    stopJob,
+    streamJobs,
+    updateJob,
+};

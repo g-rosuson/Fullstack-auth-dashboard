@@ -90,7 +90,7 @@ const buildRequest = (
     options?: {
         jobId?: string;
         userId?: string;
-        runningJobs?: Map<string, { userId: string }>;
+        runningJobs?: Map<string, { payload: { userId: string } }>;
     }
 ): Request<IdRouteParam, unknown, ChangeCronJobStatusPayload> =>
     ({
@@ -403,7 +403,7 @@ describe('jobs-controller changeJobScheduleStatus', () => {
         it('rejects when the job is running for the current user', async () => {
             const request = buildRequest(
                 { status: 'stopped' },
-                { runningJobs: new Map([[mockJobId, { userId: mockUserId }]]) }
+                { runningJobs: new Map([[mockJobId, { payload: { userId: mockUserId } }]]) }
             );
 
             await expect(changeJobScheduleStatus(request, mockResponse)).rejects.toMatchObject({

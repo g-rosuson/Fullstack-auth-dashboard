@@ -43,7 +43,7 @@ const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 /**
  * Builds a request for the delete job function.
  */
-const buildRequest = (runningJobs: Map<string, { userId: string }> = new Map()) =>
+const buildRequest = (runningJobs: Map<string, { payload: { userId: string } }> = new Map()) =>
     ({
         params: {
             id: mockJobId,
@@ -121,7 +121,7 @@ describe('jobs-controller deleteJob', () => {
 
     describe('[HTTP-JOBS-DEL-002]', () => {
         it('should reject delete when the job is running for the current user', async () => {
-            const mockRequest = buildRequest(new Map([[mockJobId, { userId: mockUserId }]]));
+            const mockRequest = buildRequest(new Map([[mockJobId, { payload: { userId: mockUserId } }]]));
 
             await expect(deleteJob(mockRequest, mockResponse)).rejects.toThrow(BusinessLogicException);
             await expect(deleteJob(mockRequest, mockResponse)).rejects.toMatchObject({
@@ -136,7 +136,7 @@ describe('jobs-controller deleteJob', () => {
 
     describe('[HTTP-JOBS-OWN-001]', () => {
         it('should reach the database delete when another user job is running in memory', async () => {
-            const mockRequest = buildRequest(new Map([[mockJobId, { userId: mockOtherUserId }]]));
+            const mockRequest = buildRequest(new Map([[mockJobId, { payload: { userId: mockOtherUserId } }]]));
 
             mockDelete.mockRejectedValue(new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE));
 

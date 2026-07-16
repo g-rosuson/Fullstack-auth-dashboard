@@ -9,6 +9,7 @@ import {
     getAllJobs,
     getJob,
     retryJobSchedule,
+    stopJob,
     streamJobs,
     updateJob,
 } from './jobs-controller';
@@ -41,6 +42,7 @@ router.put(
     changeJobScheduleStatus
 );
 router.post(constants.routes.jobs.retrySchedule, forwardSyncError(validateIdQueryParams), retryJobSchedule);
+router.post(constants.routes.jobs.stop, forwardSyncError(validateIdQueryParams), stopJob);
 router.delete(constants.routes.jobs.delete, forwardSyncError(validateIdQueryParams), deleteJob);
 router.get(constants.routes.jobs.streamAll, forwardSyncError(streamJobs));
 

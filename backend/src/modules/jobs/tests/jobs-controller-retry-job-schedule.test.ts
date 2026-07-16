@@ -88,7 +88,7 @@ const buildPersistedJob = (overrides?: Partial<Job>): Job => ({
 const buildRequest = (options?: {
     jobId?: string;
     userId?: string;
-    runningJobs?: Map<string, { userId: string }>;
+    runningJobs?: Map<string, { payload: { userId: string } }>;
 }): Request<IdRouteParam> =>
     ({
         params: {
@@ -269,7 +269,7 @@ describe('jobs-controller retryJobSchedule', () => {
     describe('[HTTP-JOBS-RTY-005]', () => {
         it('rejects with BUSINESS_LOGIC_ERROR while the job is running', async () => {
             const request = buildRequest({
-                runningJobs: new Map([[mockJobId, { userId: mockUserId }]]),
+                runningJobs: new Map([[mockJobId, { payload: { userId: mockUserId } }]]),
             });
 
             await expect(retryJobSchedule(request, mockResponse)).rejects.toMatchObject({

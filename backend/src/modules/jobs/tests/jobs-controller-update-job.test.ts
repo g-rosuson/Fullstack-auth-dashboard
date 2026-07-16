@@ -98,7 +98,7 @@ const buildRequest = (
                 getNextAndPreviousRun: mockGetNextAndPreviousRun,
             },
             delegator: {
-                runningJobs: new Map(runningJobIds.map(jobId => [jobId, { userId: 'user-id-1' }])),
+                runningJobs: new Map(runningJobIds.map(jobId => [jobId, { payload: { userId: 'user-id-1' } }])),
                 register: mockRegister,
                 removeJob: mockRemoveJob,
                 delegate: mockDelegate,

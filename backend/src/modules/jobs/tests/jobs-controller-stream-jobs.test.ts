@@ -8,7 +8,7 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for stream-jobs HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/jobs/stream.md
+ * @see documentation/specification/architecture/http/jobs/stream.md
  */
 
 /**
@@ -29,8 +29,8 @@ const mockRequest = {
         user: { id: 'user-id-1' },
         delegator: {
             runningJobs: new Map([
-                ['job-id-1', { userId: 'user-id-1' }],
-                ['job-id-2', { userId: 'user-id-2' }],
+                ['job-id-1', { payload: { userId: 'user-id-1' } }],
+                ['job-id-2', { payload: { userId: 'user-id-2' } }],
             ]),
         },
         scheduler: {
@@ -107,6 +107,10 @@ describe('jobs-controller streamJobs', () => {
                 constants.events.jobs.jobFailed,
                 expect.any(Function)
             );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.jobCancelled,
+                expect.any(Function)
+            );
         });
     });
 
@@ -147,7 +151,7 @@ describe('jobs-controller streamJobs', () => {
                 context: {
                     user: { id: 'user-id-1' },
                     delegator: {
-                        runningJobs: new Map<string, { userId: string }>(),
+                        runningJobs: new Map<string, { payload: { userId: string } }>(),
                     },
                     scheduler: {
                         getAllJobs: vi.fn(() => []),
@@ -216,6 +220,10 @@ describe('jobs-controller streamJobs', () => {
             );
             expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
                 constants.events.jobs.jobFailed,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobCancelled,
                 expect.any(Function)
             );
         });
@@ -363,6 +371,51 @@ describe('jobs-controller streamJobs', () => {
                 executionId: 'exec-fail',
                 failedAt: '2026-03-10T12:00:00.000Z',
                 type: constants.events.jobs.jobFailed,
+            });
+
+            expect(parseSSE(mockResponseWrite)).toEqual([]);
+        });
+
+        /** FR-JOBS-STR-006 — live job-cancelled events (listed under HTTP-JOBS-STR-004). */
+        it('should stream a live jobCancelled event to the client', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobCancelled)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            const liveEvent = {
+                jobId: 'job-id-1',
+                userId: 'user-id-1',
+                executionId: 'exec-cancel',
+                cancelledAt: '2026-03-10T12:00:00.000Z',
+                lastRun: null,
+                nextRun: null,
+                type: constants.events.jobs.jobCancelled,
+            };
+            handler(liveEvent);
+
+            expect(parseSSE(mockResponseWrite)).toEqual([
+                {
+                    event: constants.events.jobs.jobCancelled,
+                    data: liveEvent,
+                },
+            ]);
+        });
+
+        it('should not stream a live jobCancelled event for another user', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobCancelled)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            handler({
+                jobId: 'job-id-1',
+                userId: 'user-id-99',
+                executionId: 'exec-cancel',
+                cancelledAt: '2026-03-10T12:00:00.000Z',
+                lastRun: null,
+                nextRun: null,
+                type: constants.events.jobs.jobCancelled,
             });
 
             expect(parseSSE(mockResponseWrite)).toEqual([]);

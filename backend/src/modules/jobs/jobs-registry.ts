@@ -7,6 +7,7 @@ import {
     enrichedJobSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,
+    stopJobResultSchema,
     updateJobInputSchema,
 } from './schemas';
 import { deleteJobResultSchema } from 'shared/schemas/jobs';
@@ -128,6 +129,24 @@ jobsRegistry.registerPath({
             content: {
                 'application/json': {
                     schema: enrichedJobSchema,
+                },
+            },
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'post',
+    path: constants.routes.jobs.stop,
+    responses: {
+        200: {
+            description: 'Cancellation requested for the in-flight job run',
+            content: {
+                'application/json': {
+                    schema: stopJobResultSchema,
                 },
             },
         },
