@@ -83,6 +83,10 @@ const error = {
         code: 'TARGET_FAILED',
         message: 'Target failed',
     },
+    cancelled: {
+        code: 'CANCELLED',
+        message: 'Target cancelled',
+    },
 };
 
 /**

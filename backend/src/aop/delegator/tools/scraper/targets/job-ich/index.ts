@@ -270,11 +270,26 @@ async function scrapeOverlayListing(page: Page): Promise<ExecutionScraperToolTar
  * "Show more" button. We navigate to the search page, click "Show more" up to
  * `maxPages - 1` times (the first batch is already loaded), then iterate every
  * row, click it to open the overlay, scrape, and collect results.
+ * Honors `signal` — abort closes the browser and stops further clicks/scrapes.
  */
 const jobIchTarget: ScraperTarget = {
-    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]> {
+    async run(
+        scraperTargetConfig: ScraperTargetConfig,
+        signal: AbortSignal
+    ): Promise<ExecutionScraperToolTargetListing[]> {
+        if (signal.aborted) {
+            return [];
+        }
+
         const browser = await chromium.launch();
         const page = await browser.newPage();
+
+        const onAbort = () => {
+            void browser
+                .close()
+                .catch(closeError => logger.error('Error closing chrome browser', { error: closeError }));
+        };
+        signal.addEventListener('abort', onAbort, { once: true });
 
         try {
             const listingUrl = buildSearchUrl(scraperTargetConfig.keywords);
@@ -297,6 +312,10 @@ const jobIchTarget: ScraperTarget = {
                     }
                 );
             } catch {
+                if (signal.aborted) {
+                    return [];
+                }
+
                 return [
                     {
                         ok: false,
@@ -319,6 +338,10 @@ const jobIchTarget: ScraperTarget = {
             const waitAfterClickMs = constants.configuration.showMoreLoadDelayMs;
 
             for (let i = 0; i < maxClicks; i++) {
+                if (signal.aborted) {
+                    return [];
+                }
+
                 const button = page.locator(constants.selectors.showMoreButton);
 
                 if ((await button.count()) === 0) {
@@ -346,6 +369,10 @@ const jobIchTarget: ScraperTarget = {
             const count = await rows.count();
 
             for (let i = 0; i < count; i++) {
+                if (signal.aborted) {
+                    return listings;
+                }
+
                 try {
                     await rows.nth(i).click();
 
@@ -358,6 +385,10 @@ const jobIchTarget: ScraperTarget = {
                             // Overlay may already be detached; ignore.
                         });
                 } catch (error) {
+                    if (signal.aborted) {
+                        return listings;
+                    }
+
                     logger.error('Failed to scrape jobich.ch row', { error: error as Error });
                     const message = error instanceof Error ? error.message : String(error);
                     listings.push({
@@ -374,6 +405,10 @@ const jobIchTarget: ScraperTarget = {
 
             return listings;
         } catch (error) {
+            if (signal.aborted) {
+                return [];
+            }
+
             logger.error('job-ich target failed', { error: error as Error });
 
             return [
@@ -388,6 +423,7 @@ const jobIchTarget: ScraperTarget = {
                 },
             ];
         } finally {
+            signal.removeEventListener('abort', onAbort);
             await page.close().catch(closeError => logger.error('Error closing chrome page', { error: closeError }));
             await browser
                 .close()

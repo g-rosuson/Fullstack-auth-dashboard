@@ -9,6 +9,7 @@ export class DelegatorContext {
     delegate;
     register;
     removeJob;
+    cancel;
     runningJobs;
 
     /**
@@ -19,6 +20,7 @@ export class DelegatorContext {
         this.delegate = delegator.delegate;
         this.register = delegator.register;
         this.removeJob = delegator.removeJob;
+        this.cancel = delegator.cancel;
         this.runningJobs = delegator.runningJobs;
     }
 }

@@ -7,15 +7,16 @@ import { Delegator } from './';
 
 /**
  * Verification: unit proofs for job execution runtime (cite FR IDs).
- * @see documentation/requirements/fr/jobs/execution/execution.md
+ * @see documentation/specification/requirements/fr/jobs/execution/execution.md
+ * @see documentation/specification/requirements/fr/jobs/execution/stop.md
+ * @see documentation/specification/requirements/nfr/reliability/jobs.md
  *
  * Out of scope here (covered elsewhere):
  * - FR-JOBS-RUN-003 — manual start UX / HTTP entry
  * - FR-JOBS-RUN-004 — reject while running (controllers gate on `runningJobs`)
+ * - FR-JOBS-STP-001 / STP-002 — stop HTTP entry (jobs-controller stopJob)
  * - FR-JOBS-STR-003 — client consumes the stream without reload
  * - FR-JOBS-STR-004 / STR-005 — schedule-attach failure observability (scheduler/HTTP)
- *
- * No job-execution NFRs are defined yet under documentation/requirements/nfr/.
  */
 
 const mockTool = {
@@ -269,6 +270,7 @@ describe('Delegator', () => {
                 expect.objectContaining({
                     executionId: expect.any(String),
                     jobId: 'test-job-id',
+                    status: 'completed',
                     schedule: {
                         type: null,
                         delegatedAt: expect.any(String),
@@ -561,6 +563,40 @@ describe('Delegator', () => {
 
             expect(mockClearJobTargetEvents).toHaveBeenCalledWith('test-job-id');
             expect(mockClearJobTargetEvents).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('[FR-JOBS-STP-003] / [FR-JOBS-STP-004] / [FR-JOBS-STR-006] — cancel in-flight run', () => {
+        it('skips subsequent tools, persists status cancelled, and emits job-cancelled', async () => {
+            mockExecute.mockImplementation(async ({ tool }: { tool: typeof mockTool }) => {
+                if (tool.testId === 'test-id-1') {
+                    delegator.cancel('test-job-id');
+                }
+            });
+
+            await delegator.delegate(mockPayloadWithTool);
+
+            expect(mockExecute).toHaveBeenCalledTimes(1);
+            expect(mockAddExecution).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: 'cancelled',
+                    tools: [
+                        expect.objectContaining({
+                            type: 'tool',
+                            keywords: ['keyword-1', 'keyword-2'],
+                        }),
+                    ],
+                })
+            );
+
+            const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
+            expect(emittedTypes).toContain(constants.events.jobs.jobCancelled);
+            expect(emittedTypes).not.toContain(constants.events.jobs.jobFinished);
+            expect(emittedTypes).not.toContain(constants.events.jobs.jobFailed);
+        });
+
+        it('is a no-op when the job is not running', () => {
+            expect(() => delegator.cancel('missing-job-id')).not.toThrow();
         });
     });
 

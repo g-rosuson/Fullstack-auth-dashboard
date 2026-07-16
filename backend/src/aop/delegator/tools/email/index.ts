@@ -6,10 +6,19 @@ import type { EmailTool } from 'shared/types/jobs/tools/types-tools-email';
  */
 class Email {
     /**
-     * Executes the scraper tool for given targets.
+     * Executes the email tool for given targets.
+     * Accepts `signal` for registry uniformity; cancel behavior TBD when implemented.
      */
-    async execute({ tool, onTargetFinish }: { tool: EmailTool; onTargetFinish: OnTargetFinish }) {
-        console.log(tool, onTargetFinish);
+    async execute({
+        tool,
+        signal,
+        onTargetFinish,
+    }: {
+        tool: EmailTool;
+        signal: AbortSignal;
+        onTargetFinish: OnTargetFinish;
+    }) {
+        console.log(tool, signal, onTargetFinish);
     }
 }
 

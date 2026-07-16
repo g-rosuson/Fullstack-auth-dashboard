@@ -8,14 +8,16 @@ import config from 'config';
 import constants from 'shared/constants';
 
 import type { ToolType } from './tools/types';
-import type { DelegationPayload, TargetWithResultsPayload } from './types';
+import type { DelegationPayload, RunningJob, TargetWithResultsPayload } from './types';
 import type {
     ExecutionPayload,
     ExecutionTool,
     ExecutionToolTarget,
 } from 'shared/types/jobs/tools/execution/types-execution';
 
+import { Aborter } from './aborter';
 import toolRegistry from './tools';
+import { executionStatusSchema } from 'shared/schemas/jobs/tools/execution/schemas-execution';
 import { retryWithFixedInterval } from 'utils';
 
 /**
@@ -26,7 +28,9 @@ import { retryWithFixedInterval } from 'utils';
  * Realizes:
  * - FR-JOBS-RUN-001 — Execute tools when the job is run (immediate or schedule fire)
  * - FR-JOBS-RUN-002 — Persist execution outcomes
- * - FR-JOBS-STR-001 — Emit live running / target / finished / failed activity events
+ * - FR-JOBS-STP-003 / FR-JOBS-STP-004 — Cancel skips later tools; persist cancelled executions
+ * - FR-JOBS-STR-001 / FR-JOBS-STR-006 — Emit live running / target / finished / failed / cancelled events
+ * - NFR-REL-JOBS-002 — AbortSignal flows to tools/targets for cooperative resource teardown
  *
  * Controllers gate concurrent runs via `runningJobs` (FR-JOBS-RUN-004).
  */
@@ -35,7 +39,7 @@ export class Delegator {
     private emitter: Emitter = Emitter.getInstance();
     private scheduler: Scheduler = Scheduler.getInstance();
     private pendingJobs = new Map<string, DelegationPayload>();
-    public runningJobs = new Map<string, DelegationPayload>();
+    public runningJobs = new Map<string, RunningJob>();
 
     /**
      * Private constructor enforces singleton pattern.
@@ -45,6 +49,7 @@ export class Delegator {
         this.delegate = this.delegate.bind(this);
         this.register = this.register.bind(this);
         this.removeJob = this.removeJob.bind(this);
+        this.cancel = this.cancel.bind(this);
     }
 
     /**
@@ -56,6 +61,18 @@ export class Delegator {
         }
 
         return Delegator.instance;
+    }
+
+    /**
+     * Requests cancellation of an in-flight job run (FR-JOBS-STP-001 / FR-JOBS-STP-003).
+     * Idempotent no-op if the job is not running. Controllers check `runningJobs`
+     * before calling when they need to distinguish not-running from cancel-requested
+     * (FR-JOBS-STP-002).
+     *
+     * @param jobId Job ID to cancel
+     */
+    public cancel(jobId: string): void {
+        this.runningJobs.get(jobId)?.aborter.cancel();
     }
 
     /**
@@ -90,6 +107,7 @@ export class Delegator {
         // narrows to exactly T, so we assert to satisfy the registry index signature.
         await toolRegistry[payload.tool.type as T].execute({
             tool: payload.tool,
+            signal: payload.signal,
             onTargetFinish,
         });
 
@@ -104,11 +122,12 @@ export class Delegator {
      */
     public async delegate(payload: DelegationPayload) {
         const executionId = crypto.randomUUID();
+        const aborter = new Aborter();
 
         try {
             const delegatedAt = new Date().toISOString();
 
-            this.runningJobs.set(payload.jobId, payload);
+            this.runningJobs.set(payload.jobId, { payload, aborter });
 
             this.emitter.emit({
                 type: constants.events.jobs.runningJobs,
@@ -120,6 +139,11 @@ export class Delegator {
             const mappedTools: ExecutionTool[] = [];
 
             for (let toolIndex = 0; toolIndex < payload.tools.length; toolIndex++) {
+                // FR-JOBS-STP-003 — Do not start subsequent tools after cancel
+                if (aborter.cancelled) {
+                    break;
+                }
+
                 const tool = payload.tools[toolIndex];
 
                 // Determine the payload for the getToolTargetsWithResults method
@@ -133,6 +157,7 @@ export class Delegator {
                         finishedAt: null,
                     },
                     tool,
+                    signal: aborter.signal,
                 };
                 const toolWithMappedTargets = await this.getToolTargetsWithResults(getToolTargetsWithResultsPayload);
 
@@ -145,6 +170,11 @@ export class Delegator {
 
             const finishedAt = new Date().toISOString();
 
+            // FR-JOBS-STP-004 — Cancelled runs persist with status cancelled (tools may be empty)
+            const status = aborter.cancelled
+                ? executionStatusSchema.enum.cancelled
+                : executionStatusSchema.enum.completed;
+
             const executionPayload: ExecutionPayload = {
                 executionId,
                 jobId: payload.jobId,
@@ -154,22 +184,38 @@ export class Delegator {
                     finishedAt,
                 },
                 tools: mappedTools,
+                status,
             };
 
             await this.persistResult(executionPayload);
 
             // Determine the next and previous run dates
             const { nextRun, previousRun } = this.scheduler.getNextAndPreviousRun(payload.jobId);
+            const lastRun = previousRun ? previousRun.toISOString() : null;
+            const tmpNextRun = nextRun ? nextRun.toISOString() : null;
 
-            this.emitter.emit({
-                type: constants.events.jobs.jobFinished,
-                jobId: payload.jobId,
-                userId: payload.userId,
-                finishedAt,
-                executionId,
-                lastRun: previousRun ? previousRun.toISOString() : null,
-                nextRun: nextRun ? nextRun.toISOString() : null,
-            });
+            if (status === executionStatusSchema.enum.cancelled) {
+                // FR-JOBS-STR-006 — Live cancellation event
+                this.emitter.emit({
+                    type: constants.events.jobs.jobCancelled,
+                    jobId: payload.jobId,
+                    userId: payload.userId,
+                    cancelledAt: finishedAt,
+                    executionId,
+                    lastRun,
+                    nextRun: tmpNextRun,
+                });
+            } else {
+                this.emitter.emit({
+                    type: constants.events.jobs.jobFinished,
+                    jobId: payload.jobId,
+                    userId: payload.userId,
+                    finishedAt,
+                    executionId,
+                    lastRun,
+                    nextRun: tmpNextRun,
+                });
+            }
         } catch (error) {
             logger.error(`Failed to new delegation for job with ID: ${payload.jobId} and executionId: ${executionId}`, {
                 error: error as Error,
@@ -194,11 +240,13 @@ export class Delegator {
     }
 
     /**
-     * Removes a job from the pending and running jobs maps and clears the job target events.
+     * Cancels in-flight work if present, then removes the job from pending/running maps
+     * and clears job target events.
      *
      * @param jobId Job ID to remove
      */
     public removeJob(jobId: string): void {
+        this.cancel(jobId);
         this.pendingJobs.delete(jobId);
         this.runningJobs.delete(jobId);
         this.emitter.clearJobTargetEvents(jobId);

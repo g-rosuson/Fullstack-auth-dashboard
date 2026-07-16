@@ -323,11 +323,26 @@ async function scrapeDetailListing(page: Page, url: string): Promise<ExecutionSc
  * jobs.ch target.
  *
  * Strategy: paginate the semantic search API for vacancy IDs, then scrape each detail page sequentially.
+ * Honors `signal` — abort closes the browser and stops further pagination/detail scrapes.
  */
 const jobsChTarget: ScraperTarget = {
-    async run(scraperTargetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]> {
+    async run(
+        scraperTargetConfig: ScraperTargetConfig,
+        signal: AbortSignal
+    ): Promise<ExecutionScraperToolTargetListing[]> {
+        if (signal.aborted) {
+            return [];
+        }
+
         const browser = await chromium.launch();
         const page = await browser.newPage();
+
+        const onAbort = () => {
+            void browser
+                .close()
+                .catch(closeError => logger.error('Error closing chrome browser', { error: closeError }));
+        };
+        signal.addEventListener('abort', onAbort, { once: true });
 
         try {
             /**
@@ -340,6 +355,10 @@ const jobsChTarget: ScraperTarget = {
             let currentPageIndex = 1;
 
             while (scraperTargetConfig.maxPages === 0 || currentPageIndex <= scraperTargetConfig.maxPages) {
+                if (signal.aborted) {
+                    return [];
+                }
+
                 const searchPage = await fetchSemanticSearchPage(page, query, currentPageIndex, scraperTargetConfig);
 
                 for (const document of searchPage.documents) {
@@ -359,6 +378,10 @@ const jobsChTarget: ScraperTarget = {
             const listings: ExecutionScraperToolTargetListing[] = [];
 
             for (const url of jobDetailUrlSet) {
+                if (signal.aborted) {
+                    return listings;
+                }
+
                 try {
                     await retryWithFixedInterval(
                         async () => {
@@ -371,6 +394,10 @@ const jobsChTarget: ScraperTarget = {
                         }
                     );
                 } catch (error) {
+                    if (signal.aborted) {
+                        return listings;
+                    }
+
                     listings.push({
                         ok: false,
                         source: 'jobs-ch',
@@ -389,6 +416,10 @@ const jobsChTarget: ScraperTarget = {
                 try {
                     listings.push(await scrapeDetailListing(page, url));
                 } catch (error) {
+                    if (signal.aborted) {
+                        return listings;
+                    }
+
                     logger.error('Failed to scrape job detail page', { error: error as Error });
                     listings.push({
                         ok: false,
@@ -404,6 +435,10 @@ const jobsChTarget: ScraperTarget = {
 
             return listings;
         } catch (error) {
+            if (signal.aborted) {
+                return [];
+            }
+
             logger.error('jobs-ch target failed', { error: error as Error });
 
             return [
@@ -418,6 +453,7 @@ const jobsChTarget: ScraperTarget = {
                 },
             ];
         } finally {
+            signal.removeEventListener('abort', onAbort);
             await page.close().catch(error => logger.error('Error closing chrome page', { error }));
             await browser.close().catch(error => logger.error('Error closing chrome browser', { error }));
         }
