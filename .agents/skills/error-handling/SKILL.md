@@ -168,6 +168,7 @@ if (!result.success) {
 - **MongoDB 11000 (duplicate key)**: `exceptionsMiddleware` converts this to `ConflictException` automatically. Do not catch error code `11000` in repositories or controllers.
 - **Stack traces in production**: `config.isDeveloping` gates stack trace inclusion in error responses. Never expose stacks in production.
 - **Unhandled promise rejections in controllers**: Express 5 propagates async errors automatically — no need for `try/catch` wrappers unless transaction cleanup is required.
+- **Environment validation**: Invalid env vars throw `SchemaValidationException` at config load (fail-fast). Do not call `process.exit()` for those errors — they bubble, get logged/responded, then the process fails naturally. Reserve `process.exit` for shutdown lifecycle only.
 
 # Anti-Patterns
 
@@ -177,6 +178,7 @@ if (!result.success) {
 - **Never** use `console.log` or `console.error` in production code paths — use `logger`.
 - **Never** clear `isLoading` in both `try` success and `catch` — use `finally` only.
 - **Never** re-throw after a committed transaction — only abort when `!isCommitted`.
+- **Never** call `process.exit()` for validation or request errors — throw typed exceptions instead.
 
 # Validation Checklist
 

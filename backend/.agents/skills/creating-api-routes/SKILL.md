@@ -16,19 +16,9 @@ Implement new API endpoints using the five-file module pattern that all feature 
 
 # Required Patterns
 
-## Module quintet
+## Module structure
 
-Every feature module under `modules/<name>/` MUST contain:
-
-```
-modules/<name>/
-├── <name>-controller.ts   Route handlers — read from req, call db/services, respond
-├── <name>-middleware.ts   Input validation and route guards (call next() or throw)
-├── <name>-routing.ts      Express Router — wire middleware chain to controller
-├── <name>-registry.ts     OpenAPI path registration (zod-to-openapi)
-├── schemas/               Zod schemas for request/response shapes
-└── types/                 TypeScript types derived from schemas (z.infer)
-```
+Follow the feature-module layout and folder-vs-standalone rule in `backend/.agents/rules/architecture.mdc` (Module Structure).
 
 ## Controller conventions
 

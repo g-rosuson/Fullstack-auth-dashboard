@@ -10,17 +10,68 @@ Enforce test structure, tooling, and naming conventions for backend unit and int
 
 # Rules
 
+## What to Test
+
+- **Service contracts**: Does it return what it promises?
+- **Business logic**: Does it behave correctly?
+- **Integration**: Does it work with real dependencies?
+
+## What NOT to Test
+
+- **Third-party libraries**: Not this project's responsibility
+- **Configuration values**: Already validated by config modules
+- **Implementation details**: Test WHAT it does, not HOW
+- **Redundant scenarios**: If behavior is proven for one equivalent input, do not duplicate for every variant
+
+**Coverage target**: 80–90% backend — focus on critical paths, not over-engineering.
+
 ## Tooling
 
 - Unit tests: Vitest (`vitest.config.mjs`)
 - Integration tests: Vitest + Supertest against real Express + MongoDB replica set (`vitest.integration.config.mjs`)
-- Vitest globals (`describe`, `it`, `expect`, `beforeEach`, etc.) enabled via `tsconfig.json` `"types": ["vitest/globals"]`
+- Vitest globals (`describe`, `it`, `expect`, `beforeEach`, etc.) enabled via `tsconfig.json` `"types": ["vitest/globals"]` — do not import them
 
 ## Unit Tests
 
 - Co-locate test files next to source: `foo.ts` → `foo.test.ts`
 - Test pure logic (utilities, repositories, validation helpers) in isolation.
 - DO NOT spin up Express or MongoDB for unit tests.
+
+## Shared Values in Tests
+
+When writing tests, extract shared property names and values into variables within each `it` block. Reuse the same names across schema definitions, input data, and expected results:
+
+```typescript
+it('should validate user data', () => {
+    const nameProperty = 'name';
+    const emailProperty = 'email';
+    const nameValue = 'John';
+    const emailValue = 'john@example.com';
+
+    const schema = z.object({
+        [nameProperty]: z.string(),
+        [emailProperty]: z.string().email(),
+    });
+
+    const result = parseSchema(schema, {
+        [nameProperty]: nameValue,
+        [emailProperty]: emailValue,
+    });
+
+    expect(result).toEqual({
+        success: true,
+        data: { [nameProperty]: nameValue, [emailProperty]: emailValue },
+    });
+});
+```
+
+## Requirement Identifiers
+
+When a test maps to a documented requirement, tag the `it` name with exactly one identifier — an FR, NFR, or other relevant ID (e.g. `[FR-AUTH-REG-001]`, `[NFR-SEC-AUTH-001]`, `[AUTH-REG-001]`):
+
+- One identifier per `it` — do not combine multiple IDs in a single case (e.g. avoid `[AUTH-REG-001][AUTH-TOK-001]`).
+- Each `it` covers one behavior/case; split overlapping requirements into separate tests.
+- Omit the tag only when no FR/NFR/ID applies (e.g. pure utility edge cases with no spec).
 
 ## Integration Tests
 
@@ -51,7 +102,6 @@ afterAll(async () => {
 });
 ```
 
-- Tag every `it` with requirement IDs: `[AUTH-REG-001]`, `[JOBS-CREATE-001]`, etc.
 - Assertions MUST verify the HTTP contract (status code, `body.success`, response shape).
 - DO NOT assert on internal handler or module state.
 - Use `describe.sequential` when test cases within a `describe` share DB state across `it` blocks.
@@ -74,11 +124,12 @@ npm run type-check        # tsc --noEmit
 - DO NOT assert on internal module state from integration tests — assert HTTP responses.
 - DO NOT omit `clearCollections` + `deleteCronJobs` in `beforeEach`.
 - DO NOT use `test.only` or `it.skip` in committed code.
+- DO NOT combine multiple FR/NFR/requirement IDs in one `it` title — one ID, one case.
 
 # Checklist
 
 - [ ] Integration tests use `harness` helpers (`initServer`, `getAgent`, `clearCollections`, etc.)
 - [ ] `beforeEach` clears collections and cron jobs
-- [ ] Every `it` name includes a requirement ID
+- [ ] Spec-backed `it` names include exactly one FR/NFR/requirement ID
 - [ ] Assertions target HTTP contract, not internal state
 - [ ] No `test.only` or `it.skip` in committed tests

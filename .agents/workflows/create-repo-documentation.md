@@ -1,5 +1,8 @@
 # Agent skill - Generating instruction documentation from repository patterns
 
+TODO: this being read/indexed by cursor, increasing token spend?
+TODO: Move to a folder ignored by cursor, since this is already implemented?
+
 ## Objective
 
 Analyze the repository and generate project-specific AI instruction documentation for Cursor.

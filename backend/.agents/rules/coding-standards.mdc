@@ -15,6 +15,23 @@ Enforce backend-specific coding conventions. Universal TypeScript rules are in `
 - All source files: `kebab-case.ts` (e.g. `auth-controller.ts`, `job-pipeline.ts`).
 - No `.tsx` files in the backend.
 
+## Types
+
+- Prefer `type` aliases over `interface` for simple type aliases and Zod-inferred shapes.
+- Derive types with `z.infer<typeof schema>` in `types/index.ts` — keep schemas and types in separate files.
+- Types files MUST only contain `z.infer<>` statements and type exports — no schema definitions.
+
+## Style
+
+- Use single quotes (Prettier).
+- Separate logical code blocks with at least one blank line.
+- DO NOT use dynamic imports (`await import('./module')`) — use static imports.
+
+## JSDoc
+
+- Public functions (controllers, middleware, exported utilities, repository methods) MUST have a concise JSDoc block describing what the function does and notable side effects.
+- Add `@param` / `@throws` when they clarify behavior beyond the TypeScript signature.
+
 ## Imports
 
 - Path alias: `*` maps to `src/*` (configured in `tsconfig.json`).
@@ -31,6 +48,7 @@ Enforce backend-specific coding conventions. Universal TypeScript rules are in `
 ## Error Handling
 
 - Throw typed exceptions from `aop/exceptions`. DO NOT call `res.status().json()` for errors in controllers.
+- DO NOT call `process.exit()` for validation or request errors — let exceptions bubble to `exceptionsMiddleware` (and config fail-fast for env). Reserve `process.exit` for process lifecycle (e.g. shutdown manager).
 
 | Exception | When to use |
 |---|---|
@@ -73,12 +91,27 @@ import config from '../../../config';
 
 // ✅ Path alias
 import config from 'config';
+
+// ❌ Dynamic import
+const mod = await import('./feature');
+
+// ✅ Static import
+import mod from './feature';
+
+// ❌ process.exit for validation
+process.exit(1);
+
+// ✅ Throw and let middleware / fail-fast config handle it
+throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues });
 ```
 
 # Checklist
 
 - [ ] All files named `kebab-case.ts`
 - [ ] Internal imports use path aliases, not `../../`
+- [ ] Schemas and types live in separate files; types use `z.infer` only
+- [ ] Public functions have JSDoc
 - [ ] Request body validated in middleware before controller
 - [ ] Typed exception thrown (not manual `res.status().json()`)
 - [ ] `logger` used, not `console`
+- [ ] No dynamic imports; no `process.exit` for validation errors

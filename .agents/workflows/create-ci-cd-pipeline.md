@@ -1,5 +1,8 @@
 # CI/CD Requirements
 
+TODO: this being read/indexed by cursor, increasing token spend?
+TODO: Move to a folder ignored by cursor, since this is already implemented?
+
 Implement three workflows.
 
 ---

@@ -13,6 +13,8 @@ import config from 'config';
 
 import { initializeDatabase } from './server-initialize-db';
 
+// TODO: What is cursor indexing? And what should be ignored?
+
 // TODO: Add strongly typed controller responses
 
 // TODO: Add job pipeline information streaming

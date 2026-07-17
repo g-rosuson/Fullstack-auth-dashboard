@@ -1,5 +1,8 @@
 # Playwright E2E Setup Requirements
 
+TODO: this being read/indexed by cursor, increasing token spend?
+TODO: Move to a folder ignored by cursor, since this is already implemented?
+
 ## Objective
 
 Install and configure end-to-end (E2E) testing using Playwright for the React frontend application.
