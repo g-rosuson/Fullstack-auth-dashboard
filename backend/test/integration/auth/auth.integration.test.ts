@@ -1,23 +1,19 @@
 import { ErrorCode } from 'aop/exceptions/shared/enums';
 
-import localConstants from './constants';
+import { INTEGRATION_AUTH_PASSWORD } from './constants';
+import { mapToRegisterPayload } from './mappers';
 import config from 'config';
 import constants from 'shared/constants';
 
 import type { Express } from 'express';
 
-import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
-import {
-    buildRegisterPayload,
-    expectRefreshTokenClearCookie,
-    expectRefreshTokenCookieContract,
-    expectValidAccessToken,
-} from './helpers';
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
+import { expectRefreshTokenClearCookie, expectRefreshTokenCookieContract, expectValidAccessToken } from './expect';
 
 /** Email fixed for auth-route scenarios that assume a single registered user. */
 const mockEmail = 'email@example.com';
 
-const mockRegisterPayload = buildRegisterPayload(mockEmail);
+const mockRegisterPayload = mapToRegisterPayload(mockEmail);
 
 /**
  * Integration: auth HTTP — real Mongo, bcrypt, cookies, and JWT verification.
@@ -77,7 +73,7 @@ describe('Integration: auth HTTP', () => {
         });
 
         it('[HTTP-AUTH-REG-002] returns conflict when the email is already registered', async () => {
-            const conflictPayload = buildRegisterPayload('conflict-register@example.com');
+            const conflictPayload = mapToRegisterPayload('conflict-register@example.com');
             const first = await agent.post(constants.routes.auth.register).send(conflictPayload);
             expect(first.status).toBe(200);
 
@@ -133,7 +129,7 @@ describe('Integration: auth HTTP', () => {
             it('returns validation error when confirmation password does not match', async () => {
                 const res = await agent.post(constants.routes.auth.register).send({
                     ...mockRegisterPayload,
-                    confirmationPassword: `${localConstants.integrationAuthPassword}X`,
+                    confirmationPassword: `${INTEGRATION_AUTH_PASSWORD}X`,
                 });
                 expect(res.status).toBe(400);
                 expect(res.body.success).toBe(false);
@@ -182,7 +178,7 @@ describe('Integration: auth HTTP', () => {
             await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
             const res = await agent.post(constants.routes.auth.login).send({
                 email: mockEmail,
-                password: localConstants.integrationAuthPassword,
+                password: INTEGRATION_AUTH_PASSWORD,
             });
 
             expect(res.status).toBe(200);
@@ -198,7 +194,7 @@ describe('Integration: auth HTTP', () => {
 
                 const res = await agent.post(constants.routes.auth.login).send({
                     email: mockEmail,
-                    password: `${localConstants.integrationAuthPassword}X`,
+                    password: `${INTEGRATION_AUTH_PASSWORD}X`,
                 });
 
                 expect(res.status).toBe(404);
@@ -211,7 +207,7 @@ describe('Integration: auth HTTP', () => {
                 await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
                 const res = await agent.post(constants.routes.auth.login).send({
                     email: `x${mockEmail}`,
-                    password: localConstants.integrationAuthPassword,
+                    password: INTEGRATION_AUTH_PASSWORD,
                 });
 
                 expect(res.status).toBe(404);
@@ -222,7 +218,7 @@ describe('Integration: auth HTTP', () => {
             it('fails when the user does not exist', async () => {
                 const res = await agent.post(constants.routes.auth.login).send({
                     email: mockEmail,
-                    password: localConstants.integrationAuthPassword,
+                    password: INTEGRATION_AUTH_PASSWORD,
                 });
 
                 expect(res.status).toBe(404);

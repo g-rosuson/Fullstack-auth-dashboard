@@ -1,23 +1,31 @@
 import { ObjectId } from 'mongodb';
 
-import type { CreateJobInput, UpdateJobInput } from 'modules/jobs/types';
+import type { UpdateJobInput } from 'modules/jobs/types';
+import type { CreateJobInput } from 'modules/jobs/types';
 
-import { MongoClientManager } from 'aop/db/mongo/client';
-import config from 'aop/db/mongo/config';
 import { Delegator } from 'aop/delegator';
 import { Aborter } from 'aop/delegator/aborter';
 import { ErrorCode } from 'aop/exceptions/shared/enums';
 
+import { mapToRegisterPayload } from '../auth/mappers';
+import { INTEGRATION_JOB_START_DELAY_MS } from './constants';
+import {
+    mapToJobUrl,
+    mapToJobWithoutSchedulePayload,
+    mapToJobWithSchedulePayload,
+    mapToUpdateJobPayload,
+} from './mappers';
 import constants from 'shared/constants';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 
 import type { Express } from 'express';
-import type { IncomingMessage } from 'http';
-import type { JobSchedule } from 'shared/types/jobs';
 
-import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
-import { buildRegisterPayload, expectValidAccessToken, getRegisterResponse } from './helpers';
+import { expectValidAccessToken } from '../auth/expect';
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
+import { updatePersistedJobSchedule } from './db';
+import { expectBusinessLogicBlockWhilePossiblyRunning } from './expect';
+import { readJobsAggregatedStream } from './sse';
 
 /**
  * Integration: jobs HTTP — real Mongo, middleware, and route handlers.
@@ -28,205 +36,6 @@ import { buildRegisterPayload, expectValidAccessToken, getRegisterResponse } fro
  * Post-save schedule attach warnings (HTTP-JOBS-CRT-004, UPD-005, SSC-008, RTY-003) are covered
  * in controller unit tests — they need a forced scheduler failure not practical here.
  */
-
-/** ~20 days ahead: stays under Node's ~32‑bit signed `setTimeout` max (~24.8 days). */
-const INTEGRATION_JOB_START_DELAY_MS = 20 * 24 * 60 * 60 * 1000;
-
-/**
- * Builds a job with a schedule payload.
- * @param name - The name of the job
- * @param scheduleOverrides - The schedule overrides
- * @returns The job with a schedule payload
- */
-const buildJobWithSchedulePayload = (
-    name: string,
-    scheduleOverrides: Partial<NonNullable<CreateJobInput['schedule']>> = {}
-): CreateJobInput => ({
-    name,
-    schedule: {
-        status: 'idle',
-        type: 'daily',
-        startDate: new Date(Date.now() + INTEGRATION_JOB_START_DELAY_MS).toISOString(),
-        endDate: null,
-        ...scheduleOverrides,
-    },
-    tools: [
-        {
-            type: 'scraper',
-            keywords: ['typescript'],
-            maxPages: 1,
-            targets: [
-                {
-                    target: 'jobs-ch',
-                    keywords: ['remote'],
-                    maxPages: 1,
-                },
-            ],
-        },
-    ],
-});
-
-/**
- * Builds a job without a schedule payload.
- * @param name - The name of the job
- * @returns The job without a schedule payload
- */
-const buildJobWithoutSchedulePayload = (name: string): CreateJobInput => ({
-    name,
-    schedule: null,
-    tools: [
-        {
-            type: 'scraper',
-            keywords: ['integration'],
-            maxPages: 1,
-            targets: [{ target: 'jobs-ch' }],
-        },
-    ],
-});
-
-/**
- * Builds a job URL.
- * @param routeTemplate - The route template
- * @param id - The id of the job
- * @returns The job URL
- */
-function buildJobUrl(routeTemplate: string, id: string): string {
-    return routeTemplate.replace(':id', id);
-}
-
-/**
- * Builds the PUT body from a GET/create job shape. When `partial.schedule` is omitted,
- * copies only persisted schedule fields (`type`, `startDate`, `endDate`, `status`) so enriched
- * fields (`nextRun`, `lastRun`) are dropped.
- */
-function buildUpdateJobPayload(
-    job: { name: string; schedule: JobSchedule; tools: UpdateJobInput['tools'] },
-    partial: Partial<UpdateJobInput> = {}
-): UpdateJobInput {
-    let schedule: UpdateJobInput['schedule'];
-
-    if (partial.schedule !== undefined) {
-        schedule = partial.schedule;
-    } else if (job.schedule == null) {
-        schedule = null;
-    } else {
-        schedule = {
-            type: job.schedule.type,
-            startDate: job.schedule.startDate,
-            endDate: job.schedule.endDate,
-            status: job.schedule.status,
-        };
-    }
-
-    return {
-        name: partial.name ?? job.name,
-        schedule,
-        tools: partial.tools ?? job.tools,
-        runJob: partial.runJob ?? false,
-    };
-}
-
-/**
- * Patches persisted schedule fields so past-date activate/retry scenarios can be exercised
- * without waiting for real wall-clock expiry (create validation rejects past start dates).
- */
-async function patchPersistedJobSchedule(
-    jobId: string,
-    schedule: {
-        type: 'daily' | 'weekly' | 'monthly' | 'once';
-        startDate: string;
-        endDate: string | null;
-        status: 'idle' | 'stopped';
-    }
-): Promise<void> {
-    const db = await MongoClientManager.getInstance().connect();
-    const result = await db
-        .collection(config.db.collection.jobs.name)
-        .updateOne({ _id: new ObjectId(jobId) }, { $set: { schedule } });
-    expect(result.matchedCount).toBe(1);
-}
-
-/**
- * An agent response.
- */
-type AgentResponse = { status: number; body: { success?: boolean; code?: string } };
-
-/**
- * Polls while an immediate (no-schedule) create is still executing tools.
- */
-async function expectBusinessLogicBlockWhilePossiblyRunning(attempt: () => Promise<AgentResponse>): Promise<void> {
-    let sawBusinessBlock = false;
-
-    for (let i = 0; i < 80; i++) {
-        const res = await attempt();
-        if (res.status === 422 && res.body.code === ErrorCode.BUSINESS_LOGIC_ERROR) {
-            sawBusinessBlock = true;
-            expect(res.body.success).toBe(false);
-            break;
-        }
-        await new Promise<void>(resolve => {
-            setTimeout(resolve, 50);
-        });
-    }
-
-    expect(sawBusinessBlock).toBe(true);
-}
-
-/**
- * Collects SSE until both initial snapshot event types arrive (or timeout).
- */
-async function collectInitialSseSnapshots(
-    agent: ReturnType<typeof getAgent>,
-    token: string
-): Promise<{
-    statusCode: number;
-    headers: IncomingMessage['headers'];
-    buffer: string;
-}> {
-    return new Promise((resolve, reject) => {
-        const deadline = setTimeout(() => {
-            reject(new Error('SSE timeout waiting for initial snapshots'));
-        }, 20_000);
-
-        let buffer = '';
-        const req = agent.get(constants.routes.jobs.streamAll).set('Authorization', `Bearer ${token}`).buffer(false);
-
-        req.on('response', (res: IncomingMessage) => {
-            const onData = (chunk: Buffer) => {
-                buffer += chunk.toString();
-                const hasRunning = buffer.includes(constants.events.jobs.runningJobs);
-                const hasScheduled = buffer.includes(constants.events.jobs.scheduledJobs);
-                if (hasRunning && hasScheduled) {
-                    clearTimeout(deadline);
-                    res.destroy();
-                    resolve({
-                        statusCode: res.statusCode ?? 0,
-                        headers: res.headers,
-                        buffer,
-                    });
-                }
-            };
-
-            res.on('data', onData);
-            res.on('error', e => {
-                clearTimeout(deadline);
-                reject(e);
-            });
-        });
-
-        req.on('error', err => {
-            clearTimeout(deadline);
-            reject(err);
-        });
-
-        req.end((err: Error | undefined) => {
-            if (err && !(err as NodeJS.ErrnoException).message?.includes('aborted')) {
-                clearTimeout(deadline);
-                reject(err);
-            }
-        });
-    });
-}
 
 describe('Integration: jobs HTTP', () => {
     let app: Express;
@@ -260,7 +69,9 @@ describe('Integration: jobs HTTP', () => {
 
     describe(`GET ${constants.routes.jobs.getAll} — [HTTP-JOBS-LST-001]`, () => {
         it('returns an empty list and default pagination metadata', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'empty-list@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('empty-list@example.com'));
             expect(registerResponse.status).toBe(200);
 
             const getAllResponse = await agent
@@ -277,23 +88,27 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('respects limit and offset query params and returns only the requester’s jobs', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'pagination@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('pagination@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
-            const other = await getRegisterResponse(agent, 'pagination-other@example.com');
+            const other = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('pagination-other@example.com'));
             expect(other.status).toBe(200);
             const otherCreate = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${other.body.data}`)
-                .send(buildJobWithoutSchedulePayload('Other user job'));
+                .send(mapToJobWithoutSchedulePayload('Other user job'));
             expect(otherCreate.status).toBe(201);
 
             for (let i = 0; i < 3; i++) {
                 const createRes = await agent
                     .post(constants.routes.jobs.create)
                     .set('Authorization', `Bearer ${token}`)
-                    .send(buildJobWithoutSchedulePayload(`Paginated job ${i}`));
+                    .send(mapToJobWithoutSchedulePayload(`Paginated job ${i}`));
                 expect(createRes.status).toBe(201);
             }
 
@@ -328,101 +143,107 @@ describe('Integration: jobs HTTP', () => {
 
     describe('[HTTP-JOBS-OWN-001] — other user’s job or unknown id', () => {
         it('returns 404 on get / update / delete / stop / change-schedule-status / retry-schedule for another user’s job', async () => {
-            const regA = await getRegisterResponse(agent, 'own-owner@example.com');
+            const regA = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('own-owner@example.com'));
             expect(regA.status).toBe(200);
             const tokenA = regA.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${tokenA}`)
-                .send(buildJobWithSchedulePayload('Owned by A'));
+                .send(mapToJobWithSchedulePayload('Owned by A'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
-            const regB = await getRegisterResponse(agent, 'own-intruder@example.com');
+            const regB = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('own-intruder@example.com'));
             expect(regB.status).toBe(200);
             const tokenB = regB.body.data as string;
 
             const getRes = await agent
-                .get(buildJobUrl(constants.routes.jobs.getById, jobId))
+                .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
                 .set('Authorization', `Bearer ${tokenB}`);
             expect(getRes.status).toBe(404);
             expect(getRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.update, jobId))
                 .set('Authorization', `Bearer ${tokenB}`)
-                .send(buildUpdateJobPayload(createRes.body.data, { name: 'Stolen' }));
+                .send(mapToUpdateJobPayload(createRes.body.data, { name: 'Stolen' }));
             expect(putRes.status).toBe(404);
             expect(putRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const delRes = await agent
-                .delete(buildJobUrl(constants.routes.jobs.delete, jobId))
+                .delete(mapToJobUrl(constants.routes.jobs.delete, jobId))
                 .set('Authorization', `Bearer ${tokenB}`);
             expect(delRes.status).toBe(404);
             expect(delRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const stopRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.stop, jobId))
+                .post(mapToJobUrl(constants.routes.jobs.stop, jobId))
                 .set('Authorization', `Bearer ${tokenB}`);
             expect(stopRes.status).toBe(404);
             expect(stopRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const sscRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${tokenB}`)
                 .send({ status: 'stopped' });
             expect(sscRes.status).toBe(404);
             expect(sscRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const rtyRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.retrySchedule, jobId))
+                .post(mapToJobUrl(constants.routes.jobs.retrySchedule, jobId))
                 .set('Authorization', `Bearer ${tokenB}`);
             expect(rtyRes.status).toBe(404);
             expect(rtyRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
         });
 
         it('returns 404 on get / update / delete / stop / change-schedule-status / retry-schedule for a missing id', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'own-missing@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('own-missing@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
             const missingId = new ObjectId().toString();
-            const minimalTools = buildJobWithoutSchedulePayload('x').tools as UpdateJobInput['tools'];
+            const minimalTools = mapToJobWithoutSchedulePayload('x').tools as UpdateJobInput['tools'];
 
             const getRes = await agent
-                .get(buildJobUrl(constants.routes.jobs.getById, missingId))
+                .get(mapToJobUrl(constants.routes.jobs.getById, missingId))
                 .set('Authorization', `Bearer ${token}`);
             expect(getRes.status).toBe(404);
             expect(getRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, missingId))
+                .put(mapToJobUrl(constants.routes.jobs.update, missingId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ name: 'Ghost', schedule: null, tools: minimalTools, runJob: false });
+                .send({ name: 'Ghost', schedule: null, tools: minimalTools, status: 'idle' });
             expect(putRes.status).toBe(404);
             expect(putRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const delRes = await agent
-                .delete(buildJobUrl(constants.routes.jobs.delete, missingId))
+                .delete(mapToJobUrl(constants.routes.jobs.delete, missingId))
                 .set('Authorization', `Bearer ${token}`);
             expect(delRes.status).toBe(404);
             expect(delRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const stopRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.stop, missingId))
+                .post(mapToJobUrl(constants.routes.jobs.stop, missingId))
                 .set('Authorization', `Bearer ${token}`);
             expect(stopRes.status).toBe(404);
             expect(stopRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const sscRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, missingId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, missingId))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'stopped' });
             expect(sscRes.status).toBe(404);
             expect(sscRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const rtyRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.retrySchedule, missingId))
+                .post(mapToJobUrl(constants.routes.jobs.retrySchedule, missingId))
                 .set('Authorization', `Bearer ${token}`);
             expect(rtyRes.status).toBe(404);
             expect(rtyRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
@@ -431,19 +252,21 @@ describe('Integration: jobs HTTP', () => {
 
     describe(`GET ${constants.routes.jobs.getById} — [HTTP-JOBS-GET-001]`, () => {
         it('returns the owned job with enriched schedule when scheduled', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'owner-get@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('owner-get@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Owner fetch'));
+                .send(mapToJobWithSchedulePayload('Owner fetch'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const getRes = await agent
-                .get(buildJobUrl(constants.routes.jobs.getById, jobId))
+                .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(getRes.status).toBe(200);
@@ -462,7 +285,7 @@ describe('Integration: jobs HTTP', () => {
     describe(`POST ${constants.routes.jobs.create}`, () => {
         it('[HTTP-JOBS-CRT-001] creates a job without a schedule and returns 201', async () => {
             const email = 'immediate-job@example.com';
-            const registerResponse = await getRegisterResponse(agent, email);
+            const registerResponse = await agent.post(constants.routes.auth.register).send(mapToRegisterPayload(email));
             expect(registerResponse.status).toBe(200);
             expectValidAccessToken(registerResponse.body.data, email);
 
@@ -470,7 +293,7 @@ describe('Integration: jobs HTTP', () => {
             const res = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${registerResponse.body.data}`)
-                .send(buildJobWithoutSchedulePayload(name));
+                .send(mapToJobWithoutSchedulePayload(name));
 
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
@@ -484,14 +307,16 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-CRT-002] creates a scheduled idle job and returns enriched schedule metadata', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'scheduled-job@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('scheduled-job@example.com'));
             expect(registerResponse.status).toBe(200);
 
             const name = 'Daily engineering jobs';
             const res = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${registerResponse.body.data}`)
-                .send(buildJobWithSchedulePayload(name));
+                .send(mapToJobWithSchedulePayload(name));
 
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
@@ -506,13 +331,15 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-CRT-003] creates a job with stopped schedule; nextRun and lastRun are null', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'stopped-create@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('stopped-create@example.com'));
             expect(registerResponse.status).toBe(200);
 
             const res = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${registerResponse.body.data}`)
-                .send(buildJobWithSchedulePayload('Stopped on create', { status: 'stopped' }));
+                .send(mapToJobWithSchedulePayload('Stopped on create', { status: 'stopped' }));
 
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
@@ -522,20 +349,22 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-CRT-005] returns conflict when the same user creates a duplicate job name', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'unq-duplicate-create@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('unq-duplicate-create@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const first = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithoutSchedulePayload('Duplicate create'));
+                .send(mapToJobWithoutSchedulePayload('Duplicate create'));
             expect(first.status).toBe(201);
 
             const second = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithoutSchedulePayload('Duplicate create'));
+                .send(mapToJobWithoutSchedulePayload('Duplicate create'));
 
             expect(second.status).toBe(409);
             expect(second.body.success).toBe(false);
@@ -545,32 +374,38 @@ describe('Integration: jobs HTTP', () => {
 
         it('[HTTP-JOBS-CRT-005] allows different users to create jobs with the same name', async () => {
             const sharedName = 'Shared job name';
-            const regA = await getRegisterResponse(agent, 'unq-user-a@example.com');
+            const regA = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('unq-user-a@example.com'));
             expect(regA.status).toBe(200);
-            const regB = await getRegisterResponse(agent, 'unq-user-b@example.com');
+            const regB = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('unq-user-b@example.com'));
             expect(regB.status).toBe(200);
 
             const createA = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${regA.body.data}`)
-                .send(buildJobWithoutSchedulePayload(sharedName));
+                .send(mapToJobWithoutSchedulePayload(sharedName));
             expect(createA.status).toBe(201);
 
             const createB = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${regB.body.data}`)
-                .send(buildJobWithoutSchedulePayload(sharedName));
+                .send(mapToJobWithoutSchedulePayload(sharedName));
             expect(createB.status).toBe(201);
             expect(createB.body.data.id).not.toBe(createA.body.data.id);
         });
 
         describe('[HTTP-JOBS-CRT-006] — invalid body', () => {
             it('rejects a schedule whose start date is not in the future', async () => {
-                const registerResponse = await getRegisterResponse(agent, 'past-start@example.com');
+                const registerResponse = await agent
+                    .post(constants.routes.auth.register)
+                    .send(mapToRegisterPayload('past-start@example.com'));
                 expect(registerResponse.status).toBe(200);
 
                 const payload: CreateJobInput = {
-                    ...buildJobWithSchedulePayload('Past start'),
+                    ...mapToJobWithSchedulePayload('Past start'),
                     schedule: {
                         status: 'idle',
                         type: 'daily',
@@ -599,7 +434,7 @@ describe('Integration: jobs HTTP', () => {
             it('rejects a schedule where end date is before start date', async () => {
                 const registerResponse = await agent
                     .post(constants.routes.auth.register)
-                    .send(buildRegisterPayload('end-before-start@example.com'));
+                    .send(mapToRegisterPayload('end-before-start@example.com'));
                 expect(registerResponse.status).toBe(200);
 
                 const start = new Date(Date.now() + INTEGRATION_JOB_START_DELAY_MS).toISOString();
@@ -609,7 +444,7 @@ describe('Integration: jobs HTTP', () => {
                     .post(constants.routes.jobs.create)
                     .set('Authorization', `Bearer ${registerResponse.body.data}`)
                     .send({
-                        ...buildJobWithSchedulePayload('Inverted range'),
+                        ...mapToJobWithSchedulePayload('Inverted range'),
                         schedule: { status: 'idle', type: 'daily', startDate: start, endDate: end },
                     });
 
@@ -628,7 +463,7 @@ describe('Integration: jobs HTTP', () => {
             it('rejects a one-off schedule that includes an end date', async () => {
                 const registerResponse = await agent
                     .post(constants.routes.auth.register)
-                    .send(buildRegisterPayload('once-end@example.com'));
+                    .send(mapToRegisterPayload('once-end@example.com'));
                 expect(registerResponse.status).toBe(200);
 
                 const start = new Date(Date.now() + INTEGRATION_JOB_START_DELAY_MS).toISOString();
@@ -638,7 +473,7 @@ describe('Integration: jobs HTTP', () => {
                     .post(constants.routes.jobs.create)
                     .set('Authorization', `Bearer ${registerResponse.body.data}`)
                     .send({
-                        ...buildJobWithSchedulePayload('Once with end'),
+                        ...mapToJobWithSchedulePayload('Once with end'),
                         schedule: { status: 'idle', type: 'once', startDate: start, endDate: end },
                     });
 
@@ -655,7 +490,9 @@ describe('Integration: jobs HTTP', () => {
             });
 
             it('rejects a scraper when tool and target both omit keywords', async () => {
-                const registerResponse = await getRegisterResponse(agent, 'scraper-kw@example.com');
+                const registerResponse = await agent
+                    .post(constants.routes.auth.register)
+                    .send(mapToRegisterPayload('scraper-kw@example.com'));
                 expect(registerResponse.status).toBe(200);
 
                 const res = await agent
@@ -675,7 +512,9 @@ describe('Integration: jobs HTTP', () => {
             });
 
             it('rejects a scraper when tool and target both omit maxPages', async () => {
-                const registerResponse = await getRegisterResponse(agent, 'scraper-pages@example.com');
+                const registerResponse = await agent
+                    .post(constants.routes.auth.register)
+                    .send(mapToRegisterPayload('scraper-pages@example.com'));
                 expect(registerResponse.status).toBe(200);
 
                 const res = await agent
@@ -701,7 +540,9 @@ describe('Integration: jobs HTTP', () => {
             });
 
             it('rejects email tools when subject or body is missing on tool and targets', async () => {
-                const registerResponse = await getRegisterResponse(agent, 'email-tool@example.com');
+                const registerResponse = await agent
+                    .post(constants.routes.auth.register)
+                    .send(mapToRegisterPayload('email-tool@example.com'));
                 expect(registerResponse.status).toBe(200);
                 const token = registerResponse.body.data as string;
 
@@ -736,21 +577,23 @@ describe('Integration: jobs HTTP', () => {
 
     describe(`PUT ${constants.routes.jobs.update}`, () => {
         it('[HTTP-JOBS-UPD-001] updates name, tools, and active schedule then persists on follow-up GET', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'put-happy@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('put-happy@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Before PUT'));
+                .send(mapToJobWithSchedulePayload('Before PUT'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.update, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildUpdateJobPayload(createRes.body.data, { name: 'After PUT' }));
+                .send(mapToUpdateJobPayload(createRes.body.data, { name: 'After PUT' }));
 
             expect(putRes.status).toBe(200);
             expect(putRes.body.success).toBe(true);
@@ -759,62 +602,59 @@ describe('Integration: jobs HTTP', () => {
             expect(typeof putRes.body.meta.timestamp).toBe('string');
 
             const getRes = await agent
-                .get(buildJobUrl(constants.routes.jobs.getById, jobId))
+                .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
                 .set('Authorization', `Bearer ${token}`);
             expect(getRes.status).toBe(200);
             expect(getRes.body.data.name).toBe('After PUT');
         });
 
-        it('[HTTP-JOBS-UPD-002] clears schedule when schedule is set to null (runJob false or true)', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'put-clear-schedule@example.com');
+        it('[HTTP-JOBS-UPD-002] clears schedule when schedule is set to null', async () => {
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('put-clear-schedule@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Scheduled then cleared'));
+                .send(mapToJobWithSchedulePayload('Scheduled then cleared'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const clearRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.update, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildUpdateJobPayload(createRes.body.data, { schedule: null, runJob: false }));
+                .send(mapToUpdateJobPayload(createRes.body.data, { schedule: null }));
             expect(clearRes.status).toBe(200);
             expect(clearRes.body.data.schedule).toBeNull();
 
-            const recreate = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, jobId))
-                .set('Authorization', `Bearer ${token}`)
-                .send(
-                    buildUpdateJobPayload(createRes.body.data, {
-                        name: 'Cleared then run',
-                        schedule: null,
-                        runJob: true,
-                    })
-                );
-            expect(recreate.status).toBe(200);
-            expect(recreate.body.data.schedule).toBeNull();
+            const getRes = await agent
+                .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
+                .set('Authorization', `Bearer ${token}`);
+            expect(getRes.status).toBe(200);
+            expect(getRes.body.data.schedule).toBeNull();
         });
 
         it('[HTTP-JOBS-UPD-003] updates with stopped schedule; nextRun and lastRun are null', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'put-stopped@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('put-stopped@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Will stop via update'));
+                .send(mapToJobWithSchedulePayload('Will stop via update'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.update, jobId))
                 .set('Authorization', `Bearer ${token}`)
                 .send(
-                    buildUpdateJobPayload(createRes.body.data, {
+                    mapToUpdateJobPayload(createRes.body.data, {
                         schedule: {
                             type: createRes.body.data.schedule.type,
                             startDate: createRes.body.data.schedule.startDate,
@@ -831,67 +671,73 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-UPD-004] rejects update while the job delegate is running', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'put-running@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('put-running@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithoutSchedulePayload('Running guard'));
+                .send(mapToJobWithoutSchedulePayload('Running guard'));
             expect(createRes.status).toBe(201);
-            const payload = buildUpdateJobPayload(createRes.body.data, { name: 'Race update' });
+            const payload = mapToUpdateJobPayload(createRes.body.data, { name: 'Race update' });
 
             await expectBusinessLogicBlockWhilePossiblyRunning(() =>
                 agent
-                    .put(buildJobUrl(constants.routes.jobs.update, createRes.body.data.id))
+                    .put(mapToJobUrl(constants.routes.jobs.update, createRes.body.data.id))
                     .set('Authorization', `Bearer ${token}`)
                     .send(payload)
             );
         });
 
         it('[HTTP-JOBS-UPD-006] returns conflict when updating a job name to another owned job name', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'unq-update@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('unq-update@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const firstJob = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('First job'));
+                .send(mapToJobWithSchedulePayload('First job'));
             expect(firstJob.status).toBe(201);
 
             const secondJob = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Second job'));
+                .send(mapToJobWithSchedulePayload('Second job'));
             expect(secondJob.status).toBe(201);
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, secondJob.body.data.id))
+                .put(mapToJobUrl(constants.routes.jobs.update, secondJob.body.data.id))
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildUpdateJobPayload(secondJob.body.data, { name: 'First job' }));
+                .send(mapToUpdateJobPayload(secondJob.body.data, { name: 'First job' }));
 
             expect(putRes.status).toBe(409);
             expect(putRes.body.code).toBe(ErrorCode.CONFLICT_ERROR);
         });
 
         it('[HTTP-JOBS-UPD-007] rejects an invalid update body', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'put-invalid@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('put-invalid@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Validate update'));
+                .send(mapToJobWithSchedulePayload('Validate update'));
             expect(createRes.status).toBe(201);
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, createRes.body.data.id))
+                .put(mapToJobUrl(constants.routes.jobs.update, createRes.body.data.id))
                 .set('Authorization', `Bearer ${token}`)
                 .send({
-                    ...buildUpdateJobPayload(createRes.body.data),
+                    ...mapToUpdateJobPayload(createRes.body.data),
                     schedule: {
                         status: 'idle',
                         type: 'daily',
@@ -908,19 +754,21 @@ describe('Integration: jobs HTTP', () => {
 
     describe(`DELETE ${constants.routes.jobs.delete}`, () => {
         it('[HTTP-JOBS-DEL-001] / [HTTP-JOBS-DEL-003] deletes the owned job; follow-up GET is 404', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'delete-happy@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('delete-happy@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('To delete'));
+                .send(mapToJobWithSchedulePayload('To delete'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const delRes = await agent
-                .delete(buildJobUrl(constants.routes.jobs.delete, jobId))
+                .delete(mapToJobUrl(constants.routes.jobs.delete, jobId))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(delRes.status).toBe(200);
@@ -929,26 +777,28 @@ describe('Integration: jobs HTTP', () => {
             expect(typeof delRes.body.meta.timestamp).toBe('string');
 
             const getRes = await agent
-                .get(buildJobUrl(constants.routes.jobs.getById, jobId))
+                .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
                 .set('Authorization', `Bearer ${token}`);
             expect(getRes.status).toBe(404);
             expect(getRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
         });
 
         it('[HTTP-JOBS-DEL-002] rejects delete while the job delegate is running', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'delete-running@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('delete-running@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithoutSchedulePayload('Running delete guard'));
+                .send(mapToJobWithoutSchedulePayload('Running delete guard'));
             expect(createRes.status).toBe(201);
 
             await expectBusinessLogicBlockWhilePossiblyRunning(() =>
                 agent
-                    .delete(buildJobUrl(constants.routes.jobs.delete, createRes.body.data.id))
+                    .delete(mapToJobUrl(constants.routes.jobs.delete, createRes.body.data.id))
                     .set('Authorization', `Bearer ${token}`)
             );
         });
@@ -956,20 +806,22 @@ describe('Integration: jobs HTTP', () => {
 
     describe(`PUT ${constants.routes.jobs.changeScheduleStatus}`, () => {
         it('[HTTP-JOBS-SSC-001] sets status to stopped and leaves other job fields unchanged', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-stop@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-stop@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Stop me'));
+                .send(mapToJobWithSchedulePayload('Stop me'));
             expect(createRes.status).toBe(201);
             const before = createRes.body.data;
             const jobId = before.id as string;
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'stopped' });
 
@@ -984,14 +836,16 @@ describe('Integration: jobs HTTP', () => {
             expect(typeof putRes.body.meta.timestamp).toBe('string');
 
             const getRes = await agent
-                .get(buildJobUrl(constants.routes.jobs.getById, jobId))
+                .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
                 .set('Authorization', `Bearer ${token}`);
             expect(getRes.status).toBe(200);
             expect(getRes.body.data.schedule.status).toBe('stopped');
         });
 
         it('[HTTP-JOBS-SSC-002] reactivates a stopped schedule to idle with nextRun at future startDate', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-restart@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-restart@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
@@ -1003,20 +857,20 @@ describe('Integration: jobs HTTP', () => {
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
                 .send({
-                    ...buildJobWithSchedulePayload('Restart me'),
+                    ...mapToJobWithSchedulePayload('Restart me'),
                     schedule: { status: 'idle', type: 'daily', startDate, endDate: null },
                 });
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const stopRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'stopped' });
             expect(stopRes.status).toBe(200);
 
             const idleRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'idle' });
 
@@ -1026,18 +880,20 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-SSC-003] rejects when requested status already matches persisted status', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-duplicate@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-duplicate@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Already idle'));
+                .send(mapToJobWithSchedulePayload('Already idle'));
             expect(createRes.status).toBe(201);
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'idle' });
 
@@ -1046,25 +902,27 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-SSC-004] rejects when the job has no schedule', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-no-schedule@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-no-schedule@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Scheduled then cleared'));
+                .send(mapToJobWithSchedulePayload('Scheduled then cleared'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const updateRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.update, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildUpdateJobPayload(createRes.body.data, { schedule: null, runJob: false }));
+                .send(mapToUpdateJobPayload(createRes.body.data, { schedule: null }));
             expect(updateRes.status).toBe(200);
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'stopped' });
 
@@ -1073,37 +931,41 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-SSC-005] rejects the change while the job delegate is running', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-running@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-running@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithoutSchedulePayload('Running guard SSC'));
+                .send(mapToJobWithoutSchedulePayload('Running guard SSC'));
             expect(createRes.status).toBe(201);
 
             await expectBusinessLogicBlockWhilePossiblyRunning(() =>
                 agent
-                    .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id))
+                    .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id))
                     .set('Authorization', `Bearer ${token}`)
                     .send({ status: 'stopped' })
             );
         });
 
         it('[HTTP-JOBS-SSC-006] rejects activate when recurring endDate is past', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-expired-end@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-expired-end@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Expired end', { status: 'stopped' }));
+                .send(mapToJobWithSchedulePayload('Expired end', { status: 'stopped' }));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
-            await patchPersistedJobSchedule(jobId, {
+            await updatePersistedJobSchedule(jobId, {
                 type: 'daily',
                 startDate: new Date(Date.now() - 14 * 86_400_000).toISOString(),
                 endDate: new Date(Date.now() - 86_400_000).toISOString(),
@@ -1111,7 +973,7 @@ describe('Integration: jobs HTTP', () => {
             });
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'idle' });
 
@@ -1120,7 +982,9 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-SSC-007] rejects activate when once startDate is past', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-once-past@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-once-past@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
@@ -1128,7 +992,7 @@ describe('Integration: jobs HTTP', () => {
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
                 .send(
-                    buildJobWithSchedulePayload('Once past', {
+                    mapToJobWithSchedulePayload('Once past', {
                         status: 'stopped',
                         type: 'once',
                         endDate: null,
@@ -1137,7 +1001,7 @@ describe('Integration: jobs HTTP', () => {
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
-            await patchPersistedJobSchedule(jobId, {
+            await updatePersistedJobSchedule(jobId, {
                 type: 'once',
                 startDate: new Date(Date.now() - 86_400_000).toISOString(),
                 endDate: null,
@@ -1145,7 +1009,7 @@ describe('Integration: jobs HTTP', () => {
             });
 
             const putRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
+                .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
                 .send({ status: 'idle' });
 
@@ -1154,16 +1018,18 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-SSC-009] rejects bodies without a valid idle or stopped status', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'ssc-validation@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('ssc-validation@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Validate status'));
+                .send(mapToJobWithSchedulePayload('Validate status'));
             expect(createRes.status).toBe(201);
-            const url = buildJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id);
+            const url = mapToJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id);
 
             const missingStatus = await agent.put(url).set('Authorization', `Bearer ${token}`).send({});
             expect(missingStatus.status).toBe(400);
@@ -1180,19 +1046,21 @@ describe('Integration: jobs HTTP', () => {
 
     describe(`POST ${constants.routes.jobs.retrySchedule}`, () => {
         it('[HTTP-JOBS-RTY-001] retries an idle schedule; persisted status stays idle', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'rty-idle@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('rty-idle@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Retry idle'));
+                .send(mapToJobWithSchedulePayload('Retry idle'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const rtyRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.retrySchedule, jobId))
+                .post(mapToJobUrl(constants.routes.jobs.retrySchedule, jobId))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(rtyRes.status).toBe(200);
@@ -1203,19 +1071,21 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-RTY-002] retries a stopped schedule; status stays stopped and nextRun/lastRun are null', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'rty-stopped@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('rty-stopped@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Retry stopped', { status: 'stopped' }));
+                .send(mapToJobWithSchedulePayload('Retry stopped', { status: 'stopped' }));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
             const rtyRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.retrySchedule, jobId))
+                .post(mapToJobUrl(constants.routes.jobs.retrySchedule, jobId))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(rtyRes.status).toBe(200);
@@ -1225,24 +1095,26 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-RTY-004] rejects retry when the job has no schedule', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'rty-no-schedule@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('rty-no-schedule@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Clear then retry'));
+                .send(mapToJobWithSchedulePayload('Clear then retry'));
             expect(createRes.status).toBe(201);
 
             const updateRes = await agent
-                .put(buildJobUrl(constants.routes.jobs.update, createRes.body.data.id))
+                .put(mapToJobUrl(constants.routes.jobs.update, createRes.body.data.id))
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildUpdateJobPayload(createRes.body.data, { schedule: null, runJob: false }));
+                .send(mapToUpdateJobPayload(createRes.body.data, { schedule: null }));
             expect(updateRes.status).toBe(200);
 
             const rtyRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.retrySchedule, createRes.body.data.id))
+                .post(mapToJobUrl(constants.routes.jobs.retrySchedule, createRes.body.data.id))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(rtyRes.status).toBe(422);
@@ -1250,36 +1122,40 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-RTY-005] rejects retry while the job delegate is running', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'rty-running@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('rty-running@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithoutSchedulePayload('Running retry guard'));
+                .send(mapToJobWithoutSchedulePayload('Running retry guard'));
             expect(createRes.status).toBe(201);
 
             await expectBusinessLogicBlockWhilePossiblyRunning(() =>
                 agent
-                    .post(buildJobUrl(constants.routes.jobs.retrySchedule, createRes.body.data.id))
+                    .post(mapToJobUrl(constants.routes.jobs.retrySchedule, createRes.body.data.id))
                     .set('Authorization', `Bearer ${token}`)
             );
         });
 
         it('[HTTP-JOBS-RTY-006] rejects idle retry when recurring endDate is past', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'rty-expired-end@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('rty-expired-end@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Retry expired end'));
+                .send(mapToJobWithSchedulePayload('Retry expired end'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
-            await patchPersistedJobSchedule(jobId, {
+            await updatePersistedJobSchedule(jobId, {
                 type: 'daily',
                 startDate: new Date(Date.now() - 14 * 86_400_000).toISOString(),
                 endDate: new Date(Date.now() - 86_400_000).toISOString(),
@@ -1287,7 +1163,7 @@ describe('Integration: jobs HTTP', () => {
             });
 
             const rtyRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.retrySchedule, jobId))
+                .post(mapToJobUrl(constants.routes.jobs.retrySchedule, jobId))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(rtyRes.status).toBe(422);
@@ -1295,18 +1171,20 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-RTY-007] rejects idle retry when once startDate is past', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'rty-once-past@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('rty-once-past@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Retry once past', { type: 'once', endDate: null }));
+                .send(mapToJobWithSchedulePayload('Retry once past', { type: 'once', endDate: null }));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
-            await patchPersistedJobSchedule(jobId, {
+            await updatePersistedJobSchedule(jobId, {
                 type: 'once',
                 startDate: new Date(Date.now() - 86_400_000).toISOString(),
                 endDate: null,
@@ -1314,7 +1192,7 @@ describe('Integration: jobs HTTP', () => {
             });
 
             const rtyRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.retrySchedule, jobId))
+                .post(mapToJobUrl(constants.routes.jobs.retrySchedule, jobId))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(rtyRes.status).toBe(422);
@@ -1324,14 +1202,16 @@ describe('Integration: jobs HTTP', () => {
 
     describe(`POST ${constants.routes.jobs.stop}`, () => {
         it('[HTTP-JOBS-STP-001] stops an owned running job and returns the job id', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'stop-running@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('stop-running@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Stop while running'));
+                .send(mapToJobWithSchedulePayload('Stop while running'));
             expect(createRes.status).toBe(201);
 
             const job = createRes.body.data;
@@ -1351,7 +1231,7 @@ describe('Integration: jobs HTTP', () => {
 
             try {
                 const stopRes = await agent
-                    .post(buildJobUrl(constants.routes.jobs.stop, jobId))
+                    .post(mapToJobUrl(constants.routes.jobs.stop, jobId))
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(stopRes.status).toBe(200);
@@ -1365,18 +1245,20 @@ describe('Integration: jobs HTTP', () => {
         });
 
         it('[HTTP-JOBS-STP-002] rejects stop when the job is not running', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'stop-idle@example.com');
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('stop-idle@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Not running'));
+                .send(mapToJobWithSchedulePayload('Not running'));
             expect(createRes.status).toBe(201);
 
             const stopRes = await agent
-                .post(buildJobUrl(constants.routes.jobs.stop, createRes.body.data.id))
+                .post(mapToJobUrl(constants.routes.jobs.stop, createRes.body.data.id))
                 .set('Authorization', `Bearer ${token}`);
 
             expect(stopRes.status).toBe(422);
@@ -1386,34 +1268,69 @@ describe('Integration: jobs HTTP', () => {
     });
 
     describe(`GET ${constants.routes.jobs.streamAll}`, () => {
-        it('[HTTP-JOBS-STR-001] / [HTTP-JOBS-STR-002] / [HTTP-JOBS-STR-003] opens SSE with snapshots', async () => {
-            const registerResponse = await getRegisterResponse(agent, 'sse-user@example.com');
+        it('[HTTP-JOBS-STR-001] / [FR-JOBS-STR-002] opens SSE with an aggregated connect snapshot', async () => {
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('sse-user@example.com'));
             expect(registerResponse.status).toBe(200);
             const token = registerResponse.body.data as string;
 
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(buildJobWithSchedulePayload('Stream scheduled'));
+                .send(mapToJobWithSchedulePayload('Stream scheduled'));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
-            const snapshot = await collectInitialSseSnapshots(agent, token);
+            const stream = await readJobsAggregatedStream(agent, token);
 
-            expect(snapshot.statusCode).toBe(200);
-            expect(snapshot.headers['content-type']).toContain('text/event-stream');
-            expect(snapshot.headers['cache-control']).toBe('no-cache');
-            expect(snapshot.headers.connection).toBe('keep-alive');
+            expect(stream.status).toBe(200);
+            expect(stream.headers['content-type']).toContain('text/event-stream');
+            expect(stream.headers['cache-control']).toBe('no-cache');
+            expect(stream.headers.connection).toBe('keep-alive');
 
-            expect(snapshot.buffer).toContain(`event: ${constants.events.jobs.runningJobs}`);
-            expect(snapshot.buffer).toContain(`"type":"${constants.events.jobs.runningJobs}"`);
-            expect(snapshot.buffer).toContain('"runningJobs":');
+            expect(stream.aggregated.data.type).toBe(constants.events.jobs.jobsAggregated);
+            expect(stream.aggregated.data.userId).toBe(createRes.body.data.userId);
+            expect(stream.aggregated.data.runningJobs).toEqual([]);
+            expect(stream.aggregated.data.scheduledJobs).toEqual(expect.arrayContaining([{ jobId, status: 'idle' }]));
+        });
 
-            expect(snapshot.buffer).toContain(`event: ${constants.events.jobs.scheduledJobs}`);
-            expect(snapshot.buffer).toContain(`"type":"${constants.events.jobs.scheduledJobs}"`);
-            expect(snapshot.buffer).toContain('"scheduledJobs":');
-            expect(snapshot.buffer).toContain(jobId);
-            expect(snapshot.buffer).toContain('"status":"idle"');
+        it('[FR-JOBS-OWN-002] aggregated snapshot excludes another user’s scheduled jobs', async () => {
+            const owner = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('sse-owner@example.com'));
+            expect(owner.status).toBe(200);
+            const ownerToken = owner.body.data as string;
+
+            const other = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('sse-other@example.com'));
+            expect(other.status).toBe(200);
+            const otherToken = other.body.data as string;
+
+            const ownerCreate = await agent
+                .post(constants.routes.jobs.create)
+                .set('Authorization', `Bearer ${ownerToken}`)
+                .send(mapToJobWithSchedulePayload('Owner scheduled'));
+            expect(ownerCreate.status).toBe(201);
+            const ownerJobId = ownerCreate.body.data.id as string;
+
+            const otherCreate = await agent
+                .post(constants.routes.jobs.create)
+                .set('Authorization', `Bearer ${otherToken}`)
+                .send(mapToJobWithSchedulePayload('Other scheduled'));
+            expect(otherCreate.status).toBe(201);
+            const otherJobId = otherCreate.body.data.id as string;
+
+            const stream = await readJobsAggregatedStream(agent, ownerToken);
+
+            expect(stream.aggregated.data.userId).toBe(ownerCreate.body.data.userId);
+
+            const scheduledJobIds = (
+                (stream.aggregated.data.scheduledJobs as Array<{ jobId: string }> | undefined) ?? []
+            ).map(job => job.jobId);
+            expect(scheduledJobIds).toContain(ownerJobId);
+            expect(scheduledJobIds).not.toContain(otherJobId);
         });
     });
 });
