@@ -4,6 +4,8 @@ import { ErrorCode } from 'aop/exceptions/shared/enums';
 
 import { createJob } from '../jobs-controller';
 
+import constants from 'shared/constants';
+
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
@@ -40,7 +42,7 @@ const enrichedNextRun = new Date('2026-03-12T08:30:00.000Z');
 const buildRequestBody = (): CreateJobInput => ({
     name: 'Daily engineering jobs',
     schedule: {
-        status: 'idle' as const,
+        status: constants.status.idle,
         type: 'daily' as const,
         startDate: scheduledStartDate,
         endDate: null,
@@ -213,7 +215,7 @@ describe('jobs-controller createJob', () => {
                     name: createdJob.name,
                     schedule: expect.objectContaining({
                         type: 'daily',
-                        status: 'idle',
+                        status: constants.status.idle,
                         startDate: scheduledStartDate,
                         endDate: null,
                         nextRun: enrichedNextRun.toISOString(),
@@ -275,7 +277,7 @@ describe('jobs-controller createJob', () => {
                 data: expect.objectContaining({
                     id: createdJob.id,
                     schedule: expect.objectContaining({
-                        status: 'idle',
+                        status: constants.status.idle,
                         nextRun: null,
                         lastRun: null,
                     }),

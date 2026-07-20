@@ -5,6 +5,8 @@ import { ErrorCode } from 'aop/exceptions/shared/enums';
 
 import { retryJobSchedule } from '../jobs-controller';
 
+import constants from 'shared/constants';
+
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
@@ -59,7 +61,7 @@ const buildPersistedJob = (overrides?: Partial<Job>): Job => ({
         type: 'daily',
         startDate: futureStartDate,
         endDate: null,
-        status: 'idle',
+        status: constants.status.idle,
     },
     tools: [
         {
@@ -160,7 +162,7 @@ describe('jobs-controller retryJobSchedule', () => {
                 success: true,
                 data: expect.objectContaining({
                     schedule: expect.objectContaining({
-                        status: 'idle',
+                        status: constants.status.idle,
                         nextRun: enrichedNextRun.toISOString(),
                     }),
                 }),
@@ -178,7 +180,7 @@ describe('jobs-controller retryJobSchedule', () => {
                     type: 'daily',
                     startDate: futureStartDate,
                     endDate: null,
-                    status: 'stopped',
+                    status: constants.status.stopped,
                 },
             });
             const request = buildRequest();
@@ -200,7 +202,7 @@ describe('jobs-controller retryJobSchedule', () => {
                 success: true,
                 data: expect.objectContaining({
                     schedule: expect.objectContaining({
-                        status: 'stopped',
+                        status: constants.status.stopped,
                         nextRun: null,
                         lastRun: null,
                     }),
@@ -232,7 +234,7 @@ describe('jobs-controller retryJobSchedule', () => {
                 success: true,
                 data: expect.objectContaining({
                     schedule: expect.objectContaining({
-                        status: 'idle',
+                        status: constants.status.idle,
                         nextRun: null,
                         lastRun: null,
                     }),
@@ -288,7 +290,7 @@ describe('jobs-controller retryJobSchedule', () => {
                     type: 'daily',
                     startDate: pastStartDate,
                     endDate: expiredEndDate,
-                    status: 'idle',
+                    status: constants.status.idle,
                 },
             });
             const request = buildRequest();
@@ -311,7 +313,7 @@ describe('jobs-controller retryJobSchedule', () => {
                     type: 'once',
                     startDate: pastStartDate,
                     endDate: null,
-                    status: 'idle',
+                    status: constants.status.idle,
                 },
             });
             const request = buildRequest();

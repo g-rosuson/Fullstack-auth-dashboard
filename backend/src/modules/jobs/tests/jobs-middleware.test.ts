@@ -40,7 +40,7 @@ const validCreateBody = (): CreateJobInput => ({
 
 const validUpdateBody = (): UpdateJobInput => ({
     ...validCreateBody(),
-    status: 'idle',
+    status: constants.status.idle,
 });
 
 describe('jobs-middleware', () => {
@@ -121,7 +121,7 @@ describe('jobs-middleware', () => {
                     body: {
                         ...validCreateBody(),
                         schedule: {
-                            status: 'idle',
+                            status: constants.status.idle,
                             type: 'daily',
                             startDate: new Date(Date.now() - 86_400_000).toISOString(),
                             endDate: null,
@@ -159,7 +159,7 @@ describe('jobs-middleware', () => {
                 body: {
                     ...validCreateBody(),
                     schedule: {
-                        status: 'idle',
+                        status: constants.status.idle,
                         type: 'daily',
                         startDate: futureStart(),
                         endDate: null,
@@ -178,13 +178,13 @@ describe('jobs-middleware', () => {
             it('calls next with a validated status body', () => {
                 const mockNext = vi.fn();
                 const request = {
-                    body: { status: 'stopped' },
+                    body: { status: constants.status.stopped },
                 } as Request;
 
                 validateChangeScheduleStatusPayload(request, {} as Response, mockNext);
 
                 expect(mockNext).toHaveBeenCalled();
-                expect(request.body).toEqual({ status: 'stopped' });
+                expect(request.body).toEqual({ status: constants.status.stopped });
             });
         });
 

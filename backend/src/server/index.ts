@@ -15,6 +15,8 @@ import { initializeDatabase } from './server-initialize-db';
 
 // TODO: What is cursor indexing? And what should be ignored?
 
+// TODO: Add schedule type to constants and integrate into all logic and tests?
+
 // TODO: Add strongly typed controller responses
 
 // TODO: Add job pipeline information streaming

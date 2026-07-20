@@ -41,8 +41,8 @@ const mockRequest = {
         },
         scheduler: {
             getAllJobs: vi.fn(() => [
-                { jobId: 'job-id-1', userId: 'user-id-1', status: 'idle' },
-                { jobId: 'job-id-other', userId: 'user-id-2', status: 'idle' },
+                { jobId: 'job-id-1', userId: 'user-id-1', status: constants.status.idle },
+                { jobId: 'job-id-other', userId: 'user-id-2', status: constants.status.idle },
             ]),
         },
         emitter: {
@@ -136,7 +136,7 @@ describe('jobs-controller streamJobs', () => {
                                 finishedEvents: [mockTargetFinishedEvent],
                             },
                         ],
-                        scheduledJobs: [{ jobId: 'job-id-1', status: 'idle' }],
+                        scheduledJobs: [{ jobId: 'job-id-1', status: constants.status.idle }],
                         userId: 'user-id-1',
                         type: constants.events.jobs.jobsAggregated,
                     },

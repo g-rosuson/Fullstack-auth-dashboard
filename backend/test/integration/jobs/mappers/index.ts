@@ -1,6 +1,7 @@
 import type { CreateJobInput, UpdateJobInput } from 'modules/jobs/types';
 
 import { INTEGRATION_JOB_START_DELAY_MS } from '../constants';
+import constants from 'shared/constants';
 
 import type { JobSchedule } from 'shared/types/jobs';
 
@@ -13,7 +14,7 @@ const mapToJobWithSchedulePayload = (
 ): CreateJobInput => ({
     name,
     schedule: {
-        status: 'idle',
+        status: constants.status.idle,
         type: 'daily',
         startDate: new Date(Date.now() + INTEGRATION_JOB_START_DELAY_MS).toISOString(),
         endDate: null,
@@ -86,7 +87,7 @@ function mapToUpdateJobPayload(
         name: partial.name ?? job.name,
         schedule,
         tools: partial.tools ?? job.tools,
-        status: partial.status ?? schedule?.status ?? 'idle',
+        status: partial.status ?? schedule?.status ?? constants.status.idle,
     };
 }
 

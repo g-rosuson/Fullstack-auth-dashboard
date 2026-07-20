@@ -5,6 +5,8 @@ import { ErrorCode } from 'aop/exceptions/shared/enums';
 
 import { updateJob } from '../jobs-controller';
 
+import constants from 'shared/constants';
+
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
@@ -49,7 +51,7 @@ const enrichedNextRun = new Date('2026-03-18T08:30:00.000Z');
 const buildRequestBody = (): UpdateJobInput => ({
     name: 'Updated engineering jobs',
     schedule: {
-        status: 'idle' as const,
+        status: constants.status.idle,
         type: 'weekly' as const,
         startDate: scheduledStartDate,
         endDate: null,
@@ -68,7 +70,7 @@ const buildRequestBody = (): UpdateJobInput => ({
             ],
         },
     ],
-    status: 'idle',
+    status: constants.status.idle,
 });
 
 /**
@@ -194,7 +196,7 @@ describe('jobs-controller updateJob', () => {
                     name: updatedJob.name,
                     schedule: expect.objectContaining({
                         type: 'weekly',
-                        status: 'idle',
+                        status: constants.status.idle,
                         startDate: scheduledStartDate,
                         endDate: null,
                         nextRun: enrichedNextRun.toISOString(),
@@ -236,7 +238,7 @@ describe('jobs-controller updateJob', () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
-                status: 'idle',
+                status: constants.status.idle,
             };
             const request = buildRequest(requestBody);
             const updatedJob = buildUpdatedJob(requestBody);
@@ -268,7 +270,7 @@ describe('jobs-controller updateJob', () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
-                status: 'idle',
+                status: constants.status.idle,
             };
             const request = buildRequest(requestBody);
             const clearError = new Error('scheduler delete failed');
@@ -333,7 +335,7 @@ describe('jobs-controller updateJob', () => {
                 success: true,
                 data: expect.objectContaining({
                     schedule: expect.objectContaining({
-                        status: 'idle',
+                        status: constants.status.idle,
                         nextRun: null,
                         lastRun: null,
                     }),

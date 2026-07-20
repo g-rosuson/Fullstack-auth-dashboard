@@ -91,7 +91,7 @@ const getMockCronJob = (cronJob: Partial<CronJob> = {}): CronJob => ({
     jobId: mockJobId,
     userId: mockUserId,
     type: mockDailyType,
-    status: 'idle',
+    status: constants.status.idle,
     cronExpression: defaultCronExpression,
     startDate: new Date(),
     endDate: new Date(),
@@ -495,7 +495,7 @@ describe('Scheduler', () => {
 
             const job = getCronJobsMap(scheduler).get(mockJobId);
             expect(mockStopCronTask).toHaveBeenCalled();
-            expect(job?.status).toBe('stopped');
+            expect(job?.status).toBe(constants.status.stopped);
         });
 
         it('does not create a stop timeout when endDate is null', () => {
@@ -525,7 +525,7 @@ describe('Scheduler', () => {
                 expect.objectContaining({
                     type: constants.events.jobs.jobsScheduled,
                     userId: mockUserId,
-                    scheduledJobs: [{ jobId: mockJobId, status: 'idle' }],
+                    scheduledJobs: [{ jobId: mockJobId, status: constants.status.idle }],
                 })
             );
         });
@@ -567,7 +567,7 @@ describe('Scheduler', () => {
                 expect.objectContaining({
                     type: constants.events.jobs.jobsScheduled,
                     userId: mockUserId,
-                    scheduledJobs: [{ jobId: mockJobId, status: 'stopped' }],
+                    scheduledJobs: [{ jobId: mockJobId, status: constants.status.stopped }],
                 })
             );
         });
@@ -629,7 +629,7 @@ describe('Scheduler', () => {
 
             expect(job).toEqual(
                 expect.objectContaining({
-                    status: 'stopped',
+                    status: constants.status.stopped,
                     metadata: {
                         startTimeoutId: undefined,
                         stopTimeoutId: undefined,
@@ -688,8 +688,12 @@ describe('Scheduler', () => {
 
             expect(jobs).toEqual(
                 expect.arrayContaining([
-                    expect.objectContaining({ jobId: mockJobId, userId: mockUserId, status: 'idle' }),
-                    expect.objectContaining({ jobId: 'job-2', userId: mockOtherUserId, status: 'stopped' }),
+                    expect.objectContaining({ jobId: mockJobId, userId: mockUserId, status: constants.status.idle }),
+                    expect.objectContaining({
+                        jobId: 'job-2',
+                        userId: mockOtherUserId,
+                        status: constants.status.stopped,
+                    }),
                 ])
             );
 

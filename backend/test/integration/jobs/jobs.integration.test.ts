@@ -219,7 +219,7 @@ describe('Integration: jobs HTTP', () => {
             const putRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.update, missingId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ name: 'Ghost', schedule: null, tools: minimalTools, status: 'idle' });
+                .send({ name: 'Ghost', schedule: null, tools: minimalTools, status: constants.status.idle });
             expect(putRes.status).toBe(404);
             expect(putRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
@@ -238,7 +238,7 @@ describe('Integration: jobs HTTP', () => {
             const sscRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, missingId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ status: 'stopped' });
+                .send({ status: constants.status.stopped });
             expect(sscRes.status).toBe(404);
             expect(sscRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
@@ -322,7 +322,7 @@ describe('Integration: jobs HTTP', () => {
             expect(res.body.success).toBe(true);
             expect(res.body.data.name).toBe(name);
             expect(res.body.data.schedule).not.toBeNull();
-            expect(res.body.data.schedule.status).toBe('idle');
+            expect(res.body.data.schedule.status).toBe(constants.status.idle);
             expect(res.body.data.schedule.type).toBe('daily');
             expect(res.body.data.schedule.startDate).toBeDefined();
             expect(typeof res.body.data.schedule.nextRun).toBe('string');
@@ -339,11 +339,11 @@ describe('Integration: jobs HTTP', () => {
             const res = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${registerResponse.body.data}`)
-                .send(mapToJobWithSchedulePayload('Stopped on create', { status: 'stopped' }));
+                .send(mapToJobWithSchedulePayload('Stopped on create', { status: constants.status.stopped }));
 
             expect(res.status).toBe(201);
             expect(res.body.success).toBe(true);
-            expect(res.body.data.schedule.status).toBe('stopped');
+            expect(res.body.data.schedule.status).toBe(constants.status.stopped);
             expect(res.body.data.schedule.nextRun).toBeNull();
             expect(res.body.data.schedule.lastRun).toBeNull();
         });
@@ -407,7 +407,7 @@ describe('Integration: jobs HTTP', () => {
                 const payload: CreateJobInput = {
                     ...mapToJobWithSchedulePayload('Past start'),
                     schedule: {
-                        status: 'idle',
+                        status: constants.status.idle,
                         type: 'daily',
                         startDate: new Date(Date.now() - 86_400_000).toISOString(),
                         endDate: null,
@@ -445,7 +445,7 @@ describe('Integration: jobs HTTP', () => {
                     .set('Authorization', `Bearer ${registerResponse.body.data}`)
                     .send({
                         ...mapToJobWithSchedulePayload('Inverted range'),
-                        schedule: { status: 'idle', type: 'daily', startDate: start, endDate: end },
+                        schedule: { status: constants.status.idle, type: 'daily', startDate: start, endDate: end },
                     });
 
                 expect(res.status).toBe(400);
@@ -474,7 +474,7 @@ describe('Integration: jobs HTTP', () => {
                     .set('Authorization', `Bearer ${registerResponse.body.data}`)
                     .send({
                         ...mapToJobWithSchedulePayload('Once with end'),
-                        schedule: { status: 'idle', type: 'once', startDate: start, endDate: end },
+                        schedule: { status: constants.status.idle, type: 'once', startDate: start, endDate: end },
                     });
 
                 expect(res.status).toBe(400);
@@ -598,7 +598,7 @@ describe('Integration: jobs HTTP', () => {
             expect(putRes.status).toBe(200);
             expect(putRes.body.success).toBe(true);
             expect(putRes.body.data.name).toBe('After PUT');
-            expect(putRes.body.data.schedule.status).toBe('idle');
+            expect(putRes.body.data.schedule.status).toBe(constants.status.idle);
             expect(typeof putRes.body.meta.timestamp).toBe('string');
 
             const getRes = await agent
@@ -659,13 +659,13 @@ describe('Integration: jobs HTTP', () => {
                             type: createRes.body.data.schedule.type,
                             startDate: createRes.body.data.schedule.startDate,
                             endDate: createRes.body.data.schedule.endDate,
-                            status: 'stopped',
+                            status: constants.status.stopped,
                         },
                     })
                 );
 
             expect(putRes.status).toBe(200);
-            expect(putRes.body.data.schedule.status).toBe('stopped');
+            expect(putRes.body.data.schedule.status).toBe(constants.status.stopped);
             expect(putRes.body.data.schedule.nextRun).toBeNull();
             expect(putRes.body.data.schedule.lastRun).toBeNull();
         });
@@ -739,7 +739,7 @@ describe('Integration: jobs HTTP', () => {
                 .send({
                     ...mapToUpdateJobPayload(createRes.body.data),
                     schedule: {
-                        status: 'idle',
+                        status: constants.status.idle,
                         type: 'daily',
                         startDate: new Date(Date.now() - 86_400_000).toISOString(),
                         endDate: null,
@@ -827,7 +827,7 @@ describe('Integration: jobs HTTP', () => {
 
             expect(putRes.status).toBe(200);
             expect(putRes.body.success).toBe(true);
-            expect(putRes.body.data.schedule.status).toBe('stopped');
+            expect(putRes.body.data.schedule.status).toBe(constants.status.stopped);
             expect(putRes.body.data.name).toBe(before.name);
             expect(putRes.body.data.tools).toEqual(before.tools);
             expect(putRes.body.data.schedule.type).toBe(before.schedule.type);
@@ -839,7 +839,7 @@ describe('Integration: jobs HTTP', () => {
                 .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
                 .set('Authorization', `Bearer ${token}`);
             expect(getRes.status).toBe(200);
-            expect(getRes.body.data.schedule.status).toBe('stopped');
+            expect(getRes.body.data.schedule.status).toBe(constants.status.stopped);
         });
 
         it('[HTTP-JOBS-SSC-002] reactivates a stopped schedule to idle with nextRun at future startDate', async () => {
@@ -858,7 +858,7 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send({
                     ...mapToJobWithSchedulePayload('Restart me'),
-                    schedule: { status: 'idle', type: 'daily', startDate, endDate: null },
+                    schedule: { status: constants.status.idle, type: 'daily', startDate, endDate: null },
                 });
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
@@ -866,16 +866,16 @@ describe('Integration: jobs HTTP', () => {
             const stopRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ status: 'stopped' });
+                .send({ status: constants.status.stopped });
             expect(stopRes.status).toBe(200);
 
             const idleRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ status: 'idle' });
+                .send({ status: constants.status.idle });
 
             expect(idleRes.status).toBe(200);
-            expect(idleRes.body.data.schedule.status).toBe('idle');
+            expect(idleRes.body.data.schedule.status).toBe(constants.status.idle);
             expect(idleRes.body.data.schedule.nextRun).toBe(startDate);
         });
 
@@ -895,7 +895,7 @@ describe('Integration: jobs HTTP', () => {
             const putRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ status: 'idle' });
+                .send({ status: constants.status.idle });
 
             expect(putRes.status).toBe(422);
             expect(putRes.body.code).toBe(ErrorCode.BUSINESS_LOGIC_ERROR);
@@ -924,7 +924,7 @@ describe('Integration: jobs HTTP', () => {
             const putRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ status: 'stopped' });
+                .send({ status: constants.status.stopped });
 
             expect(putRes.status).toBe(422);
             expect(putRes.body.code).toBe(ErrorCode.BUSINESS_LOGIC_ERROR);
@@ -947,7 +947,7 @@ describe('Integration: jobs HTTP', () => {
                 agent
                     .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, createRes.body.data.id))
                     .set('Authorization', `Bearer ${token}`)
-                    .send({ status: 'stopped' })
+                    .send({ status: constants.status.stopped })
             );
         });
 
@@ -961,7 +961,7 @@ describe('Integration: jobs HTTP', () => {
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(mapToJobWithSchedulePayload('Expired end', { status: 'stopped' }));
+                .send(mapToJobWithSchedulePayload('Expired end', { status: constants.status.stopped }));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
@@ -969,13 +969,13 @@ describe('Integration: jobs HTTP', () => {
                 type: 'daily',
                 startDate: new Date(Date.now() - 14 * 86_400_000).toISOString(),
                 endDate: new Date(Date.now() - 86_400_000).toISOString(),
-                status: 'stopped',
+                status: constants.status.stopped,
             });
 
             const putRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ status: 'idle' });
+                .send({ status: constants.status.idle });
 
             expect(putRes.status).toBe(422);
             expect(putRes.body.code).toBe(ErrorCode.BUSINESS_LOGIC_ERROR);
@@ -993,7 +993,7 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send(
                     mapToJobWithSchedulePayload('Once past', {
-                        status: 'stopped',
+                        status: constants.status.stopped,
                         type: 'once',
                         endDate: null,
                     })
@@ -1005,13 +1005,13 @@ describe('Integration: jobs HTTP', () => {
                 type: 'once',
                 startDate: new Date(Date.now() - 86_400_000).toISOString(),
                 endDate: null,
-                status: 'stopped',
+                status: constants.status.stopped,
             });
 
             const putRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ status: 'idle' });
+                .send({ status: constants.status.idle });
 
             expect(putRes.status).toBe(422);
             expect(putRes.body.code).toBe(ErrorCode.BUSINESS_LOGIC_ERROR);
@@ -1065,7 +1065,7 @@ describe('Integration: jobs HTTP', () => {
 
             expect(rtyRes.status).toBe(200);
             expect(rtyRes.body.success).toBe(true);
-            expect(rtyRes.body.data.schedule.status).toBe('idle');
+            expect(rtyRes.body.data.schedule.status).toBe(constants.status.idle);
             expect(typeof rtyRes.body.data.schedule.nextRun).toBe('string');
             expect(typeof rtyRes.body.meta.timestamp).toBe('string');
         });
@@ -1080,7 +1080,7 @@ describe('Integration: jobs HTTP', () => {
             const createRes = await agent
                 .post(constants.routes.jobs.create)
                 .set('Authorization', `Bearer ${token}`)
-                .send(mapToJobWithSchedulePayload('Retry stopped', { status: 'stopped' }));
+                .send(mapToJobWithSchedulePayload('Retry stopped', { status: constants.status.stopped }));
             expect(createRes.status).toBe(201);
             const jobId = createRes.body.data.id as string;
 
@@ -1089,7 +1089,7 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(rtyRes.status).toBe(200);
-            expect(rtyRes.body.data.schedule.status).toBe('stopped');
+            expect(rtyRes.body.data.schedule.status).toBe(constants.status.stopped);
             expect(rtyRes.body.data.schedule.nextRun).toBeNull();
             expect(rtyRes.body.data.schedule.lastRun).toBeNull();
         });
@@ -1159,7 +1159,7 @@ describe('Integration: jobs HTTP', () => {
                 type: 'daily',
                 startDate: new Date(Date.now() - 14 * 86_400_000).toISOString(),
                 endDate: new Date(Date.now() - 86_400_000).toISOString(),
-                status: 'idle',
+                status: constants.status.idle,
             });
 
             const rtyRes = await agent
@@ -1188,7 +1188,7 @@ describe('Integration: jobs HTTP', () => {
                 type: 'once',
                 startDate: new Date(Date.now() - 86_400_000).toISOString(),
                 endDate: null,
-                status: 'idle',
+                status: constants.status.idle,
             });
 
             const rtyRes = await agent
@@ -1292,7 +1292,9 @@ describe('Integration: jobs HTTP', () => {
             expect(stream.aggregated.data.type).toBe(constants.events.jobs.jobsAggregated);
             expect(stream.aggregated.data.userId).toBe(createRes.body.data.userId);
             expect(stream.aggregated.data.runningJobs).toEqual([]);
-            expect(stream.aggregated.data.scheduledJobs).toEqual(expect.arrayContaining([{ jobId, status: 'idle' }]));
+            expect(stream.aggregated.data.scheduledJobs).toEqual(
+                expect.arrayContaining([{ jobId, status: constants.status.idle }])
+            );
         });
 
         it('[FR-JOBS-OWN-002] aggregated snapshot excludes another user’s scheduled jobs', async () => {
