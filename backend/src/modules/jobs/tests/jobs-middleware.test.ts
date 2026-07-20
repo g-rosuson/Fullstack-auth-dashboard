@@ -40,7 +40,7 @@ const validCreateBody = (): CreateJobInput => ({
 
 const validUpdateBody = (): UpdateJobInput => ({
     ...validCreateBody(),
-    runJob: false,
+    status: 'idle',
 });
 
 describe('jobs-middleware', () => {

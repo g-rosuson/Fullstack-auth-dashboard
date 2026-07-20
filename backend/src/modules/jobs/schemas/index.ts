@@ -104,7 +104,7 @@ const updateJobInputSchema = z
         schedule: jobScheduleSchema.nullable(),
         tools: z.array(updateJobToolSchema).min(1),
         name: z.string(),
-        runJob: z.boolean(),
+        status: jobScheduleStatusSchema,
     })
     .superRefine(validateJobSchedule)
     .openapi('UpdateJobInput');

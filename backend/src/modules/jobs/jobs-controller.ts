@@ -19,11 +19,14 @@ import type {
     IdRouteParam,
     UpdateJobInput,
 } from './types';
-import type { ScheduledJobEvent } from 'shared/types/jobs/events/types-jobs-events';
+import type {
+    AggregatedRunningJob,
+    JobTargetFinishedEvent,
+    ScheduledJobEvent,
+} from 'shared/types/jobs/events/types-jobs-events';
 import type { EventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
 
 import { cronJobTypeSchema } from 'shared/schemas/cron';
-import { jobScheduleIdleStatusSchema, jobScheduleStoppedStatusSchema } from 'shared/schemas/jobs';
 
 /**
  * Creates a new job. Optionally schedules it (active) or leaves it stopped;
@@ -59,7 +62,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
 
         try {
             if (createdJob.schedule) {
-                if (createdJob.schedule.status === jobScheduleIdleStatusSchema.value) {
+                if (createdJob.schedule.status === constants.status.idle) {
                     // FR-JOBS-CRT-003 — Active (`idle`) schedule: place in active runtime state
                     req.context.scheduler.schedule({
                         jobId: createdJob.id,
@@ -83,7 +86,7 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
                         tools: createdJob.tools,
                         scheduleType: createdJob.schedule.type,
                     });
-                } else if (createdJob.schedule.status === jobScheduleStoppedStatusSchema.value) {
+                } else if (createdJob.schedule.status === constants.status.stopped) {
                     // FR-JOBS-CRT-006 / FR-JOBS-SSC-002 — Stopped: attach runtime without arming start/end
                     req.context.scheduler.schedule({
                         jobId: createdJob.id,
@@ -171,7 +174,6 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
  * FR-JOBS-UPD-003 — Reject while the job is running
  * FR-JOBS-UPD-004 — Stopped schedule → attach runtime stopped; no run until activated (FR-JOBS-SSC-002)
  * FR-JOBS-SCH-007 / FR-JOBS-SCH-011 / FR-JOBS-STR-004 — Post-save schedule/run failure → keep job, unattached, warn
- * FR-JOBS-RUN-001 — Clearing schedule with runJob → run tools after save
  * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped update; other-user ≡ not found
  * Middleware: FR-JOBS-TLR-001…006, FR-JOBS-SCH-001…003/006, FR-JOBS-ONCE-001/002
  */
@@ -201,7 +203,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
 
         try {
             if (updatedJob.schedule) {
-                if (updatedJob.schedule.status === jobScheduleIdleStatusSchema.value) {
+                if (updatedJob.schedule.status === constants.status.idle) {
                     // FR-JOBS-UPD-001 — Active (`idle`) schedule: replace any existing runtime attachment
                     // Note: .schedule() destroys an existing cron job before scheduling a new one
                     req.context.scheduler.schedule({
@@ -227,7 +229,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                         tools: updatedJob.tools,
                         scheduleType: updatedJob.schedule.type,
                     });
-                } else if (updatedJob.schedule.status === jobScheduleStoppedStatusSchema.value) {
+                } else if (updatedJob.schedule.status === constants.status.stopped) {
                     // FR-JOBS-UPD-004 / FR-JOBS-SSC-002 — Stopped: overwrite runtime without arming start/end
                     // Note: .schedule() destroys an existing cron job before scheduling a new one
                     req.context.scheduler.schedule({
@@ -259,16 +261,6 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                 // FR-JOBS-UPD-002 — Clear schedule: detach runtime
                 req.context.scheduler.delete(updatedJob.id);
                 req.context.delegator.removeJob(updatedJob.id);
-
-                // FR-JOBS-RUN-001 — Optionally run tools immediately after clearing schedule
-                if (req.body.runJob) {
-                    req.context.delegator.delegate({
-                        jobId: updatedJob.id,
-                        userId: req.context.user.id,
-                        tools: updatedJob.tools,
-                        scheduleType: null,
-                    });
-                }
             }
         } catch (error) {
             // FR-JOBS-SCH-007 / FR-JOBS-SCH-011 / FR-JOBS-STR-004 — Keep saved job; wipe runtime; warn
@@ -525,7 +517,7 @@ const changeJobScheduleStatus = async (
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_CHANGE_STATUS_TO_EXISTING_STATUS);
         }
 
-        if (requestedStatus === jobScheduleIdleStatusSchema.value) {
+        if (requestedStatus === constants.status.idle) {
             // FR-JOBS-SCH-006 — Recurring: cannot activate when end is now/past
             if (persistedJob.schedule.endDate) {
                 const endDate = new Date(persistedJob.schedule.endDate);
@@ -566,7 +558,7 @@ const changeJobScheduleStatus = async (
         const warnings: Array<{ code: ErrorCode; message: ErrorMessage }> = [];
 
         try {
-            if (requestedStatus === jobScheduleIdleStatusSchema.value) {
+            if (requestedStatus === constants.status.idle) {
                 // FR-JOBS-SSC-001 — Activate: place schedule in active runtime state
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
@@ -590,7 +582,7 @@ const changeJobScheduleStatus = async (
                     tools: persistedJob.tools,
                     scheduleType: persistedJob.schedule.type,
                 });
-            } else if (requestedStatus === jobScheduleStoppedStatusSchema.value) {
+            } else if (requestedStatus === constants.status.stopped) {
                 // FR-JOBS-SSC-001 / FR-JOBS-SSC-002 — Stop: attach runtime stopped (no run until activated)
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
@@ -685,7 +677,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
 
         const persistedSchedule = persistedJob.schedule;
 
-        if (persistedSchedule.status === jobScheduleIdleStatusSchema.value) {
+        if (persistedSchedule.status === constants.status.idle) {
             // FR-JOBS-SCH-006
             if (persistedSchedule.endDate) {
                 const endDate = new Date(persistedSchedule.endDate);
@@ -714,7 +706,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
         const warnings: Array<{ code: ErrorCode; message: ErrorMessage }> = [];
 
         try {
-            if (persistedSchedule.status === jobScheduleIdleStatusSchema.value) {
+            if (persistedSchedule.status === constants.status.idle) {
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
                     userId,
@@ -729,7 +721,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
                     nextRun: nextRun?.toISOString() || null,
                     lastRun: previousRun?.toISOString() || null,
                 };
-            } else if (persistedSchedule.status === jobScheduleStoppedStatusSchema.value) {
+            } else if (persistedSchedule.status === constants.status.stopped) {
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
                     userId,
@@ -788,10 +780,9 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
 /**
  * Streams live job activity and schedule-attachment state for the current user.
  *
- * FR-JOBS-STR-001 — Live stream of running jobs and execution outcomes
- * FR-JOBS-STR-003 — Present live state without full page reload (client consumes this stream)
+ * FR-JOBS-STR-001 — Live stream of running jobs and execution outcomes (incl. cancel)
+ * FR-JOBS-STR-002 — Single aggregated connect snapshot for hydration
  * FR-JOBS-STR-004 — Schedule attach/detach observable for retry (FR-JOBS-SCH-007 / SCH-011)
- * FR-JOBS-STR-006 — Live stream includes job-cancelled events
  * FR-JOBS-OWN-002 — Events filtered to the requesting owner
  */
 const streamJobs = (req: Request, res: Response) => {
@@ -802,61 +793,68 @@ const streamJobs = (req: Request, res: Response) => {
 
     const userId = req.context.user.id;
 
-    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Snapshot: running jobs for this owner
-    const runningJobIds: string[] = [];
-    for (const [jobId, job] of req.context.delegator.runningJobs.entries()) {
-        if (job.payload.userId === userId) {
-            runningJobIds.push(jobId);
-        }
-    }
-    sendSSE(res, { runningJobs: runningJobIds, type: constants.events.jobs.runningJobs });
-
-    // FR-JOBS-STR-004 / FR-JOBS-OWN-002 — Snapshot: schedule runtime attachment for this owner
+    // FR-JOBS-STR-002 / FR-JOBS-OWN-002 — Aggregated connect snapshot
+    const runningJobs: AggregatedRunningJob[] = [];
     const scheduledJobs: ScheduledJobEvent[] = [];
-    for (const job of req.context.scheduler.getAllJobs()) {
-        if (job.userId === userId) {
-            scheduledJobs.push({
-                jobId: job.jobId,
-                status: job.status,
-            });
+
+    for (const [jobId, job] of req.context.delegator.runningJobs.entries()) {
+        if (job.payload.userId !== userId) {
+            continue;
         }
+
+        const finishedEvents: JobTargetFinishedEvent[] = [];
+        for (const event of req.context.emitter.allEmittedJobTargetEvents) {
+            if (event.userId === userId && event.jobId === jobId) {
+                finishedEvents.push(event);
+            }
+        }
+        runningJobs.push({
+            jobId,
+            finishedEvents,
+        });
     }
+
+    for (const job of req.context.scheduler.getAllJobs()) {
+        if (job.userId !== userId) {
+            continue;
+        }
+
+        scheduledJobs.push({
+            jobId: job.jobId,
+            status: job.status,
+        });
+    }
+
     sendSSE(res, {
+        runningJobs,
         scheduledJobs,
         userId,
-        type: constants.events.jobs.scheduledJobs,
+        type: constants.events.jobs.jobsAggregated,
     });
 
-    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Replay in-flight target events for still-running jobs
-    for (const event of req.context.emitter.allEmittedJobTargetEvents) {
-        if (event.userId === userId && req.context.delegator.runningJobs.has(event.jobId)) {
-            sendSSE(res, event);
-        }
-    }
-
     // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: running-jobs updates
-    const onRunningJobs = (event: EventTypeToPayloadMap[typeof constants.events.jobs.runningJobs]) => {
+    const onRunningJobs = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobsRunning]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
         }
     };
-    req.context.emitter.on(constants.events.jobs.runningJobs, onRunningJobs);
+    req.context.emitter.on(constants.events.jobs.jobsRunning, onRunningJobs);
 
     // FR-JOBS-STR-004 / FR-JOBS-OWN-002 — Live: schedule attachment updates
-    const onScheduledJobs = (event: EventTypeToPayloadMap[typeof constants.events.jobs.scheduledJobs]) => {
+    const onScheduledJobs = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobsScheduled]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
         }
     };
-    req.context.emitter.on(constants.events.jobs.scheduledJobs, onScheduledJobs);
+    req.context.emitter.on(constants.events.jobs.jobsScheduled, onScheduledJobs);
 
     // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: target finished
-    const onTargetFinished = (event: EventTypeToPayloadMap[typeof constants.events.jobs.targetFinished]) => {
+    const onTargetFinished = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobTargetFinished]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
         }
     };
-    req.context.emitter.on(constants.events.jobs.targetFinished, onTargetFinished);
+    req.context.emitter.on(constants.events.jobs.jobTargetFinished, onTargetFinished);
 
     // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: job finished
     const onJobFinished = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobFinished]) => {
@@ -874,7 +872,7 @@ const streamJobs = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.jobs.jobFailed, onJobFailed);
 
-    // FR-JOBS-STR-001 / FR-JOBS-STR-006 / FR-JOBS-OWN-002 — Live: job cancelled
+    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: job cancelled
     const onJobCancelled = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobCancelled]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -883,9 +881,9 @@ const streamJobs = (req: Request, res: Response) => {
     req.context.emitter.on(constants.events.jobs.jobCancelled, onJobCancelled);
 
     req.on('close', () => {
-        req.context.emitter.off(constants.events.jobs.runningJobs, onRunningJobs);
-        req.context.emitter.off(constants.events.jobs.scheduledJobs, onScheduledJobs);
-        req.context.emitter.off(constants.events.jobs.targetFinished, onTargetFinished);
+        req.context.emitter.off(constants.events.jobs.jobsRunning, onRunningJobs);
+        req.context.emitter.off(constants.events.jobs.jobsScheduled, onScheduledJobs);
+        req.context.emitter.off(constants.events.jobs.jobTargetFinished, onTargetFinished);
         req.context.emitter.off(constants.events.jobs.jobFinished, onJobFinished);
         req.context.emitter.off(constants.events.jobs.jobFailed, onJobFailed);
         req.context.emitter.off(constants.events.jobs.jobCancelled, onJobCancelled);

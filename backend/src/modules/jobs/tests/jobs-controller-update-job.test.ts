@@ -68,7 +68,7 @@ const buildRequestBody = (): UpdateJobInput => ({
             ],
         },
     ],
-    runJob: true,
+    status: 'idle',
 });
 
 /**
@@ -227,17 +227,16 @@ describe('jobs-controller updateJob', () => {
             expect(mockDelete).not.toHaveBeenCalled();
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith('Failed to update job', { error: updateError });
             expect(mockResponseStatus).not.toHaveBeenCalled();
         });
     });
 
     describe('[HTTP-JOBS-UPD-002]', () => {
-        it('deletes scheduler entry and delegates when schedule is null and runJob is true', async () => {
+        it('deletes scheduler entry and removes the job when schedule is null', async () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
-                runJob: true,
+                status: 'idle',
             };
             const request = buildRequest(requestBody);
             const updatedJob = buildUpdatedJob(requestBody);
@@ -248,6 +247,10 @@ describe('jobs-controller updateJob', () => {
 
             expect(mockSchedule).not.toHaveBeenCalled();
             expect(mockGetNextAndPreviousRun).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelegate).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
+            expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
@@ -259,55 +262,25 @@ describe('jobs-controller updateJob', () => {
                     timestamp: now,
                 },
             });
-            expect(mockRegister).not.toHaveBeenCalled();
-            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
-            expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
-            expect(mockDelegate).toHaveBeenCalledWith({
-                jobId: 'job-id-1',
-                userId: 'user-id-1',
-                tools: expect.any(Array),
-                scheduleType: null,
-            });
         });
 
-        it('deletes scheduler entry and does not delegate when schedule is null and runJob is false', async () => {
+        it('keeps the saved job and returns a warning when clearing the schedule fails', async () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
-                runJob: false,
+                status: 'idle',
             };
             const request = buildRequest(requestBody);
+            const clearError = new Error('scheduler delete failed');
 
             mockUpdate.mockResolvedValue(buildUpdatedJob(requestBody));
+            mockDelete.mockImplementationOnce(() => {
+                throw clearError;
+            });
 
             await updateJob(request, mockResponse);
 
-            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
-            expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
             expect(mockDelegate).not.toHaveBeenCalled();
-            expect(mockRegister).not.toHaveBeenCalled();
-            expect(mockSchedule).not.toHaveBeenCalled();
-        });
-
-        it('keeps the saved job and returns a delegate warning when run after clear fails', async () => {
-            const requestBody: UpdateJobInput = {
-                ...buildRequestBody(),
-                schedule: null,
-                runJob: true,
-            };
-            const request = buildRequest(requestBody);
-            const delegateError = new Error('delegator delegate failed');
-
-            mockUpdate.mockResolvedValue(buildUpdatedJob(requestBody));
-            mockDelegate.mockImplementation(() => {
-                throw delegateError;
-            });
-
-            await updateJob(request, mockResponse);
-
-            expect(mockDelete).toHaveBeenCalledWith('job-id-1');
-            expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
-            expect(mockLoggerError).toHaveBeenCalledWith('Failed to delegate job', { error: delegateError });
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
@@ -334,11 +307,6 @@ describe('jobs-controller updateJob', () => {
             await expect(updateJob(request, mockResponse)).rejects.toThrow(BusinessLogicException);
 
             expect(mockUpdate).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith('Failed to update job', {
-                error: expect.objectContaining({
-                    message: ErrorMessage.JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING,
-                }),
-            });
             expect(mockResponseStatus).not.toHaveBeenCalled();
         });
     });
@@ -360,7 +328,6 @@ describe('jobs-controller updateJob', () => {
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockDelete).toHaveBeenCalledWith('job-id-1');
             expect(mockRemoveJob).toHaveBeenCalledWith('job-id-1');
-            expect(mockLoggerError).toHaveBeenCalledWith('Failed to schedule job', { error: schedulingError });
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
