@@ -43,7 +43,7 @@ function jobTargetFinishedFixture(
         jobId,
         userId,
         executionId,
-        type: constants.events.jobs.targetFinished,
+        type: constants.events.jobs.jobTargetFinished,
         schedule: {
             type: null,
             delegatedAt: '2026-01-01T12:00:00.000Z',
@@ -112,7 +112,7 @@ describe('Emitter', () => {
             emitter.emit(mockJobTargetFinishedEvent);
 
             expect(emitter.allEmittedJobTargetEvents).toContainEqual(mockJobTargetFinishedEvent);
-            expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.targetFinished, mockJobTargetFinishedEvent);
+            expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobTargetFinished, mockJobTargetFinishedEvent);
         });
 
         it('handles job-finished events correctly', () => {
@@ -135,12 +135,12 @@ describe('Emitter', () => {
         it('handles running-jobs events correctly', () => {
             const mockEmitPayload = {
                 runningJobs: ['test-job-id'],
-                type: constants.events.jobs.runningJobs,
+                type: constants.events.jobs.jobsRunning,
             };
 
             emitter.emit(mockEmitPayload);
             expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockEmitPayload);
-            expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.runningJobs, mockEmitPayload);
+            expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobsRunning, mockEmitPayload);
         });
 
         it('handles job-failed events correctly', () => {
@@ -194,17 +194,17 @@ describe('Emitter', () => {
 
     describe('on', () => {
         it('adds a listener correctly', () => {
-            emitter.on(constants.events.jobs.runningJobs, callback);
+            emitter.on(constants.events.jobs.jobsRunning, callback);
 
-            expect(mockOn).toHaveBeenCalledWith(constants.events.jobs.runningJobs, callback);
+            expect(mockOn).toHaveBeenCalledWith(constants.events.jobs.jobsRunning, callback);
         });
     });
 
     describe('off', () => {
         it('removes a listener correctly', () => {
-            emitter.off(constants.events.jobs.runningJobs, callback);
+            emitter.off(constants.events.jobs.jobsRunning, callback);
 
-            expect(mockOff).toHaveBeenCalledWith(constants.events.jobs.runningJobs, callback);
+            expect(mockOff).toHaveBeenCalledWith(constants.events.jobs.jobsRunning, callback);
         });
     });
 

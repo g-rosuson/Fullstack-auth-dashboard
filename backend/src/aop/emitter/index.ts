@@ -56,7 +56,7 @@ class Emitter {
 
         const data = result.data;
 
-        if (data.type === constants.events.jobs.targetFinished) {
+        if (data.type === constants.events.jobs.jobTargetFinished) {
             this.emittedJobTargetEvents.push(data);
         }
 
