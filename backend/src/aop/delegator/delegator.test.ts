@@ -367,7 +367,7 @@ describe('Delegator', () => {
         it('emits running-jobs with the job id and owner userId when the run starts', async () => {
             mockExecute.mockImplementation(async () => {
                 expect(mockEmit).toHaveBeenCalledWith({
-                    type: constants.events.jobs.runningJobs,
+                    type: constants.events.jobs.jobsRunning,
                     runningJobs: ['test-job-id'],
                     userId: 'test-user-id',
                 });
@@ -394,9 +394,9 @@ describe('Delegator', () => {
             await delegator.delegate(mockPayloadWithTool);
 
             expect(mockEmit.mock.calls.map(([payload]) => payload.type)).toEqual([
-                constants.events.jobs.runningJobs,
-                constants.events.jobs.targetFinished,
-                constants.events.jobs.targetFinished,
+                constants.events.jobs.jobsRunning,
+                constants.events.jobs.jobTargetFinished,
+                constants.events.jobs.jobTargetFinished,
                 constants.events.jobs.jobFinished,
             ]);
         });
@@ -420,7 +420,7 @@ describe('Delegator', () => {
 
             const targetFinishedPayloads = mockEmit.mock.calls
                 .map(([payload]) => payload as { type: string })
-                .filter(p => p.type === constants.events.jobs.targetFinished);
+                .filter(p => p.type === constants.events.jobs.jobTargetFinished);
 
             expect(targetFinishedPayloads).toHaveLength(2);
             expect(targetFinishedPayloads[0]).toEqual(
@@ -435,7 +435,7 @@ describe('Delegator', () => {
                     },
                     tool: mockTool,
                     target: mockTargetListing,
-                    type: constants.events.jobs.targetFinished,
+                    type: constants.events.jobs.jobTargetFinished,
                 })
             );
             expect(targetFinishedPayloads[1]).toEqual(
@@ -444,7 +444,7 @@ describe('Delegator', () => {
                     userId: 'test-user-id',
                     tool: mockToolTwo,
                     target: mockTargetListingTwo,
-                    type: constants.events.jobs.targetFinished,
+                    type: constants.events.jobs.jobTargetFinished,
                 })
             );
         });
@@ -501,7 +501,7 @@ describe('Delegator', () => {
 
             const payloads = mockEmit.mock.calls.map(([p]) => p as { type: string; executionId?: string });
             const jobFinished = payloads.find(p => p.type === constants.events.jobs.jobFinished);
-            const targetFinished = payloads.filter(p => p.type === constants.events.jobs.targetFinished);
+            const targetFinished = payloads.filter(p => p.type === constants.events.jobs.jobTargetFinished);
 
             expect(jobFinished?.executionId).toEqual(expect.any(String));
             expect(targetFinished).toHaveLength(2);
@@ -518,7 +518,7 @@ describe('Delegator', () => {
             expect(delegator.runningJobs.has('test-job-id')).toBe(false);
             expect(mockClearJobTargetEvents).toHaveBeenCalledWith('test-job-id');
             expect(mockEmit.mock.calls.map(([payload]) => payload.type)).toEqual([
-                constants.events.jobs.runningJobs,
+                constants.events.jobs.jobsRunning,
                 constants.events.jobs.jobFailed,
             ]);
             expect(mockEmit).toHaveBeenCalledWith(
@@ -550,8 +550,8 @@ describe('Delegator', () => {
 
             const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
             expect(emittedTypes).toEqual([
-                constants.events.jobs.runningJobs,
-                constants.events.jobs.targetFinished,
+                constants.events.jobs.jobsRunning,
+                constants.events.jobs.jobTargetFinished,
                 constants.events.jobs.jobFailed,
             ]);
             expect(mockAddExecution).not.toHaveBeenCalled();

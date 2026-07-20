@@ -93,7 +93,7 @@ export class Delegator {
             mappedToolTargets.push(target);
 
             this.emitter.emit({
-                type: constants.events.jobs.targetFinished,
+                type: constants.events.jobs.jobTargetFinished,
                 jobId: payload.jobId,
                 userId: payload.userId,
                 executionId: payload.executionId,
@@ -130,7 +130,7 @@ export class Delegator {
             this.runningJobs.set(payload.jobId, { payload, aborter });
 
             this.emitter.emit({
-                type: constants.events.jobs.runningJobs,
+                type: constants.events.jobs.jobsRunning,
                 runningJobs: Array.from(this.runningJobs.keys()),
                 userId: payload.userId,
             });
