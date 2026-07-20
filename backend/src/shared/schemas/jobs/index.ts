@@ -2,6 +2,8 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 
+import constants from 'shared/constants';
+
 import { cronJobTypeSchema } from '../cron';
 import { executionSchema } from './tools/execution/schemas-execution';
 import { toolSchema } from './tools/schemas-tools';
@@ -9,20 +11,10 @@ import { toolSchema } from './tools/schemas-tools';
 extendZodWithOpenApi(z);
 
 /**
- * A job schedule idle status schema.
- */
-const jobScheduleIdleStatusSchema = z.literal('idle').openapi('JobScheduleIdleStatus');
-
-/**
- * A job schedule stopped status schema.
- */
-const jobScheduleStoppedStatusSchema = z.literal('stopped').openapi('JobScheduleStoppedStatus');
-
-/**
  * Persisted schedule status — mirrors node-cron user intent (`idle` | `stopped`), survives server restart.
  * Client maps `idle`/`running` to an "Active" label; `running` is runtime-only and not persisted.
  */
-const jobScheduleStatusSchema = z.union([jobScheduleIdleStatusSchema, jobScheduleStoppedStatusSchema]);
+const jobScheduleStatusSchema = z.enum([constants.status.idle, constants.status.stopped]).openapi('JobScheduleStatus');
 
 /**
  * A job schedule schema.
@@ -72,12 +64,4 @@ const deleteJobResultSchema = z
     })
     .openapi('DeleteJobResult');
 
-export {
-    jobScheduleSchema,
-    jobScheduleIdleStatusSchema,
-    jobScheduleStoppedStatusSchema,
-    jobScheduleStatusSchema,
-    jobDocumentSchema,
-    jobSchema,
-    deleteJobResultSchema,
-};
+export { jobScheduleSchema, jobScheduleStatusSchema, jobDocumentSchema, jobSchema, deleteJobResultSchema };

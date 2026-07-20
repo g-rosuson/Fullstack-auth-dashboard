@@ -12,17 +12,17 @@ extendZodWithOpenApi(z);
 /**
  * A job target finished event type schema.
  */
-const jobTargetFinishedEventTypeSchema = z.literal(constants.events.jobs.targetFinished);
+const jobTargetFinishedEventTypeSchema = z.literal(constants.events.jobs.jobTargetFinished);
 
 /**
  * A running jobs event type schema.
  */
-const runningJobsEventTypeSchema = z.literal(constants.events.jobs.runningJobs);
+const runningJobsEventTypeSchema = z.literal(constants.events.jobs.jobsRunning);
 
 /**
  * A scheduled jobs event type schema — job IDs currently attached in the scheduler runtime.
  */
-const scheduledJobsEventTypeSchema = z.literal(constants.events.jobs.scheduledJobs);
+const scheduledJobsEventTypeSchema = z.literal(constants.events.jobs.jobsScheduled);
 
 /**
  * A job finished event type schema.
@@ -38,6 +38,11 @@ const jobFailedEventTypeSchema = z.literal(constants.events.jobs.jobFailed);
  * A job cancelled event type schema.
  */
 const jobCancelledEventTypeSchema = z.literal(constants.events.jobs.jobCancelled);
+
+/**
+ * A jobs aggregated event type schema.
+ */
+const jobsAggregatedEventTypeSchema = z.literal(constants.events.jobs.jobsAggregated);
 
 /**
  * A job target finished event schema.
@@ -74,6 +79,28 @@ const scheduledJobEventSchema = z
         status: jobScheduleStatusSchema,
     })
     .openapi('ScheduledJobEvent');
+
+/**
+ * A running job schema.
+ */
+const aggregatedRunningJobSchema = z
+    .object({
+        jobId: z.string(),
+        finishedEvents: z.array(jobTargetFinishedEventSchema),
+    })
+    .openapi('AggregatedRunningJob');
+
+/**
+ * A jobs aggregated event schema.
+ */
+const aggregatedJobsEventSchema = z
+    .object({
+        userId: z.string(),
+        type: jobsAggregatedEventTypeSchema,
+        runningJobs: z.array(aggregatedRunningJobSchema),
+        scheduledJobs: z.array(scheduledJobEventSchema),
+    })
+    .openapi('AggregatedJobsEvent');
 
 /**
  * A scheduled jobs event schema.
@@ -144,6 +171,8 @@ const jobEventSchema = z
     .openapi('JobEvent');
 
 export {
+    aggregatedJobsEventSchema,
+    aggregatedRunningJobSchema,
     jobTargetFinishedEventSchema,
     runningJobsEventSchema,
     scheduledJobsEventSchema,

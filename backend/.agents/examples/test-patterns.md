@@ -7,9 +7,9 @@ Canonical examples for backend integration and unit tests.
 ## Integration Test Structure
 
 ```typescript
-// backend/test/integration/auth-integration.test.ts
+// backend/test/integration/auth/auth.integration.test.ts
 
-import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
 import { buildRegisterPayload, expectValidAccessToken, expectRefreshTokenCookieContract } from './helpers';
 import constants from 'shared/constants';
 import type { Express } from 'express';

@@ -3,6 +3,7 @@ import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import constants from 'shared/constants';
 
 import {
+    changeJobScheduleStatusPayloadSchema,
     createJobInputSchema,
     enrichedJobSchema,
     idRouteParamSchema,
@@ -114,6 +115,27 @@ jobsRegistry.registerPath({
             content: {
                 'application/json': {
                     schema: updateJobInputSchema,
+                },
+            },
+        },
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'put',
+    path: constants.routes.jobs.changeScheduleStatus,
+    responses: {
+        200: {
+            description: 'Schedule status changed successfully',
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
+        body: {
+            description: 'Change schedule status payload',
+            content: {
+                'application/json': {
+                    schema: changeJobScheduleStatusPayloadSchema,
                 },
             },
         },

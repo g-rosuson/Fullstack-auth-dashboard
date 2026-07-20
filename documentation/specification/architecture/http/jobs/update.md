@@ -10,7 +10,7 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Other-user / missing id: [HTTP-JO
   - `Content-Type: application/json`
   - Header: `Authorization: Bearer <access-token>`
   - Path: `id` = owned job that is not running
-  - Required body fields: `name`, `tools`, `schedule`, `runJob`
+  - Required body fields: `name`, `tools`, `schedule`
   - Values: `schedule.status` = `idle` (or other valid non-null schedule); body per OpenAPI / Zod `updateJobInputSchema`
 - Response:
   - Status: `200`
@@ -24,7 +24,7 @@ Traces:
 
 - Request:
   - Same shape as HTTP-JOBS-UPD-001
-  - Values: `schedule` = `null`; `runJob` = `false` or `true`
+  - Values: `schedule` = `null`;
 - Response:
   - Status: `200`
   - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
@@ -32,7 +32,6 @@ Traces:
 
 Traces:
 - [FR-JOBS-UPD-002](../../../requirements/fr/jobs/lifecycle/update.md)
-- [FR-JOBS-RUN-001](../../../requirements/fr/jobs/execution/execution.md) (when `runJob` is `true`)
 
 ## HTTP-JOBS-UPD-003 — Update with stopped schedule
 

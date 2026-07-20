@@ -75,11 +75,12 @@ When a test maps to a documented requirement, tag the `it` name with exactly one
 
 ## Integration Tests
 
-- Location: `backend/test/integration/**/*.test.ts`
+- Location: `backend/test/integration/{auth,jobs}/**/*.test.ts`
+- Shared harness lives at `backend/test/integration/harness.ts`; domain helpers live under each suite (`auth/helpers`, `jobs/helpers`).
 - Use the shared harness helpers:
 
 ```typescript
-import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
 ```
 
 - Every `describe` block MUST have this lifecycle:
