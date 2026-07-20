@@ -1,6 +1,8 @@
 import { ScheduledTask } from 'node-cron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import constants from 'shared/constants';
+
 import { CronJob } from './types';
 
 import { Scheduler } from './';
@@ -521,7 +523,7 @@ describe('Scheduler', () => {
 
             expect(emitMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'scheduled-jobs',
+                    type: constants.events.jobs.jobsScheduled,
                     userId: mockUserId,
                     scheduledJobs: [{ jobId: mockJobId, status: 'idle' }],
                 })
@@ -542,7 +544,7 @@ describe('Scheduler', () => {
 
             expect(emitMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'scheduled-jobs',
+                    type: constants.events.jobs.jobsScheduled,
                     userId: mockUserId,
                     scheduledJobs: [],
                 })
@@ -563,7 +565,7 @@ describe('Scheduler', () => {
 
             expect(emitMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'scheduled-jobs',
+                    type: constants.events.jobs.jobsScheduled,
                     userId: mockUserId,
                     scheduledJobs: [{ jobId: mockJobId, status: 'stopped' }],
                 })

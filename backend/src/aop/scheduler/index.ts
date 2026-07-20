@@ -17,7 +17,6 @@ import {
 
 import parser from 'cron-parser';
 import { cronJobTypeSchema } from 'shared/schemas/cron';
-import { jobScheduleIdleStatusSchema, jobScheduleStoppedStatusSchema } from 'shared/schemas/jobs';
 
 /**
  * Singleton scheduler service that manages cron jobs using node-cron.
@@ -211,7 +210,7 @@ export class Scheduler {
                 status: job.status,
             })),
             userId: userId,
-            type: constants.events.jobs.scheduledJobs,
+            type: constants.events.jobs.jobsScheduled,
         });
     }
 
@@ -279,7 +278,7 @@ export class Scheduler {
             endDate,
             type,
             cronTask,
-            status: isStopped ? jobScheduleStoppedStatusSchema.value : jobScheduleIdleStatusSchema.value,
+            status: isStopped ? constants.status.stopped : constants.status.idle,
             metadata: {
                 startTimeoutId: undefined,
                 stopTimeoutId: undefined,
@@ -314,7 +313,7 @@ export class Scheduler {
 
                 newCronJob.metadata.stopTimeoutId = setTimeout(() => {
                     cronTask!.stop();
-                    newCronJob.status = jobScheduleStoppedStatusSchema.value;
+                    newCronJob.status = constants.status.stopped;
                     this.emitAllCronJobs(payload.userId);
                     logger.info(`Stopped job: ${jobId} of type: ${type}`);
                 }, msToEnd);
