@@ -11,19 +11,8 @@ import constants from 'shared/constants';
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
-import type {
-    ChangeCronJobStatusPayload,
-    CreateJobInput,
-    EnrichedJob,
-    EnrichedJobSchedule,
-    IdRouteParam,
-    UpdateJobInput,
-} from './types';
-import type {
-    AggregatedRunningJob,
-    JobTargetFinishedEvent,
-    ScheduledJobEvent,
-} from 'shared/types/jobs/events/types-jobs-events';
+import type { ChangeCronJobStatusPayload, CreateJobInput, IdRouteParam, UpdateJobInput } from './types';
+import type { AggregatedRunningJob, ScheduledJobEvent } from 'shared/types/jobs/events/types-jobs-events';
 import type { EventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
 
 import { cronJobTypeSchema } from 'shared/schemas/cron';
@@ -38,8 +27,8 @@ import { cronJobTypeSchema } from 'shared/schemas/cron';
  * FR-JOBS-CRT-004 — Save failure → do not schedule or run
  * FR-JOBS-CRT-005 — Post-save schedule/run failure → keep job, unattached runtime, warn (FR-JOBS-SCH-007/011, FR-JOBS-STR-004/005)
  * FR-JOBS-CRT-006 — Stopped schedule → attach runtime stopped; no run until activated (FR-JOBS-SSC-002)
- * FR-JOBS-UNQ-001 / FR-JOBS-UNQ-002 — Per-user name uniqueness (DB unique index → ConflictException)
- * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Job belongs to creating user; owner-scoped create
+ * FR-JOBS-UNQ-001 — Per-user name uniqueness (DB unique index → ConflictException)
+ * FR-JOBS-OWN-001 — Job belongs to creating user; owner-scoped create
  * Middleware: FR-JOBS-TLR-001…006, FR-JOBS-SCH-001…003/006, FR-JOBS-ONCE-001/002
  */
 const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Response) => {
@@ -57,12 +46,11 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
         // FR-JOBS-CRT-004 — Persist first; schedule/run only after a successful save
         const createdJob = await req.context.db.repository.jobs.create(createJobPayload);
 
-        let schedule: EnrichedJobSchedule | null = null;
         const warnings: Array<{ code: ErrorCode; message: ErrorMessage }> = [];
 
         try {
             if (createdJob.schedule) {
-                if (createdJob.schedule.status === constants.status.idle) {
+                if (createdJob.schedule.status === constants.status.schedule.idle) {
                     // FR-JOBS-CRT-003 — Active (`idle`) schedule: place in active runtime state
                     req.context.scheduler.schedule({
                         jobId: createdJob.id,
@@ -72,21 +60,13 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
                         endDate: createdJob.schedule.endDate,
                     });
 
-                    const { nextRun } = req.context.scheduler.getNextAndPreviousRun(createdJob.id);
-
-                    schedule = {
-                        ...createdJob.schedule,
-                        nextRun: nextRun?.toISOString() || null,
-                        lastRun: null,
-                    };
-
                     req.context.delegator.register({
                         jobId: createdJob.id,
                         userId: req.context.user.id,
                         tools: createdJob.tools,
                         scheduleType: createdJob.schedule.type,
                     });
-                } else if (createdJob.schedule.status === constants.status.stopped) {
+                } else if (createdJob.schedule.status === constants.status.schedule.stopped) {
                     // FR-JOBS-CRT-006 / FR-JOBS-SSC-002 — Stopped: attach runtime without arming start/end
                     req.context.scheduler.schedule({
                         jobId: createdJob.id,
@@ -96,12 +76,6 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
                         endDate: createdJob.schedule.endDate,
                         isStopped: true,
                     });
-
-                    schedule = {
-                        ...createdJob.schedule,
-                        nextRun: null,
-                        lastRun: null,
-                    };
 
                     // Register so later activation can delegate when the schedule fires
                     req.context.delegator.register({
@@ -136,25 +110,15 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
                 : ErrorCode.JOBS_FAILED_TO_DELEGATE_JOB;
             warnings.push({ code, message });
 
+            // FR-JOBS-STR-004 – scheduler.delete() removes the job and emitts the user's current scheduled jobs
             req.context.scheduler.delete(createdJob.id);
             req.context.delegator.removeJob(createdJob.id);
-
-            if (createdJob.schedule) {
-                schedule = {
-                    ...createdJob.schedule,
-                    nextRun: null,
-                    lastRun: null,
-                };
-            }
         }
 
         // FR-JOBS-STR-004 — Warnings in meta make post-save operational failure observable
         res.status(HttpStatusCode.CREATED).json({
             success: true,
-            data: {
-                ...createdJob,
-                schedule,
-            },
+            data: createdJob,
             meta: {
                 timestamp: new Date().toISOString(),
                 ...(warnings.length && { warnings }),
@@ -169,26 +133,30 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
 /**
  * Updates an existing job’s name, tools, and schedule.
  *
- * FR-JOBS-UPD-001 — Update name, tools, schedule (rename subject to FR-JOBS-UNQ-002)
+ * FR-JOBS-UPD-001 — Update name, tools, schedule (rename subject to FR-JOBS-UNQ-001)
  * FR-JOBS-UPD-002 — Allow clearing the schedule
  * FR-JOBS-UPD-003 — Reject while the job is running
  * FR-JOBS-UPD-004 — Stopped schedule → attach runtime stopped; no run until activated (FR-JOBS-SSC-002)
  * FR-JOBS-SCH-007 / FR-JOBS-SCH-011 / FR-JOBS-STR-004 — Post-save schedule/run failure → keep job, unattached, warn
- * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped update; other-user ≡ not found
+ * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped update; other-user ≡ not found
  * Middleware: FR-JOBS-TLR-001…006, FR-JOBS-SCH-001…003/006, FR-JOBS-ONCE-001/002
  */
 const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, res: Response) => {
     try {
+        const userId = req.context.user.id;
+
         // FR-JOBS-UPD-003 — Reject while running
-        const runningJob = req.context.delegator.runningJobs.get(req.params.id);
-        if (runningJob?.payload.userId === req.context.user.id) {
+        const isJobRunningForUser = req.context.delegator
+            .getRunningJobsForUser(userId)
+            .some(job => job.jobId === req.params.id);
+        if (isJobRunningForUser) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_UPDATED_WHILE_RUNNING);
         }
 
-        // FR-JOBS-OWN-002 — Ownership stamped on update payload (repo enforces OWN-003)
+        // FR-JOBS-OWN-001 — Ownership stamped on update payload (repo enforces OWN-002)
         const updateJobPayload = {
             id: req.params.id,
-            userId: req.context.user.id,
+            userId,
             name: req.body.name,
             schedule: req.body.schedule,
             tools: req.body.tools.map(tool => mappers.mapToIds(tool)),
@@ -198,59 +166,44 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
         // Persist first; schedule/run only after a successful save (same CRT-004 ordering)
         const updatedJob = await req.context.db.repository.jobs.update(updateJobPayload);
 
-        let schedule: EnrichedJobSchedule | null = null;
         const warnings: Array<{ code: ErrorCode; message: ErrorMessage }> = [];
 
         try {
             if (updatedJob.schedule) {
-                if (updatedJob.schedule.status === constants.status.idle) {
+                if (updatedJob.schedule.status === constants.status.schedule.idle) {
                     // FR-JOBS-UPD-001 — Active (`idle`) schedule: replace any existing runtime attachment
                     // Note: .schedule() destroys an existing cron job before scheduling a new one
                     req.context.scheduler.schedule({
                         jobId: updatedJob.id,
-                        userId: req.context.user.id,
+                        userId,
                         type: updatedJob.schedule.type,
                         startDate: updatedJob.schedule.startDate,
                         endDate: updatedJob.schedule.endDate,
                     });
 
-                    const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(updatedJob.id);
-
-                    schedule = {
-                        ...updatedJob.schedule,
-                        nextRun: nextRun?.toISOString() || null,
-                        lastRun: previousRun?.toISOString() || null,
-                    };
-
                     // Note: .register() replaces an existing task with the new one
                     req.context.delegator.register({
                         jobId: updatedJob.id,
-                        userId: req.context.user.id,
+                        userId,
                         tools: updatedJob.tools,
                         scheduleType: updatedJob.schedule.type,
                     });
-                } else if (updatedJob.schedule.status === constants.status.stopped) {
+                } else if (updatedJob.schedule.status === constants.status.schedule.stopped) {
                     // FR-JOBS-UPD-004 / FR-JOBS-SSC-002 — Stopped: overwrite runtime without arming start/end
                     // Note: .schedule() destroys an existing cron job before scheduling a new one
                     req.context.scheduler.schedule({
                         jobId: updatedJob.id,
-                        userId: req.context.user.id,
+                        userId,
                         type: updatedJob.schedule.type,
                         startDate: updatedJob.schedule.startDate,
                         endDate: updatedJob.schedule.endDate,
                         isStopped: true,
                     });
 
-                    schedule = {
-                        ...updatedJob.schedule,
-                        nextRun: null,
-                        lastRun: null,
-                    };
-
                     // Register so later activation can delegate when the schedule fires
                     req.context.delegator.register({
                         jobId: updatedJob.id,
-                        userId: req.context.user.id,
+                        userId,
                         tools: updatedJob.tools,
                         scheduleType: updatedJob.schedule.type,
                     });
@@ -275,25 +228,15 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
                 : ErrorCode.JOBS_FAILED_TO_DELEGATE_JOB;
             warnings.push({ code, message });
 
+            // FR-JOBS-STR-004 – scheduler.delete() removes the job and emitts the user's current scheduled jobs
             req.context.scheduler.delete(updatedJob.id);
             req.context.delegator.removeJob(updatedJob.id);
-
-            if (updatedJob.schedule) {
-                schedule = {
-                    ...updatedJob.schedule,
-                    nextRun: null,
-                    lastRun: null,
-                };
-            }
         }
 
         // FR-JOBS-STR-004 — Warnings in meta make post-save operational failure observable
         res.status(HttpStatusCode.OK).json({
             success: true,
-            data: {
-                ...updatedJob,
-                schedule,
-            },
+            data: updatedJob,
             meta: {
                 timestamp: new Date().toISOString(),
                 ...(warnings.length && { warnings }),
@@ -310,7 +253,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
  *
  * FR-JOBS-STP-001 — Owner may request cancellation of an in-flight run
  * FR-JOBS-STP-002 — Reject stop when the job is not running for that owner
- * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped; other-user ≡ not found
+ * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped; other-user ≡ not found
  * NFR-REL-JOBS-001 — Response returns without waiting for tools to wind down
  *
  * Clients observe completion via SSE `job-cancelled` / `running-jobs` (FR-JOBS-STR-006).
@@ -320,12 +263,11 @@ const stopJob = async (req: Request<IdRouteParam>, res: Response) => {
         const jobId = req.params.id;
         const userId = req.context.user.id;
 
-        // FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — other-user ≡ not found
+        // FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — other-user ≡ not found
         await req.context.db.repository.jobs.getById(jobId, userId);
 
         // FR-JOBS-STP-002 — Reject when not running for this owner
-        const runningJob = req.context.delegator.runningJobs.get(jobId);
-        if (!runningJob || runningJob.payload.userId !== userId) {
+        if (!req.context.delegator.getRunningJobsForUser(userId).some(job => job.jobId === jobId)) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_STOP_WHEN_NOT_RUNNING);
         }
 
@@ -353,20 +295,19 @@ const stopJob = async (req: Request<IdRouteParam>, res: Response) => {
  * FR-JOBS-DEL-001 — Delete so the job is no longer available and no longer runs
  * FR-JOBS-DEL-002 — After deletion, the job is not returned to the owner
  * FR-JOBS-DEL-003 — Reject deletion while the job is running
- * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped delete; other-user ≡ not found
+ * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped delete; other-user ≡ not found
  */
 const deleteJob = async (req: Request<IdRouteParam>, res: Response) => {
     const { id } = req.params;
     const userId = req.context.user.id;
 
     // FR-JOBS-DEL-003 — Reject while running
-    const runningJob = req.context.delegator.runningJobs.get(id);
-    if (runningJob?.payload.userId === userId) {
+    if (req.context.delegator.getRunningJobsForUser(userId).some(job => job.jobId === id)) {
         throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_BE_DELETED_WHILE_RUNNING);
     }
 
     try {
-        // FR-JOBS-DEL-001 / FR-JOBS-DEL-002 / FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Persist deletion (ownership-scoped)
+        // FR-JOBS-DEL-001 / FR-JOBS-DEL-002 / FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Persist deletion (ownership-scoped)
         const result = await req.context.db.repository.jobs.delete(id, userId);
 
         // FR-JOBS-DEL-001 — Detach runtime so the job no longer runs
@@ -390,33 +331,19 @@ const deleteJob = async (req: Request<IdRouteParam>, res: Response) => {
  * Retrieves a single job by ID.
  *
  * FR-JOBS-GET-001 — Return a job that belongs to the requesting user
- * FR-JOBS-GET-002 — For scheduled jobs, include next run and last run when applicable
- * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped get; other-user ≡ not found
+ * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped get; other-user ≡ not found
  * FR-JOBS-STR-005 — Persisted schedule intent remains visible even if runtime is unattached
  */
 const getJob = async (req: Request<IdRouteParam>, res: Response) => {
     const { id } = req.params;
     const userId = req.context.user.id;
 
-    // FR-JOBS-GET-001 / FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Ownership-scoped fetch
+    // FR-JOBS-GET-001 / FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Ownership-scoped fetch
     const job = await req.context.db.repository.jobs.getById(id, userId);
-
-    let schedule: EnrichedJobSchedule | null = null;
-    if (job.schedule) {
-        // FR-JOBS-GET-002 — Enrich with next/last run from runtime (null when unattached)
-        const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(id);
-        schedule = {
-            ...job.schedule,
-            nextRun: nextRun?.toISOString() || null,
-            lastRun: previousRun?.toISOString() || null,
-        };
-    }
-
-    const enrichedJob: EnrichedJob = { ...job, schedule };
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: enrichedJob,
+        data: job,
         meta: {
             timestamp: new Date().toISOString(),
         },
@@ -428,8 +355,7 @@ const getJob = async (req: Request<IdRouteParam>, res: Response) => {
  *
  * FR-JOBS-LST-001 — Return jobs that belong to the requesting user
  * FR-JOBS-LST-002 — Support limit and offset
- * FR-JOBS-GET-002 — For scheduled jobs, include next run and last run when applicable
- * FR-JOBS-OWN-002 — Owner-scoped via repository getAllByUserId
+ * FR-JOBS-OWN-001 — Owner-scoped via repository getAllByUserId
  * FR-JOBS-STR-005 — Persisted schedule intent remains visible even if runtime is unattached
  */
 const getAllJobs = async (req: Request, res: Response) => {
@@ -439,35 +365,15 @@ const getAllJobs = async (req: Request, res: Response) => {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 0;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
-    // FR-JOBS-LST-001 / FR-JOBS-OWN-002
+    // FR-JOBS-LST-001 / FR-JOBS-OWN-001
     const jobs = await req.context.db.repository.jobs.getAllByUserId(userId, limit, offset);
-
-    const enrichedJobs: EnrichedJob[] = jobs.map(job => {
-        if (job.schedule) {
-            // FR-JOBS-GET-002 — Enrich with next/last run from runtime (null when unattached)
-            const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(job.id);
-            return {
-                ...job,
-                schedule: {
-                    ...job.schedule,
-                    nextRun: nextRun?.toISOString() || null,
-                    lastRun: previousRun?.toISOString() || null,
-                },
-            };
-        }
-
-        return {
-            ...job,
-            schedule: null,
-        };
-    });
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        data: enrichedJobs,
+        data: jobs,
         limit,
         offset,
-        count: enrichedJobs.length,
+        count: jobs.length,
         meta: {
             timestamp: new Date().toISOString(),
         },
@@ -487,7 +393,7 @@ const getAllJobs = async (req: Request, res: Response) => {
  * FR-JOBS-ONCE-002 — Reject activating a once schedule whose start time is past
  * FR-JOBS-SCH-007 / FR-JOBS-SCH-008 / FR-JOBS-SCH-011 / FR-JOBS-STR-004 —
  *   Persist owner intent first; post-save attach failure → keep intent, unattached runtime, warn
- * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped; other-user ≡ not found
+ * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped; other-user ≡ not found
  */
 const changeJobScheduleStatus = async (
     req: Request<IdRouteParam, unknown, ChangeCronJobStatusPayload>,
@@ -499,12 +405,11 @@ const changeJobScheduleStatus = async (
         const requestedStatus = req.body.status;
 
         // FR-JOBS-SSC-006 — Reject while running
-        const runningJob = req.context.delegator.runningJobs.get(jobId);
-        if (runningJob?.payload.userId === userId) {
+        if (req.context.delegator.getRunningJobsForUser(userId).some(job => job.jobId === jobId)) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_CHANGE_STATUS_WHILE_RUNNING);
         }
 
-        // FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Ownership-scoped fetch
+        // FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Ownership-scoped fetch
         const persistedJob = await req.context.db.repository.jobs.getById(jobId, userId);
 
         // FR-JOBS-SSC-005
@@ -517,7 +422,7 @@ const changeJobScheduleStatus = async (
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_CHANGE_STATUS_TO_EXISTING_STATUS);
         }
 
-        if (requestedStatus === constants.status.idle) {
+        if (requestedStatus === constants.status.schedule.idle) {
             // FR-JOBS-SCH-006 — Recurring: cannot activate when end is now/past
             if (persistedJob.schedule.endDate) {
                 const endDate = new Date(persistedJob.schedule.endDate);
@@ -550,15 +455,10 @@ const changeJobScheduleStatus = async (
             updatedAt: new Date().toISOString(),
         });
 
-        let schedule: EnrichedJobSchedule = {
-            ...updatedJob.schedule!,
-            nextRun: null,
-            lastRun: null,
-        };
         const warnings: Array<{ code: ErrorCode; message: ErrorMessage }> = [];
 
         try {
-            if (requestedStatus === constants.status.idle) {
+            if (requestedStatus === constants.status.schedule.idle) {
                 // FR-JOBS-SSC-001 — Activate: place schedule in active runtime state
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
@@ -568,13 +468,6 @@ const changeJobScheduleStatus = async (
                     endDate: persistedJob.schedule.endDate,
                 });
 
-                const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(jobId);
-                schedule = {
-                    ...updatedJob.schedule!,
-                    nextRun: nextRun?.toISOString() || null,
-                    lastRun: previousRun?.toISOString() || null,
-                };
-
                 // Re-register so activation works after a prior schedule-failure cleanup
                 req.context.delegator.register({
                     jobId: persistedJob.id,
@@ -582,7 +475,7 @@ const changeJobScheduleStatus = async (
                     tools: persistedJob.tools,
                     scheduleType: persistedJob.schedule.type,
                 });
-            } else if (requestedStatus === constants.status.stopped) {
+            } else if (requestedStatus === constants.status.schedule.stopped) {
                 // FR-JOBS-SSC-001 / FR-JOBS-SSC-002 — Stop: attach runtime stopped (no run until activated)
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
@@ -592,12 +485,6 @@ const changeJobScheduleStatus = async (
                     endDate: persistedJob.schedule.endDate,
                     isStopped: true,
                 });
-
-                schedule = {
-                    ...updatedJob.schedule!,
-                    nextRun: null,
-                    lastRun: null,
-                };
 
                 req.context.delegator.register({
                     jobId: persistedJob.id,
@@ -620,23 +507,12 @@ const changeJobScheduleStatus = async (
 
             req.context.scheduler.delete(jobId);
             req.context.delegator.removeJob(jobId);
-
-            schedule = {
-                ...updatedJob.schedule!,
-                nextRun: null,
-                lastRun: null,
-            };
         }
 
         // FR-JOBS-SSC-003 / FR-JOBS-STR-004 — Updated status (+ optional warning) observable on success
-        const enrichedJob: EnrichedJob = {
-            ...updatedJob,
-            schedule,
-        };
-
         res.status(HttpStatusCode.OK).json({
             success: true,
-            data: enrichedJob,
+            data: updatedJob,
             meta: {
                 timestamp: new Date().toISOString(),
                 ...(warnings.length && { warnings }),
@@ -656,19 +532,18 @@ const changeJobScheduleStatus = async (
  * FR-JOBS-SCH-011 / FR-JOBS-STR-004 — Attach failure → leave unattached, report warning
  * FR-JOBS-SCH-006 — Reject retry to active when recurring end is now/past
  * FR-JOBS-ONCE-002 — Reject retry to active when once start is now/past
- * FR-JOBS-OWN-002 / FR-JOBS-OWN-003 — Owner-scoped; other-user ≡ not found
+ * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped; other-user ≡ not found
  */
 const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
     try {
         const jobId = req.params.id;
         const userId = req.context.user.id;
 
-        const runningJob = req.context.delegator.runningJobs.get(jobId);
-        if (runningJob?.payload.userId === userId) {
+        if (req.context.delegator.getRunningJobsForUser(userId).some(job => job.jobId === jobId)) {
             throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_RETRY_SCHEDULE_WHILE_RUNNING);
         }
 
-        // FR-JOBS-OWN-002 / FR-JOBS-OWN-003
+        // FR-JOBS-OWN-001 / FR-JOBS-OWN-002
         const persistedJob = await req.context.db.repository.jobs.getById(jobId, userId);
 
         if (!persistedJob.schedule) {
@@ -677,7 +552,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
 
         const persistedSchedule = persistedJob.schedule;
 
-        if (persistedSchedule.status === constants.status.idle) {
+        if (persistedSchedule.status === constants.status.schedule.idle) {
             // FR-JOBS-SCH-006
             if (persistedSchedule.endDate) {
                 const endDate = new Date(persistedSchedule.endDate);
@@ -698,15 +573,10 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
         }
 
         // FR-JOBS-SCH-008 — Do not rewrite persisted status; only re-attach runtime to saved intent
-        let schedule: EnrichedJobSchedule = {
-            ...persistedSchedule,
-            nextRun: null,
-            lastRun: null,
-        };
         const warnings: Array<{ code: ErrorCode; message: ErrorMessage }> = [];
 
         try {
-            if (persistedSchedule.status === constants.status.idle) {
+            if (persistedSchedule.status === constants.status.schedule.idle) {
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
                     userId,
@@ -714,14 +584,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
                     startDate: persistedSchedule.startDate,
                     endDate: persistedSchedule.endDate,
                 });
-
-                const { nextRun, previousRun } = req.context.scheduler.getNextAndPreviousRun(jobId);
-                schedule = {
-                    ...persistedSchedule,
-                    nextRun: nextRun?.toISOString() || null,
-                    lastRun: previousRun?.toISOString() || null,
-                };
-            } else if (persistedSchedule.status === constants.status.stopped) {
+            } else if (persistedSchedule.status === constants.status.schedule.stopped) {
                 req.context.scheduler.schedule({
                     jobId: persistedJob.id,
                     userId,
@@ -750,22 +613,11 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
 
             req.context.scheduler.delete(jobId);
             req.context.delegator.removeJob(jobId);
-
-            schedule = {
-                ...persistedSchedule,
-                nextRun: null,
-                lastRun: null,
-            };
         }
-
-        const enrichedJob: EnrichedJob = {
-            ...persistedJob,
-            schedule,
-        };
 
         res.status(HttpStatusCode.OK).json({
             success: true,
-            data: enrichedJob,
+            data: persistedJob,
             meta: {
                 timestamp: new Date().toISOString(),
                 ...(warnings.length && { warnings }),
@@ -782,8 +634,9 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
  *
  * FR-JOBS-STR-001 — Live stream of running jobs and execution outcomes (incl. cancel)
  * FR-JOBS-STR-002 — Single aggregated connect snapshot for hydration
+ * FR-JOBS-STR-003 — Live schedule-attachment events carry runtime status / next / last run
  * FR-JOBS-STR-004 — Schedule attach/detach observable for retry (FR-JOBS-SCH-007 / SCH-011)
- * FR-JOBS-OWN-002 — Events filtered to the requesting owner
+ * FR-JOBS-OWN-001 — Events filtered to the requesting owner
  */
 const streamJobs = (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -793,46 +646,24 @@ const streamJobs = (req: Request, res: Response) => {
 
     const userId = req.context.user.id;
 
-    // FR-JOBS-STR-002 / FR-JOBS-OWN-002 — Aggregated connect snapshot
-    const runningJobs: AggregatedRunningJob[] = [];
-    const scheduledJobs: ScheduledJobEvent[] = [];
-
-    for (const [jobId, job] of req.context.delegator.runningJobs.entries()) {
-        if (job.payload.userId !== userId) {
-            continue;
-        }
-
-        const finishedEvents: JobTargetFinishedEvent[] = [];
-        for (const event of req.context.emitter.allEmittedJobTargetEvents) {
-            if (event.userId === userId && event.jobId === jobId) {
-                finishedEvents.push(event);
-            }
-        }
-        runningJobs.push({
+    // FR-JOBS-STR-002 / FR-JOBS-OWN-001 — Aggregated connect snapshot
+    const targetEventsForUser = req.context.emitter.getEmittedJobTargetEventsForUser(userId);
+    const runningJobs: AggregatedRunningJob[] = req.context.delegator
+        .getRunningJobsForUser(userId)
+        .map(({ jobId }) => ({
             jobId,
-            finishedEvents,
-        });
-    }
-
-    for (const job of req.context.scheduler.getAllJobs()) {
-        if (job.userId !== userId) {
-            continue;
-        }
-
-        scheduledJobs.push({
-            jobId: job.jobId,
-            status: job.status,
-        });
-    }
+            emittedEvents: targetEventsForUser.filter(event => event.jobId === jobId),
+        }));
+    const scheduledJobEventsForUser: ScheduledJobEvent[] = req.context.scheduler.getCronJobEventsForUser(userId);
 
     sendSSE(res, {
         runningJobs,
-        scheduledJobs,
+        scheduledJobs: scheduledJobEventsForUser,
         userId,
         type: constants.events.jobs.jobsAggregated,
     });
 
-    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: running-jobs updates
+    // FR-JOBS-STR-001 / FR-JOBS-OWN-001 — Live: running-jobs updates
     const onRunningJobs = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobsRunning]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -840,7 +671,7 @@ const streamJobs = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.jobs.jobsRunning, onRunningJobs);
 
-    // FR-JOBS-STR-004 / FR-JOBS-OWN-002 — Live: schedule attachment updates
+    // FR-JOBS-STR-003 / FR-JOBS-STR-004 / FR-JOBS-OWN-001 — Live: schedule attachment updates
     const onScheduledJobs = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobsScheduled]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -848,7 +679,7 @@ const streamJobs = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.jobs.jobsScheduled, onScheduledJobs);
 
-    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: target finished
+    // FR-JOBS-STR-001 / FR-JOBS-OWN-001 — Live: target finished
     const onTargetFinished = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobTargetFinished]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -856,7 +687,7 @@ const streamJobs = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.jobs.jobTargetFinished, onTargetFinished);
 
-    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: job finished
+    // FR-JOBS-STR-001 / FR-JOBS-OWN-001 — Live: job finished
     const onJobFinished = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobFinished]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -864,7 +695,7 @@ const streamJobs = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.jobs.jobFinished, onJobFinished);
 
-    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: job failed
+    // FR-JOBS-STR-001 / FR-JOBS-OWN-001 — Live: job failed
     const onJobFailed = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobFailed]) => {
         if (event.userId === userId) {
             sendSSE(res, event);
@@ -872,7 +703,7 @@ const streamJobs = (req: Request, res: Response) => {
     };
     req.context.emitter.on(constants.events.jobs.jobFailed, onJobFailed);
 
-    // FR-JOBS-STR-001 / FR-JOBS-OWN-002 — Live: job cancelled
+    // FR-JOBS-STR-001 / FR-JOBS-OWN-001 — Live: job cancelled
     const onJobCancelled = (event: EventTypeToPayloadMap[typeof constants.events.jobs.jobCancelled]) => {
         if (event.userId === userId) {
             sendSSE(res, event);

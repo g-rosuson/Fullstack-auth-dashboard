@@ -72,8 +72,8 @@ const runningJobIds = [...req.context.delegator.runningJobs.entries()]
 sendSSE(res, { runningJobs: runningJobIds, type: constants.events.jobs.runningJobs });
 
 // 2. Replay any previously emitted target events for running jobs
-for (const event of req.context.emitter.allEmittedJobTargetEvents) {
-    if (event.userId === req.context.user.id && req.context.delegator.runningJobs.has(event.jobId)) {
+for (const event of req.context.emitter.getEmittedJobTargetEventsForUser(req.context.user.id)) {
+    if (req.context.delegator.runningJobs.has(event.jobId)) {
         sendSSE(res, event);
     }
 }
@@ -144,7 +144,7 @@ The frontend uses `@microsoft/fetch-event-source` via `api/service/client/stream
 # Edge Cases
 
 - **Listener memory leak**: If `req.on('close', ...)` is not registered, listeners accumulate for every client connection. Node.js will warn at 11+ listeners on the same emitter event. Always clean up.
-- **Reconnect replay**: The emitter stores `allEmittedJobTargetEvents`. On reconnect, replay only events where the job is still running (`delegator.runningJobs.has(event.jobId)`) to avoid stale data.
+- **Reconnect replay**: Use `getEmittedJobTargetEventsForUser(userId)` for reconnect buffer. On reconnect, replay only events where the job is still running (`delegator.runningJobs.has(event.jobId)`) to avoid stale data.
 - **Synchronous controller**: SSE controllers are synchronous (no `async`). Do not `await` in the handler — it blocks `res.flushHeaders()`.
 - **User scoping**: The emitter broadcasts to all listeners; filter by `event.userId` on every event. Never send another user's events to the current connection.
 

@@ -14,7 +14,7 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Other-user / missing id: [HTTP-JO
   - Values: `status` = `stopped`
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
   - Notes: `data.schedule.status` = `stopped`
 
 Traces:
@@ -29,8 +29,8 @@ Traces:
   - Values: current persisted status is `stopped`; `status` = `idle`; schedule still activatable (end not past; once start not past)
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` = `idle`; `nextRun` / `lastRun` may be ISO string or `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` = `idle`
 
 Traces:
 - [FR-JOBS-SSC-001](../../../requirements/fr/jobs/schedule/schedule-status.md)
@@ -106,8 +106,8 @@ Status is persisted; runtime attach fails.
   - Values: otherwise valid status change; scheduling fails after persist
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
-  - Notes: `data.schedule.status` equals the requested intent; `nextRun` / `lastRun` are `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
+  - Notes: `data.schedule.status` equals the requested intent
 
 Traces:
 - [FR-JOBS-SCH-007](../../../requirements/fr/jobs/schedule/schedule.md)

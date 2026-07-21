@@ -14,7 +14,7 @@ const mapToJobWithSchedulePayload = (
 ): CreateJobInput => ({
     name,
     schedule: {
-        status: constants.status.idle,
+        status: constants.status.schedule.idle,
         type: 'daily',
         startDate: new Date(Date.now() + INTEGRATION_JOB_START_DELAY_MS).toISOString(),
         endDate: null,
@@ -61,8 +61,7 @@ function mapToJobUrl(routeTemplate: string, id: string): string {
 
 /**
  * Builds the PUT body from a GET/create job shape. When `partial.schedule` is omitted,
- * copies only persisted schedule fields (`type`, `startDate`, `endDate`, `status`) so enriched
- * fields (`nextRun`, `lastRun`) are dropped.
+ * copies persisted schedule fields (`type`, `startDate`, `endDate`, `status`).
  */
 function mapToUpdateJobPayload(
     job: { name: string; schedule: JobSchedule | null; tools: UpdateJobInput['tools'] },
@@ -87,7 +86,7 @@ function mapToUpdateJobPayload(
         name: partial.name ?? job.name,
         schedule,
         tools: partial.tools ?? job.tools,
-        status: partial.status ?? schedule?.status ?? constants.status.idle,
+        status: partial.status ?? schedule?.status ?? constants.status.schedule.idle,
     };
 }
 

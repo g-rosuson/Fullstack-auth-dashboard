@@ -18,7 +18,7 @@ Cancellation is asynchronous ([NFR-REL-JOBS-001](../../../requirements/nfr/relia
 
 Traces:
 - [FR-JOBS-STP-001](../../../requirements/fr/jobs/execution/stop.md)
-- [FR-JOBS-OWN-002](../../../requirements/fr/jobs/ownership/ownership.md)
+- [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 - [NFR-REL-JOBS-001](../../../requirements/nfr/reliability/jobs.md)
 
 ## HTTP-JOBS-STP-002 — Reject when not running

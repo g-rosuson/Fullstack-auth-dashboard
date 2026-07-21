@@ -105,7 +105,7 @@ Maps each E2E case to related HTTP rule(s). Full rule text: [jobs-http-contract.
 | JOBS-E2E-010 | — |
 | JOBS-E2E-011 | JOBS-CRT-001 |
 | JOBS-E2E-012 | JOBS-CRT-002 |
-| JOBS-E2E-013 | JOBS-UNQ-002 |
+| JOBS-E2E-013 | JOBS-UNQ-001 |
 | JOBS-E2E-014 | — |
 | JOBS-E2E-020 | JOBS-GET-001 |
 | JOBS-E2E-021 | — |
@@ -113,7 +113,7 @@ Maps each E2E case to related HTTP rule(s). Full rule text: [jobs-http-contract.
 | JOBS-E2E-030 | JOBS-UPD-001 |
 | JOBS-E2E-031 | JOBS-UPD-002 |
 | JOBS-E2E-032 | — |
-| JOBS-E2E-033 | JOBS-UNQ-003 |
+| JOBS-E2E-033 | JOBS-UNQ-001 |
 | JOBS-E2E-034 | JOBS-UPD-003 |
 | JOBS-E2E-040 | JOBS-DEL-001 |
 | JOBS-E2E-041 | — |
@@ -122,7 +122,7 @@ Maps each E2E case to related HTTP rule(s). Full rule text: [jobs-http-contract.
 | JOBS-E2E-052 | JOBS-SCH-003 |
 | JOBS-E2E-060 | JOBS-SCH-001 |
 | JOBS-E2E-061 | JOBS-SCH-002 |
-| JOBS-E2E-062 | JOBS-UNQ-002, JOBS-UNQ-003 |
+| JOBS-E2E-062 | JOBS-UNQ-001 |
 | JOBS-E2E-070 | — |
 | JOBS-E2E-071 | JOBS-CRT-001 |
 | JOBS-E2E-072 | JOBS-TLR-001 |
@@ -133,7 +133,7 @@ Maps each E2E case to related HTTP rule(s). Full rule text: [jobs-http-contract.
 | JOBS-E2E-082 | — |
 | JOBS-E2E-083 | JOBS-UPD-004 |
 
-**Integration only** (no E2E planned): `JOBS-AUTH-001`, `JOBS-LST-002`, `JOBS-ISO-*`, `JOBS-GET-002`, `JOBS-UNQ-001`, `JOBS-TLR-002`, `JOBS-UPD-005`, `JOBS-DEL-002`.
+**Integration only** (no E2E planned): `JOBS-AUTH-001`, `JOBS-LST-002`, `JOBS-ISO-*`, `JOBS-GET-002`, `JOBS-TLR-002`, `JOBS-UPD-005`, `JOBS-DEL-002`.
 
 ---
 

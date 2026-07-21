@@ -10,17 +10,17 @@ export class DelegatorContext {
     register;
     removeJob;
     cancel;
-    runningJobs;
+    getRunningJobsForUser;
 
     /**
      * Creates a new DelegatorContext instance with bound methods.
      * @param delegator Delegator singleton instance
      */
     constructor(delegator: Delegator) {
-        this.delegate = delegator.delegate;
-        this.register = delegator.register;
-        this.removeJob = delegator.removeJob;
-        this.cancel = delegator.cancel;
-        this.runningJobs = delegator.runningJobs;
+        this.delegate = delegator.delegate.bind(delegator);
+        this.register = delegator.register.bind(delegator);
+        this.removeJob = delegator.removeJob.bind(delegator);
+        this.cancel = delegator.cancel.bind(delegator);
+        this.getRunningJobsForUser = delegator.getRunningJobsForUser.bind(delegator);
     }
 }

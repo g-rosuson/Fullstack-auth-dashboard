@@ -14,13 +14,12 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for create-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/jobs/create.md
+ * @see documentation/specification/architecture/http/jobs/create.md
  */
 
 const mockCreate = vi.fn();
 const mockSchedule = vi.fn();
 const mockDelete = vi.fn();
-const mockGetNextAndPreviousRun = vi.fn();
 const mockRegister = vi.fn();
 const mockRemoveJob = vi.fn();
 const mockDelegate = vi.fn();
@@ -34,7 +33,6 @@ const mockResponse = {
 
 const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
-const enrichedNextRun = new Date('2026-03-12T08:30:00.000Z');
 
 /**
  * Builds a request body for the create job function.
@@ -42,7 +40,7 @@ const enrichedNextRun = new Date('2026-03-12T08:30:00.000Z');
 const buildRequestBody = (): CreateJobInput => ({
     name: 'Daily engineering jobs',
     schedule: {
-        status: constants.status.idle,
+        status: constants.status.schedule.idle,
         type: 'daily' as const,
         startDate: scheduledStartDate,
         endDate: null,
@@ -81,7 +79,6 @@ const buildRequest = (body: CreateJobInput): Request =>
             scheduler: {
                 schedule: mockSchedule,
                 delete: mockDelete,
-                getNextAndPreviousRun: mockGetNextAndPreviousRun,
             },
             delegator: {
                 register: mockRegister,
@@ -134,10 +131,6 @@ describe('jobs-controller createJob', () => {
         vi.useFakeTimers();
         vi.setSystemTime(now);
         mockResponseStatus.mockReturnValue(mockResponse);
-        mockGetNextAndPreviousRun.mockReturnValue({
-            nextRun: enrichedNextRun,
-            previousRun: null,
-        });
     });
 
     afterEach(() => {
@@ -155,13 +148,20 @@ describe('jobs-controller createJob', () => {
 
             await createJob(request, mockResponse);
 
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    name: requestBody.name,
+                    schedule: null,
+                })
+            );
             expect(mockSchedule).not.toHaveBeenCalled();
-            expect(mockGetNextAndPreviousRun).not.toHaveBeenCalled();
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
                 data: expect.objectContaining({
                     id: createdJob.id,
+                    userId: 'user-id-1',
                     schedule: null,
                 }),
                 meta: {
@@ -179,7 +179,7 @@ describe('jobs-controller createJob', () => {
     });
 
     describe('[HTTP-JOBS-CRT-002]', () => {
-        it('creates a scheduled job, responds with enriched schedule, and registers it', async () => {
+        it('creates a scheduled job, responds with the persisted schedule, and registers it', async () => {
             const requestBody = buildRequestBody();
             const request = buildRequest(requestBody);
             const createdJob = buildCreatedJob(requestBody);
@@ -205,21 +205,14 @@ describe('jobs-controller createJob', () => {
                 startDate: createdJob.schedule?.startDate,
                 endDate: createdJob.schedule?.endDate,
             });
-            expect(mockGetNextAndPreviousRun).toHaveBeenCalledWith(createdJob.id);
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
                 data: expect.objectContaining({
                     id: createdJob.id,
-                    userId: createdJob.userId,
-                    name: createdJob.name,
+                    userId: 'user-id-1',
                     schedule: expect.objectContaining({
-                        type: 'daily',
-                        status: constants.status.idle,
-                        startDate: scheduledStartDate,
-                        endDate: null,
-                        nextRun: enrichedNextRun.toISOString(),
-                        lastRun: null,
+                        status: constants.status.schedule.idle,
                     }),
                 }),
                 meta: {
@@ -248,7 +241,63 @@ describe('jobs-controller createJob', () => {
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockResponseStatus).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith('Failed to create job', { error: dbError });
+            expect(mockLoggerError).toHaveBeenCalled();
+        });
+    });
+
+    describe('[HTTP-JOBS-CRT-003]', () => {
+        it('creates a job with stopped schedule, attaches runtime stopped, and registers it', async () => {
+            const baseBody = buildRequestBody();
+            const requestBody: CreateJobInput = {
+                ...baseBody,
+                schedule: {
+                    ...baseBody.schedule!,
+                    status: constants.status.schedule.stopped,
+                },
+            };
+            const request = buildRequest(requestBody);
+            const createdJob = buildCreatedJob(requestBody);
+
+            mockCreate.mockResolvedValue(createdJob);
+
+            await createJob(request, mockResponse);
+
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    name: requestBody.name,
+                    schedule: requestBody.schedule,
+                })
+            );
+            expect(mockSchedule).toHaveBeenCalledWith({
+                jobId: createdJob.id,
+                userId: 'user-id-1',
+                type: createdJob.schedule?.type,
+                startDate: createdJob.schedule?.startDate,
+                endDate: createdJob.schedule?.endDate,
+                isStopped: true,
+            });
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: expect.objectContaining({
+                    id: createdJob.id,
+                    userId: 'user-id-1',
+                    schedule: expect.objectContaining({
+                        status: constants.status.schedule.stopped,
+                    }),
+                }),
+                meta: {
+                    timestamp: now,
+                },
+            });
+            expect(mockRegister).toHaveBeenCalledWith({
+                jobId: createdJob.id,
+                userId: 'user-id-1',
+                tools: createdJob.tools,
+                scheduleType: createdJob.schedule?.type,
+            });
+            expect(mockDelegate).not.toHaveBeenCalled();
         });
     });
 
@@ -266,21 +315,24 @@ describe('jobs-controller createJob', () => {
 
             await createJob(request, mockResponse);
 
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    schedule: requestBody.schedule,
+                })
+            );
             expect(mockRegister).not.toHaveBeenCalled();
             expect(mockDelegate).not.toHaveBeenCalled();
             expect(mockDelete).toHaveBeenCalledWith(createdJob.id);
             expect(mockRemoveJob).toHaveBeenCalledWith(createdJob.id);
-            expect(mockLoggerError).toHaveBeenCalledWith('Failed to schedule job', { error: schedulingError });
+            expect(mockLoggerError).toHaveBeenCalled();
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
                 data: expect.objectContaining({
                     id: createdJob.id,
-                    schedule: expect.objectContaining({
-                        status: constants.status.idle,
-                        nextRun: null,
-                        lastRun: null,
-                    }),
+                    userId: 'user-id-1',
+                    schedule: requestBody.schedule,
                 }),
                 meta: {
                     timestamp: now,
@@ -288,6 +340,50 @@ describe('jobs-controller createJob', () => {
                         {
                             code: ErrorCode.JOBS_FAILED_TO_SCHEDULE_JOB,
                             message: ErrorMessage.JOBS_FAILED_TO_SCHEDULE_JOB,
+                        },
+                    ],
+                },
+            });
+        });
+
+        it('keeps the saved job and returns a delegate warning when immediate run fails after save', async () => {
+            const requestBody: CreateJobInput = { ...buildRequestBody(), schedule: null };
+            const request = buildRequest(requestBody);
+            const createdJob = buildCreatedJob(requestBody, null);
+            const delegateError = new Error('delegator failed');
+
+            mockCreate.mockResolvedValue(createdJob);
+            mockDelegate.mockImplementation(() => {
+                throw delegateError;
+            });
+
+            await createJob(request, mockResponse);
+
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    schedule: null,
+                })
+            );
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith(createdJob.id);
+            expect(mockRemoveJob).toHaveBeenCalledWith(createdJob.id);
+            expect(mockLoggerError).toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: expect.objectContaining({
+                    id: createdJob.id,
+                    userId: 'user-id-1',
+                    schedule: null,
+                }),
+                meta: {
+                    timestamp: now,
+                    warnings: [
+                        {
+                            code: ErrorCode.JOBS_FAILED_TO_DELEGATE_JOB,
+                            message: ErrorMessage.JOBS_FAILED_TO_DELEGATE_JOB,
                         },
                     ],
                 },

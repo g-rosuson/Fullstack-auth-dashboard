@@ -13,6 +13,8 @@ import config from 'config';
 
 import { initializeDatabase } from './server-initialize-db';
 
+// TODO: Move schema enum we use for validation to constants e.g. if (persistedSchedule.type === cronJobTypeSchema.enum.once)
+
 // TODO: What is cursor indexing? And what should be ignored?
 
 // TODO: Add schedule type to constants and integrate into all logic and tests?

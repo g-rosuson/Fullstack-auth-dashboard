@@ -91,7 +91,7 @@ const getMockCronJob = (cronJob: Partial<CronJob> = {}): CronJob => ({
     jobId: mockJobId,
     userId: mockUserId,
     type: mockDailyType,
-    status: constants.status.idle,
+    status: constants.status.schedule.idle,
     cronExpression: defaultCronExpression,
     startDate: new Date(),
     endDate: new Date(),
@@ -495,7 +495,7 @@ describe('Scheduler', () => {
 
             const job = getCronJobsMap(scheduler).get(mockJobId);
             expect(mockStopCronTask).toHaveBeenCalled();
-            expect(job?.status).toBe(constants.status.stopped);
+            expect(job?.status).toBe(constants.status.schedule.stopped);
         });
 
         it('does not create a stop timeout when endDate is null', () => {
@@ -525,7 +525,9 @@ describe('Scheduler', () => {
                 expect.objectContaining({
                     type: constants.events.jobs.jobsScheduled,
                     userId: mockUserId,
-                    scheduledJobs: [{ jobId: mockJobId, status: constants.status.idle }],
+                    scheduledJobs: [
+                        { jobId: mockJobId, status: constants.status.schedule.idle, nextRun: null, lastRun: null },
+                    ],
                 })
             );
         });
@@ -567,7 +569,9 @@ describe('Scheduler', () => {
                 expect.objectContaining({
                     type: constants.events.jobs.jobsScheduled,
                     userId: mockUserId,
-                    scheduledJobs: [{ jobId: mockJobId, status: constants.status.stopped }],
+                    scheduledJobs: [
+                        { jobId: mockJobId, status: constants.status.schedule.stopped, nextRun: null, lastRun: null },
+                    ],
                 })
             );
         });
@@ -629,7 +633,7 @@ describe('Scheduler', () => {
 
             expect(job).toEqual(
                 expect.objectContaining({
-                    status: constants.status.stopped,
+                    status: constants.status.schedule.stopped,
                     metadata: {
                         startTimeoutId: undefined,
                         stopTimeoutId: undefined,
@@ -666,6 +670,59 @@ describe('Scheduler', () => {
         });
     });
 
+    describe('getCronJobEventsForUser', () => {
+        it('returns scheduled job events only for the given user with next and last run', () => {
+            const nextRun = new Date('2026-03-12T08:30:00.000Z');
+            const previousRun = new Date('2026-03-11T08:30:00.000Z');
+
+            parseMock.mockImplementation(() => ({
+                next: () => ({ toDate: () => nextRun }),
+                prev: () => ({ toDate: () => previousRun }),
+            }));
+
+            getCronJobsMap(scheduler).set(
+                mockJobId,
+                getMockCronJob({ jobId: mockJobId, userId: mockUserId, status: constants.status.schedule.idle })
+            );
+            getCronJobsMap(scheduler).set(
+                'job-2',
+                getMockCronJob({
+                    jobId: 'job-2',
+                    userId: mockOtherUserId,
+                    status: constants.status.schedule.stopped,
+                })
+            );
+            getCronJobsMap(scheduler).set(
+                'job-3',
+                getMockCronJob({ jobId: 'job-3', userId: mockUserId, status: constants.status.schedule.idle })
+            );
+
+            expect(scheduler.getCronJobEventsForUser(mockUserId)).toEqual([
+                {
+                    jobId: mockJobId,
+                    status: constants.status.schedule.idle,
+                    nextRun: nextRun.toISOString(),
+                    lastRun: previousRun.toISOString(),
+                },
+                {
+                    jobId: 'job-3',
+                    status: constants.status.schedule.idle,
+                    nextRun: nextRun.toISOString(),
+                    lastRun: previousRun.toISOString(),
+                },
+            ]);
+            expect(scheduler.getCronJobEventsForUser(mockOtherUserId)).toEqual([
+                {
+                    jobId: 'job-2',
+                    status: constants.status.schedule.stopped,
+                    nextRun: nextRun.toISOString(),
+                    lastRun: previousRun.toISOString(),
+                },
+            ]);
+            expect(scheduler.getCronJobEventsForUser('nobody')).toEqual([]);
+        });
+    });
+
     describe('getAllJobs', () => {
         it('returns an immutable snapshot of jobs currently in memory', () => {
             scheduler.schedule({
@@ -688,11 +745,15 @@ describe('Scheduler', () => {
 
             expect(jobs).toEqual(
                 expect.arrayContaining([
-                    expect.objectContaining({ jobId: mockJobId, userId: mockUserId, status: constants.status.idle }),
+                    expect.objectContaining({
+                        jobId: mockJobId,
+                        userId: mockUserId,
+                        status: constants.status.schedule.idle,
+                    }),
                     expect.objectContaining({
                         jobId: 'job-2',
                         userId: mockOtherUserId,
-                        status: constants.status.stopped,
+                        status: constants.status.schedule.stopped,
                     }),
                 ])
             );

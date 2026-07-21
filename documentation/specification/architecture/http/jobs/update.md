@@ -10,24 +10,25 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Other-user / missing id: [HTTP-JO
   - `Content-Type: application/json`
   - Header: `Authorization: Bearer <access-token>`
   - Path: `id` = owned job that is not running
-  - Required body fields: `name`, `tools`, `schedule`
-  - Values: `schedule.status` = `idle` (or other valid non-null schedule); body per OpenAPI / Zod `updateJobInputSchema`
+  - Required body fields: `name`, `tools`, `schedule`, `status`
+  - Values: `schedule.status` = `idle`; body per OpenAPI / Zod `updateJobInputSchema`
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` matches the request intent
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` = `idle`
 
 Traces:
 - [FR-JOBS-UPD-001](../../../requirements/fr/jobs/lifecycle/update.md)
+- [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 
 ## HTTP-JOBS-UPD-002 — Clear schedule
 
 - Request:
   - Same shape as HTTP-JOBS-UPD-001
-  - Values: `schedule` = `null`;
+  - Values: `schedule` = `null`
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
   - Notes: `data.schedule` is `null`
 
 Traces:
@@ -40,8 +41,8 @@ Traces:
   - Values: `schedule.status` = `stopped`
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` = `stopped`; `nextRun` / `lastRun` are `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` = `stopped`
 
 Traces:
 - [FR-JOBS-UPD-004](../../../requirements/fr/jobs/lifecycle/update.md)
@@ -66,7 +67,8 @@ Traces:
   - Values: otherwise valid update; scheduling fails after persist
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
+  - Notes: `data.schedule` still present with owner intent
 
 Traces:
 - [FR-JOBS-SCH-007](../../../requirements/fr/jobs/schedule/schedule.md)
@@ -83,7 +85,7 @@ Traces:
   - Body: `{ success: false, code: "CONFLICT_ERROR", timestamp: string }`
 
 Traces:
-- [FR-JOBS-UNQ-002](../../../requirements/fr/jobs/lifecycle/create.md)
+- [FR-JOBS-UNQ-001](../../../requirements/fr/jobs/lifecycle/uniqueness.md)
 
 ## HTTP-JOBS-UPD-007 — Invalid body
 

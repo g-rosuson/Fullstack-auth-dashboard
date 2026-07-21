@@ -1,6 +1,8 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
+import constants from 'shared/constants';
+
 import {
     executionEmailToolSchema,
     executionEmailToolTargetResultSchema,
@@ -50,7 +52,9 @@ const exectutionToolTargetResultSchema = z
  * Execution outcome status. Optional so legacy documents without `status` still
  * validate on read (treat missing as completed at the consumer).
  */
-const executionStatusSchema = z.enum(['completed', 'cancelled']).openapi('ExecutionStatus');
+const executionStatusSchema = z
+    .enum([constants.status.execution.completed, constants.status.execution.cancelled])
+    .openapi('ExecutionStatus');
 
 /**
  * An execution schema.

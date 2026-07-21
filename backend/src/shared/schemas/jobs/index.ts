@@ -14,7 +14,9 @@ extendZodWithOpenApi(z);
  * Persisted schedule status — mirrors node-cron user intent (`idle` | `stopped`), survives server restart.
  * Client maps `idle`/`running` to an "Active" label; `running` is runtime-only and not persisted.
  */
-const jobScheduleStatusSchema = z.enum([constants.status.idle, constants.status.stopped]).openapi('JobScheduleStatus');
+const jobScheduleStatusSchema = z
+    .enum([constants.status.schedule.idle, constants.status.schedule.stopped])
+    .openapi('JobScheduleStatus');
 
 /**
  * A job schedule schema.

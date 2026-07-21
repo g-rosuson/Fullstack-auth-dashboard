@@ -4,8 +4,6 @@ import {
     changeJobScheduleStatusPayloadSchema,
     createJobInputSchema,
     createJobToolSchema,
-    enrichedJobScheduleSchema,
-    enrichedJobSchema,
     idRouteParamSchema,
     updateJobInputSchema,
     updateJobToolSchema,
@@ -37,27 +35,8 @@ type CreateJobInput = z.infer<typeof createJobInputSchema>;
 type UpdateJobInput = z.infer<typeof updateJobInputSchema>;
 
 /**
- * A enriched job schedule schema.
- */
-type EnrichedJobSchedule = z.infer<typeof enrichedJobScheduleSchema>;
-
-/**
- * A enriched job schema.
- */
-type EnrichedJob = z.infer<typeof enrichedJobSchema>;
-
-/**
  * A id route param schema.
  */
 type IdRouteParam = z.infer<typeof idRouteParamSchema>;
 
-export type {
-    ChangeCronJobStatusPayload,
-    CreateJobInput,
-    CreateJobTool,
-    EnrichedJob,
-    EnrichedJobSchedule,
-    IdRouteParam,
-    UpdateJobInput,
-    UpdateJobTool,
-};
+export type { ChangeCronJobStatusPayload, CreateJobInput, CreateJobTool, IdRouteParam, UpdateJobInput, UpdateJobTool };

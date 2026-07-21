@@ -17,7 +17,6 @@ import type {
 
 import { Aborter } from './aborter';
 import toolRegistry from './tools';
-import { executionStatusSchema } from 'shared/schemas/jobs/tools/execution/schemas-execution';
 import { retryWithFixedInterval } from 'utils';
 
 /**
@@ -32,7 +31,7 @@ import { retryWithFixedInterval } from 'utils';
  * - FR-JOBS-STR-001 / FR-JOBS-STR-006 — Emit live running / target / finished / failed / cancelled events
  * - NFR-REL-JOBS-002 — AbortSignal flows to tools/targets for cooperative resource teardown
  *
- * Controllers gate concurrent runs via `runningJobs` (FR-JOBS-RUN-004).
+ * Controllers gate concurrent runs via `getRunningJobsForUser` (FR-JOBS-RUN-004).
  */
 export class Delegator {
     private static instance: Delegator | null = null;
@@ -43,14 +42,8 @@ export class Delegator {
 
     /**
      * Private constructor enforces singleton pattern.
-     * Binds instance methods for correct `this` DelegatorContext.
      */
-    private constructor() {
-        this.delegate = this.delegate.bind(this);
-        this.register = this.register.bind(this);
-        this.removeJob = this.removeJob.bind(this);
-        this.cancel = this.cancel.bind(this);
-    }
+    private constructor() {}
 
     /**
      * Returns the singleton instance, creating it if needed.
@@ -65,14 +58,26 @@ export class Delegator {
 
     /**
      * Requests cancellation of an in-flight job run (FR-JOBS-STP-001 / FR-JOBS-STP-003).
-     * Idempotent no-op if the job is not running. Controllers check `runningJobs`
-     * before calling when they need to distinguish not-running from cancel-requested
-     * (FR-JOBS-STP-002).
+     * Idempotent no-op if the job is not running. Controllers check running state
+     * via `getRunningJobsForUser` when they need to distinguish not-running from
+     * cancel-requested (FR-JOBS-STP-002).
      *
      * @param jobId Job ID to cancel
      */
     public cancel(jobId: string): void {
         this.runningJobs.get(jobId)?.aborter.cancel();
+    }
+
+    /**
+     * Returns running jobs owned by the given user.
+     *
+     * @param userId Owner user id
+     * @returns Running jobs for that user
+     */
+    public getRunningJobsForUser(userId: string): ReadonlyArray<{ jobId: string }> {
+        return Array.from(this.runningJobs.entries())
+            .filter(([, job]) => job.payload.userId === userId)
+            .map(([jobId]) => ({ jobId }));
     }
 
     /**
@@ -172,8 +177,8 @@ export class Delegator {
 
             // FR-JOBS-STP-004 — Cancelled runs persist with status cancelled (tools may be empty)
             const status = aborter.cancelled
-                ? executionStatusSchema.enum.cancelled
-                : executionStatusSchema.enum.completed;
+                ? constants.status.execution.cancelled
+                : constants.status.execution.completed;
 
             const executionPayload: ExecutionPayload = {
                 executionId,
@@ -189,12 +194,7 @@ export class Delegator {
 
             await this.persistResult(executionPayload);
 
-            // Determine the next and previous run dates
-            const { nextRun, previousRun } = this.scheduler.getNextAndPreviousRun(payload.jobId);
-            const lastRun = previousRun ? previousRun.toISOString() : null;
-            const tmpNextRun = nextRun ? nextRun.toISOString() : null;
-
-            if (status === executionStatusSchema.enum.cancelled) {
+            if (status === constants.status.execution.cancelled) {
                 // FR-JOBS-STR-006 — Live cancellation event
                 this.emitter.emit({
                     type: constants.events.jobs.jobCancelled,
@@ -202,8 +202,6 @@ export class Delegator {
                     userId: payload.userId,
                     cancelledAt: finishedAt,
                     executionId,
-                    lastRun,
-                    nextRun: tmpNextRun,
                 });
             } else {
                 this.emitter.emit({
@@ -212,8 +210,6 @@ export class Delegator {
                     userId: payload.userId,
                     finishedAt,
                     executionId,
-                    lastRun,
-                    nextRun: tmpNextRun,
                 });
             }
         } catch (error) {
@@ -228,9 +224,16 @@ export class Delegator {
                 failedAt: new Date().toISOString(),
             });
         } finally {
-            const shouldDeletePendingJob = payload.scheduleType === 'once' || payload.scheduleType === null;
+            const isRecurringJob = payload.scheduleType && payload.scheduleType !== 'once';
 
-            if (shouldDeletePendingJob) {
+            if (isRecurringJob) {
+                // FR-JOBS-STR-003 — Live schedule-attachment event with runtime next/last run
+                this.emitter.emit({
+                    scheduledJobs: this.scheduler.getCronJobEventsForUser(payload.userId),
+                    userId: payload.userId,
+                    type: constants.events.jobs.jobsScheduled,
+                });
+            } else {
                 this.pendingJobs.delete(payload.jobId);
             }
 

@@ -9,7 +9,4 @@ Create a job with or without a schedule.
 - **FR-JOBS-CRT-005** — If the job is saved but scheduling or starting it fails afterward, the system shall keep the saved job and its intended schedule, leave the runtime unattached (FR-JOBS-SCH-011), report the failure to the user (FR-JOBS-STR-004, FR-JOBS-STR-005), and allow retry per FR-JOBS-SCH-007.
 - **FR-JOBS-CRT-006** — The system shall allow a user to create a job with a stopped schedule. A stopped schedule shall not run until it is activated (FR-JOBS-SSC-002).
 
-## Name uniqueness
-
-- **FR-JOBS-UNQ-001** — Job names shall be unique for each user. Different users may use the same name.
-- **FR-JOBS-UNQ-002** — The system shall reject creating or renaming a job to a name the same user already has.
+Name uniqueness on create: [FR-JOBS-UNQ-001](./uniqueness.md).

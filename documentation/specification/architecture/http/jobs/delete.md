@@ -17,7 +17,7 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Other-user / missing id: [HTTP-JO
 Traces:
 - [FR-JOBS-DEL-001](../../../requirements/fr/jobs/lifecycle/delete.md)
 - [FR-JOBS-DEL-002](../../../requirements/fr/jobs/lifecycle/delete.md)
-- [FR-JOBS-OWN-002](../../../requirements/fr/jobs/ownership/ownership.md)
+- [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 
 ## HTTP-JOBS-DEL-002 — Reject while running
 

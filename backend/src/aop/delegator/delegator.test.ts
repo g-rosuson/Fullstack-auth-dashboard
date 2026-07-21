@@ -1,5 +1,6 @@
 import constants from 'shared/constants';
 
+import type { ScheduledJobEvent } from 'shared/types/jobs/events/types-jobs-events';
 import type { Tool } from 'shared/types/jobs/tools/types-tools';
 import type { ToolTargetName, ToolType } from 'shared/types/jobs/tools/types-tools';
 
@@ -15,7 +16,7 @@ import { Delegator } from './';
  * - FR-JOBS-RUN-003 — manual start UX / HTTP entry
  * - FR-JOBS-RUN-004 — reject while running (controllers gate on `runningJobs`)
  * - FR-JOBS-STP-001 / STP-002 — stop HTTP entry (jobs-controller stopJob)
- * - FR-JOBS-STR-003 — client consumes the stream without reload
+ * - FR-JOBS-STR-002 — connect snapshot (jobs-controller streamJobs)
  * - FR-JOBS-STR-004 / STR-005 — schedule-attach failure observability (scheduler/HTTP)
  */
 
@@ -112,16 +113,11 @@ vi.mock('aop/emitter', () => ({
     },
 }));
 
-const mockGetNextAndPreviousRun = vi.hoisted(() =>
-    vi.fn(() => ({
-        nextRun: null as Date | null,
-        previousRun: null as Date | null,
-    }))
-);
+const mockGetCronJobEventsForUser = vi.hoisted(() => vi.fn((): ScheduledJobEvent[] => []));
 vi.mock('aop/scheduler', () => ({
     Scheduler: {
         getInstance: vi.fn(() => ({
-            getNextAndPreviousRun: mockGetNextAndPreviousRun,
+            getCronJobEventsForUser: mockGetCronJobEventsForUser,
         })),
     },
 }));
@@ -159,7 +155,7 @@ describe('Delegator', () => {
         vi.clearAllMocks();
         mockExecute.mockResolvedValue(undefined);
         mockAddExecution.mockResolvedValue(undefined);
-        mockGetNextAndPreviousRun.mockReturnValue({ nextRun: null, previousRun: null });
+        mockGetCronJobEventsForUser.mockReturnValue([]);
         // Reset the singleton instance for isolated tests
         // @ts-expect-error - accessing private static property for testing
         Delegator.instance = null;
@@ -169,6 +165,41 @@ describe('Delegator', () => {
     describe('getInstance', () => {
         it('returns the same singleton instance', () => {
             expect(Delegator.getInstance()).toBe(Delegator.getInstance());
+        });
+    });
+
+    describe('getRunningJobsForUser', () => {
+        it('returns only running jobs owned by the given user', async () => {
+            let release!: () => void;
+            const gate = new Promise<void>(resolve => {
+                release = resolve;
+            });
+
+            mockExecute.mockImplementation(async () => {
+                await gate;
+            });
+
+            const ownerRun = delegator.delegate(mockPayloadWithTool);
+            const otherRun = delegator.delegate({
+                ...mockPayloadWithTool,
+                jobId: 'other-job-id',
+                userId: 'other-user-id',
+            });
+
+            await vi.waitFor(() => {
+                expect(delegator.runningJobs.size).toBe(2);
+            });
+
+            const ownerJobs = delegator.getRunningJobsForUser('test-user-id');
+            expect(ownerJobs).toEqual([{ jobId: 'test-job-id' }]);
+
+            const otherJobs = delegator.getRunningJobsForUser('other-user-id');
+            expect(otherJobs).toEqual([{ jobId: 'other-job-id' }]);
+
+            expect(delegator.getRunningJobsForUser('nobody')).toEqual([]);
+
+            release();
+            await Promise.all([ownerRun, otherRun]);
         });
     });
 
@@ -270,7 +301,7 @@ describe('Delegator', () => {
                 expect.objectContaining({
                     executionId: expect.any(String),
                     jobId: 'test-job-id',
-                    status: 'completed',
+                    status: constants.status.execution.completed,
                     schedule: {
                         type: null,
                         delegatedAt: expect.any(String),
@@ -449,14 +480,9 @@ describe('Delegator', () => {
             );
         });
 
-        it('emits job-finished with nextRun and lastRun from the scheduler', async () => {
-            const nextRun = new Date('2026-03-12T08:30:00.000Z');
-            const previousRun = new Date('2026-03-11T08:30:00.000Z');
-            mockGetNextAndPreviousRun.mockReturnValue({ nextRun, previousRun });
+        it('emits job-finished with job, user, execution id, and finishedAt', async () => {
+            await delegator.delegate(mockPayloadWithTool);
 
-            await delegator.delegate(mockRecurringPayload);
-
-            expect(mockGetNextAndPreviousRun).toHaveBeenCalledWith('test-job-id');
             expect(mockEmit).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: constants.events.jobs.jobFinished,
@@ -464,22 +490,29 @@ describe('Delegator', () => {
                     userId: 'test-user-id',
                     executionId: expect.any(String),
                     finishedAt: expect.any(String),
-                    nextRun: nextRun.toISOString(),
-                    lastRun: previousRun.toISOString(),
                 })
             );
         });
 
-        it('emits job-finished with null nextRun and lastRun when the scheduler has none', async () => {
-            await delegator.delegate(mockPayloadWithTool);
+        it('[FR-JOBS-STR-003] emits jobs-scheduled with nextRun and lastRun after a recurring run', async () => {
+            const scheduledJobs = [
+                {
+                    jobId: 'test-job-id',
+                    status: constants.status.schedule.idle,
+                    nextRun: '2026-03-12T08:30:00.000Z',
+                    lastRun: '2026-03-11T08:30:00.000Z',
+                },
+            ];
+            mockGetCronJobEventsForUser.mockReturnValue(scheduledJobs);
 
-            expect(mockEmit).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    type: constants.events.jobs.jobFinished,
-                    nextRun: null,
-                    lastRun: null,
-                })
-            );
+            await delegator.delegate(mockRecurringPayload);
+
+            expect(mockGetCronJobEventsForUser).toHaveBeenCalledWith('test-user-id');
+            expect(mockEmit).toHaveBeenCalledWith({
+                type: constants.events.jobs.jobsScheduled,
+                userId: 'test-user-id',
+                scheduledJobs,
+            });
         });
 
         it('uses the same execution id on all success events for one run', async () => {
@@ -567,19 +600,26 @@ describe('Delegator', () => {
     });
 
     describe('[FR-JOBS-STP-003] / [FR-JOBS-STP-004] / [FR-JOBS-STR-006] — cancel in-flight run', () => {
-        it('skips subsequent tools, persists status cancelled, and emits job-cancelled', async () => {
+        beforeEach(() => {
             mockExecute.mockImplementation(async ({ tool }: { tool: typeof mockTool }) => {
                 if (tool.testId === 'test-id-1') {
                     delegator.cancel('test-job-id');
                 }
             });
+        });
 
+        it('[FR-JOBS-STP-003] skips subsequent tools when cancelled mid-run', async () => {
             await delegator.delegate(mockPayloadWithTool);
 
             expect(mockExecute).toHaveBeenCalledTimes(1);
+        });
+
+        it('[FR-JOBS-STP-004] persists status cancelled with tools completed before cancel', async () => {
+            await delegator.delegate(mockPayloadWithTool);
+
             expect(mockAddExecution).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    status: 'cancelled',
+                    status: constants.status.execution.cancelled,
                     tools: [
                         expect.objectContaining({
                             type: 'tool',
@@ -588,6 +628,10 @@ describe('Delegator', () => {
                     ],
                 })
             );
+        });
+
+        it('[FR-JOBS-STR-006] emits job-cancelled without finished or failed', async () => {
+            await delegator.delegate(mockPayloadWithTool);
 
             const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
             expect(emittedTypes).toContain(constants.events.jobs.jobCancelled);

@@ -5,13 +5,13 @@ import constants from 'shared/constants';
 import {
     changeJobScheduleStatusPayloadSchema,
     createJobInputSchema,
-    enrichedJobSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,
     stopJobResultSchema,
     updateJobInputSchema,
 } from './schemas';
 import { deleteJobResultSchema } from 'shared/schemas/jobs';
+import { jobSchema } from 'shared/schemas/jobs';
 import { jobEventSchema } from 'shared/schemas/jobs/events/schemas-events';
 
 const jobsRegistry = new OpenAPIRegistry();
@@ -24,7 +24,7 @@ jobsRegistry.registerPath({
             description: 'Job created successfully',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -67,7 +67,7 @@ jobsRegistry.registerPath({
             description: 'All jobs',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema.array(),
+                    schema: jobSchema.array(),
                 },
             },
         },
@@ -85,7 +85,7 @@ jobsRegistry.registerPath({
             description: 'Job by id',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -103,7 +103,7 @@ jobsRegistry.registerPath({
             description: 'Job updated successfully',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -150,7 +150,7 @@ jobsRegistry.registerPath({
             description: 'Schedule runtime attach retried for the saved job intent',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema,
+                    schema: jobSchema,
                 },
             },
         },

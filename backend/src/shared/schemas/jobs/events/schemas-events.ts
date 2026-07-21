@@ -72,11 +72,17 @@ const runningJobsEventSchema = z
 
 /**
  * A scheduled job schema.
+ *
+ * `nextRun` / `lastRun` are runtime fields from the scheduler (null when stopped,
+ * unattached, or not yet computable). Clients hydrate these from the stream —
+ * not from CRUD responses.
  */
 const scheduledJobEventSchema = z
     .object({
         jobId: z.string(),
         status: jobScheduleStatusSchema,
+        nextRun: z.string().datetime({ offset: true }).nullable(),
+        lastRun: z.string().datetime({ offset: true }).nullable(),
     })
     .openapi('ScheduledJobEvent');
 
@@ -86,7 +92,7 @@ const scheduledJobEventSchema = z
 const aggregatedRunningJobSchema = z
     .object({
         jobId: z.string(),
-        finishedEvents: z.array(jobTargetFinishedEventSchema),
+        emittedEvents: z.array(jobTargetFinishedEventSchema),
     })
     .openapi('AggregatedRunningJob');
 
@@ -123,8 +129,6 @@ const jobFinishedEventSchema = z
         type: jobFinishedEventTypeSchema,
         finishedAt: z.string().datetime({ offset: true }),
         executionId: z.string(),
-        lastRun: z.string().datetime({ offset: true }).nullable(),
-        nextRun: z.string().datetime({ offset: true }).nullable(),
     })
     .openapi('JobFinishedEvent');
 
@@ -151,8 +155,6 @@ const jobCancelledEventSchema = z
         type: jobCancelledEventTypeSchema,
         cancelledAt: z.string().datetime({ offset: true }),
         executionId: z.string(),
-        lastRun: z.string().datetime({ offset: true }).nullable(),
-        nextRun: z.string().datetime({ offset: true }).nullable(),
     })
     .openapi('JobCancelledEvent');
 
@@ -162,6 +164,7 @@ const jobCancelledEventSchema = z
 const jobEventSchema = z
     .discriminatedUnion('type', [
         jobTargetFinishedEventSchema,
+        aggregatedJobsEventSchema,
         runningJobsEventSchema,
         scheduledJobsEventSchema,
         jobFinishedEventSchema,

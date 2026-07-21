@@ -2,7 +2,7 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { jobScheduleSchema, jobScheduleStatusSchema, jobSchema } from 'shared/schemas/jobs';
+import { jobScheduleSchema, jobScheduleStatusSchema } from 'shared/schemas/jobs';
 import { emailToolSchema, emailToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-email';
 import { scraperToolSchema, scraperToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-scraper';
 
@@ -110,27 +110,6 @@ const updateJobInputSchema = z
     .openapi('UpdateJobInput');
 
 /**
- * A enriched job schedule schema.
- */
-const enrichedJobScheduleSchema = z
-    .object({
-        ...jobScheduleSchema.shape,
-        nextRun: z.string().datetime({ offset: true }).nullable(),
-        lastRun: z.string().datetime({ offset: true }).nullable(),
-    })
-    .openapi('EnrichedJobSchedule');
-
-/**
- * A enriched job schema.
- */
-const enrichedJobSchema = z
-    .object({
-        ...jobSchema.shape,
-        schedule: enrichedJobScheduleSchema.nullable(),
-    })
-    .openapi('EnrichedJob');
-
-/**
  * An ID route param schema.
  */
 const idRouteParamSchema = z
@@ -171,8 +150,6 @@ export {
     createJobInputSchema,
     createJobToolSchema,
     updateJobInputSchema,
-    enrichedJobSchema,
-    enrichedJobScheduleSchema,
     updateJobToolSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,

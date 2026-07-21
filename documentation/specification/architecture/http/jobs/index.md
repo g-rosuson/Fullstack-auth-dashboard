@@ -27,7 +27,3 @@ All routes below are protected: missing/invalid `Authorization: Bearer` fails as
 - [stop.md](./stop.md) — `HTTP-JOBS-STP-*`
 - [stream.md](./stream.md) — `HTTP-JOBS-STR-*`
 - [ownership.md](./ownership.md) — `HTTP-JOBS-OWN-*`
-
-## Response notes
-
-Jobs success bodies use `meta.timestamp` as an ISO-8601 string (and optional `meta.warnings`). Full job / schedule shapes live in OpenAPI / Zod (`enrichedJobSchema`).

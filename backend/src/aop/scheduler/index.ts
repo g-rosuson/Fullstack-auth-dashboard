@@ -15,6 +15,8 @@ import {
     SchedulePayload,
 } from './types';
 
+import type { ScheduledJobEvent } from 'shared/types/jobs/events/types-jobs-events';
+
 import parser from 'cron-parser';
 import { cronJobTypeSchema } from 'shared/schemas/cron';
 
@@ -201,14 +203,10 @@ export class Scheduler {
      * Emits all cron jobs for a user.
      * @param userId - The user id to emit the cron jobs for
      */
-    private emitAllCronJobs(userId: string): void {
+    private emitCronJobsForUser(userId: string): void {
         const emitter = Emitter.getInstance();
-
         emitter.emit({
-            scheduledJobs: this.getAllJobs().map(job => ({
-                jobId: job.jobId,
-                status: job.status,
-            })),
+            scheduledJobs: this.getCronJobEventsForUser(userId),
             userId: userId,
             type: constants.events.jobs.jobsScheduled,
         });
@@ -278,7 +276,7 @@ export class Scheduler {
             endDate,
             type,
             cronTask,
-            status: isStopped ? constants.status.stopped : constants.status.idle,
+            status: isStopped ? constants.status.schedule.stopped : constants.status.schedule.idle,
             metadata: {
                 startTimeoutId: undefined,
                 stopTimeoutId: undefined,
@@ -313,15 +311,15 @@ export class Scheduler {
 
                 newCronJob.metadata.stopTimeoutId = setTimeout(() => {
                     cronTask!.stop();
-                    newCronJob.status = constants.status.stopped;
-                    this.emitAllCronJobs(payload.userId);
+                    newCronJob.status = constants.status.schedule.stopped;
+                    this.emitCronJobsForUser(payload.userId);
                     logger.info(`Stopped job: ${jobId} of type: ${type}`);
                 }, msToEnd);
             }
         }
 
         this.cronJobs.set(jobId, newCronJob);
-        this.emitAllCronJobs(payload.userId);
+        this.emitCronJobsForUser(payload.userId);
     }
 
     /**
@@ -366,17 +364,35 @@ export class Scheduler {
             return;
         }
 
-        this.emitAllCronJobs(cronJob.userId);
+        this.emitCronJobsForUser(cronJob.userId);
         logger.info(`Deleted cron-job with id: "${jobId}"`);
     }
 
     /**
-     * Returns an immutable snapshot of cron jobs currently in memory.
+     * Returns a shallow snapshot of all in-memory cron jobs (test / teardown use).
      */
     public getAllJobs(): ReadonlyArray<CronJob> {
         return Array.from(this.cronJobs.values()).map(job => ({
             ...job,
             metadata: { ...job.metadata },
         }));
+    }
+
+    /**
+     * Returns the cron job events for a user.
+     * @param userId - The user id to get the cron job events for
+     * @returns The cron job events for the user
+     */
+    public getCronJobEventsForUser(userId: string): ScheduledJobEvent[] {
+        const userCronJobs = Array.from(this.cronJobs.values()).filter(job => job.userId === userId);
+        return userCronJobs.map(job => {
+            const { nextRun, previousRun } = this.getNextAndPreviousRun(job.jobId);
+            return {
+                jobId: job.jobId,
+                status: job.status,
+                nextRun: nextRun?.toISOString() || null,
+                lastRun: previousRun?.toISOString() || null,
+            };
+        });
     }
 }

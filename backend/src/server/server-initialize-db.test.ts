@@ -219,7 +219,7 @@ describe('initializeDatabase', () => {
                     name: 'Expired',
                     schedule: {
                         type: 'daily',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: '2026-01-01T08:00:00.000Z',
                         endDate: '2026-06-10T12:00:00.000Z',
                     },
@@ -241,7 +241,7 @@ describe('initializeDatabase', () => {
                     name: 'Daily report',
                     schedule: {
                         type: 'daily',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: futureStart,
                         endDate: null,
                     },
@@ -279,7 +279,7 @@ describe('initializeDatabase', () => {
                     name: 'Once past',
                     schedule: {
                         type: 'once',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: '2026-06-01T08:00:00.000Z',
                         endDate: null,
                     },
@@ -303,7 +303,7 @@ describe('initializeDatabase', () => {
                     name: 'Past anchor',
                     schedule: {
                         type: 'daily',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: '2026-06-01T08:30:00.000Z',
                         endDate: '2026-12-31T23:59:59.000Z',
                     },
@@ -332,7 +332,7 @@ describe('initializeDatabase', () => {
                     name: 'No next',
                     schedule: {
                         type: 'weekly',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: '2026-06-01T09:00:00.000Z',
                         endDate: null,
                     },
@@ -362,7 +362,7 @@ describe('initializeDatabase', () => {
                     name: 'B',
                     schedule: {
                         type: 'daily',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: '2026-01-01T08:00:00.000Z',
                         endDate: '2026-06-01T12:00:00.000Z',
                     },
@@ -373,7 +373,7 @@ describe('initializeDatabase', () => {
                     name: 'C',
                     schedule: {
                         type: 'monthly',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: futureStart,
                         endDate: null,
                     },
@@ -384,7 +384,7 @@ describe('initializeDatabase', () => {
                     name: 'D',
                     schedule: {
                         type: 'once',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: '2026-01-01T08:00:00.000Z',
                         endDate: null,
                     },
@@ -395,7 +395,7 @@ describe('initializeDatabase', () => {
                     name: 'E',
                     schedule: {
                         type: 'weekly',
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                         startDate: '2026-06-01T08:00:00.000Z',
                         endDate: null,
                     },

@@ -11,11 +11,11 @@ import type { Scheduler } from 'aop/scheduler';
  * - Enables easy testing through dependency injection
  */
 export class SchedulerContext {
-    getAllJobs;
     schedule;
     delete;
     getNextAndPreviousRun;
     getNextRunFromPersistedSchedule;
+    getCronJobEventsForUser;
 
     /**
      * Constructs a new SchedulerContext instance.
@@ -23,10 +23,10 @@ export class SchedulerContext {
      * @param scheduler The scheduler instance to wrap and provide to methods
      */
     constructor(scheduler: Scheduler) {
-        this.getAllJobs = scheduler.getAllJobs.bind(scheduler);
         this.schedule = scheduler.schedule.bind(scheduler);
         this.delete = scheduler.delete.bind(scheduler);
         this.getNextAndPreviousRun = scheduler.getNextAndPreviousRun.bind(scheduler);
         this.getNextRunFromPersistedSchedule = scheduler.getNextRunFromPersistedSchedule.bind(scheduler);
+        this.getCronJobEventsForUser = scheduler.getCronJobEventsForUser.bind(scheduler);
     }
 }

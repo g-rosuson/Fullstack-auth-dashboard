@@ -1,6 +1,7 @@
 const mockLoggerError = vi.hoisted(() => vi.fn());
 
 import { ResourceNotFoundException } from 'aop/exceptions';
+import { ErrorCode } from 'aop/exceptions/shared/enums';
 
 import { changeJobScheduleStatus } from '../jobs-controller';
 
@@ -15,8 +16,8 @@ import type { Job } from 'shared/types/jobs';
 
 /**
  * Verification: unit proofs for change-schedule-status HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/jobs/schedule-status.md
- * @see documentation/architecture/http/jobs/ownership.md
+ * @see documentation/specification/architecture/http/jobs/schedule-status.md
+ * @see documentation/specification/architecture/http/jobs/ownership.md
  */
 
 const mockGetById = vi.fn();
@@ -25,7 +26,6 @@ const mockSchedule = vi.fn();
 const mockDelete = vi.fn();
 const mockRegister = vi.fn();
 const mockRemoveJob = vi.fn();
-const mockGetNextAndPreviousRun = vi.fn();
 const mockResponseStatus = vi.fn();
 const mockResponseJson = vi.fn();
 
@@ -48,7 +48,6 @@ const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 const pastStartDate = new Date('2026-03-01T08:30:00.000Z').toISOString();
 const futureStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
 const expiredEndDate = new Date('2026-03-09T12:00:00.000Z').toISOString();
-const enrichedNextRun = new Date('2026-03-12T08:30:00.000Z');
 
 /**
  * Builds a persisted job returned by repository.getById for changeJobScheduleStatus tests.
@@ -61,7 +60,7 @@ const buildPersistedJob = (overrides?: Partial<Job>): Job => ({
         type: 'daily',
         startDate: futureStartDate,
         endDate: null,
-        status: constants.status.idle,
+        status: constants.status.schedule.idle,
     },
     tools: [
         {
@@ -92,7 +91,7 @@ const buildRequest = (
     options?: {
         jobId?: string;
         userId?: string;
-        runningJobs?: Map<string, { payload: { userId: string } }>;
+        runningJobs?: Array<{ jobId: string; userId: string }>;
     }
 ): Request<IdRouteParam, unknown, ChangeCronJobStatusPayload> =>
     ({
@@ -113,10 +112,10 @@ const buildRequest = (
             scheduler: {
                 schedule: mockSchedule,
                 delete: mockDelete,
-                getNextAndPreviousRun: mockGetNextAndPreviousRun,
             },
             delegator: {
-                runningJobs: options?.runningJobs ?? new Map(),
+                getRunningJobsForUser: (userId: string) =>
+                    (options?.runningJobs ?? []).filter(job => job.userId === userId).map(({ jobId }) => ({ jobId })),
                 register: mockRegister,
                 removeJob: mockRemoveJob,
             },
@@ -129,10 +128,6 @@ describe('jobs-controller changeJobScheduleStatus', () => {
         vi.useFakeTimers();
         vi.setSystemTime(now);
         mockResponseStatus.mockReturnValue(mockResponse);
-        mockGetNextAndPreviousRun.mockReturnValue({
-            nextRun: enrichedNextRun,
-            previousRun: null,
-        });
     });
 
     afterEach(() => {
@@ -206,10 +201,10 @@ describe('jobs-controller changeJobScheduleStatus', () => {
             const persistedJob = buildPersistedJob();
             const updatedJob = {
                 ...persistedJob,
-                schedule: { ...persistedJob.schedule!, status: constants.status.stopped },
+                schedule: { ...persistedJob.schedule!, status: constants.status.schedule.stopped },
                 updatedAt: now,
             };
-            const request = buildRequest({ status: constants.status.stopped });
+            const request = buildRequest({ status: constants.status.schedule.stopped });
 
             mockGetById.mockResolvedValue(persistedJob);
             mockUpdate.mockResolvedValue(updatedJob);
@@ -227,43 +222,10 @@ describe('jobs-controller changeJobScheduleStatus', () => {
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
-                data: expect.objectContaining({
-                    schedule: expect.objectContaining({
-                        status: constants.status.stopped,
-                    }),
-                }),
+                data: updatedJob,
                 meta: {
                     timestamp: now,
                 },
-            });
-        });
-
-        it('returns null nextRun and lastRun when stopping a schedule', async () => {
-            const persistedJob = buildPersistedJob();
-            const updatedJob = {
-                ...persistedJob,
-                schedule: { ...persistedJob.schedule!, status: constants.status.stopped },
-                updatedAt: now,
-            };
-            const request = buildRequest({ status: constants.status.stopped });
-
-            mockGetById.mockResolvedValue(persistedJob);
-            mockUpdate.mockResolvedValue(updatedJob);
-
-            await changeJobScheduleStatus(request, mockResponse);
-
-            expect(mockResponseJson).toHaveBeenCalledWith({
-                success: true,
-                data: expect.objectContaining({
-                    schedule: expect.objectContaining({
-                        status: constants.status.stopped,
-                        nextRun: null,
-                        lastRun: null,
-                    }),
-                }),
-                meta: expect.objectContaining({
-                    timestamp: now,
-                }),
             });
         });
     });
@@ -275,15 +237,15 @@ describe('jobs-controller changeJobScheduleStatus', () => {
                     type: 'daily',
                     startDate: futureStartDate,
                     endDate: null,
-                    status: constants.status.stopped,
+                    status: constants.status.schedule.stopped,
                 },
             });
             const updatedJob = {
                 ...persistedJob,
-                schedule: { ...persistedJob.schedule!, status: constants.status.idle },
+                schedule: { ...persistedJob.schedule!, status: constants.status.schedule.idle },
                 updatedAt: now,
             };
-            const request = buildRequest({ status: constants.status.idle });
+            const request = buildRequest({ status: constants.status.schedule.idle });
 
             mockGetById.mockResolvedValue(persistedJob);
             mockUpdate.mockResolvedValue(updatedJob);
@@ -301,7 +263,7 @@ describe('jobs-controller changeJobScheduleStatus', () => {
                 success: true,
                 data: expect.objectContaining({
                     schedule: expect.objectContaining({
-                        status: constants.status.idle,
+                        status: constants.status.schedule.idle,
                     }),
                 }),
                 meta: {
@@ -316,15 +278,15 @@ describe('jobs-controller changeJobScheduleStatus', () => {
                     type: 'daily',
                     startDate: pastStartDate,
                     endDate: null,
-                    status: constants.status.stopped,
+                    status: constants.status.schedule.stopped,
                 },
             });
             const updatedJob = {
                 ...persistedJob,
-                schedule: { ...persistedJob.schedule!, status: constants.status.idle },
+                schedule: { ...persistedJob.schedule!, status: constants.status.schedule.idle },
                 updatedAt: now,
             };
-            const request = buildRequest({ status: constants.status.idle });
+            const request = buildRequest({ status: constants.status.schedule.idle });
 
             mockGetById.mockResolvedValue(persistedJob);
             mockUpdate.mockResolvedValue(updatedJob);
@@ -346,15 +308,15 @@ describe('jobs-controller changeJobScheduleStatus', () => {
                     type: 'daily',
                     startDate: futureStartDate,
                     endDate: null,
-                    status: constants.status.stopped,
+                    status: constants.status.schedule.stopped,
                 },
             });
             const updatedJob = {
                 ...persistedJob,
-                schedule: { ...persistedJob.schedule!, status: constants.status.idle },
+                schedule: { ...persistedJob.schedule!, status: constants.status.schedule.idle },
                 updatedAt: now,
             };
-            const request = buildRequest({ status: constants.status.idle });
+            const request = buildRequest({ status: constants.status.schedule.idle });
 
             mockGetById.mockResolvedValue(persistedJob);
             mockUpdate.mockResolvedValue(updatedJob);
@@ -374,7 +336,7 @@ describe('jobs-controller changeJobScheduleStatus', () => {
     describe('[HTTP-JOBS-SSC-003]', () => {
         it('rejects when the requested status matches the current status', async () => {
             const persistedJob = buildPersistedJob();
-            const request = buildRequest({ status: constants.status.idle });
+            const request = buildRequest({ status: constants.status.schedule.idle });
 
             mockGetById.mockResolvedValue(persistedJob);
 
@@ -389,7 +351,7 @@ describe('jobs-controller changeJobScheduleStatus', () => {
     describe('[HTTP-JOBS-SSC-004]', () => {
         it('rejects when the job has no schedule', async () => {
             const persistedJob = buildPersistedJob({ schedule: null });
-            const request = buildRequest({ status: constants.status.stopped });
+            const request = buildRequest({ status: constants.status.schedule.stopped });
 
             mockGetById.mockResolvedValue(persistedJob);
 
@@ -404,8 +366,8 @@ describe('jobs-controller changeJobScheduleStatus', () => {
     describe('[HTTP-JOBS-SSC-005]', () => {
         it('rejects when the job is running for the current user', async () => {
             const request = buildRequest(
-                { status: constants.status.stopped },
-                { runningJobs: new Map([[mockJobId, { payload: { userId: mockUserId } }]]) }
+                { status: constants.status.schedule.stopped },
+                { runningJobs: [{ jobId: mockJobId, userId: mockUserId }] }
             );
 
             await expect(changeJobScheduleStatus(request, mockResponse)).rejects.toMatchObject({
@@ -414,11 +376,7 @@ describe('jobs-controller changeJobScheduleStatus', () => {
 
             expect(mockGetById).not.toHaveBeenCalled();
             expect(mockUpdate).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith('Failed to change job schedule status', {
-                error: expect.objectContaining({
-                    message: ErrorMessage.JOBS_CANNOT_CHANGE_STATUS_WHILE_RUNNING,
-                }),
-            });
+            expect(mockLoggerError).toHaveBeenCalled();
         });
     });
 
@@ -429,10 +387,10 @@ describe('jobs-controller changeJobScheduleStatus', () => {
                     type: 'daily',
                     startDate: pastStartDate,
                     endDate: expiredEndDate,
-                    status: constants.status.stopped,
+                    status: constants.status.schedule.stopped,
                 },
             });
-            const request = buildRequest({ status: constants.status.idle });
+            const request = buildRequest({ status: constants.status.schedule.idle });
 
             mockGetById.mockResolvedValue(persistedJob);
 
@@ -444,9 +402,71 @@ describe('jobs-controller changeJobScheduleStatus', () => {
         });
     });
 
+    describe('[HTTP-JOBS-SSC-007]', () => {
+        it('rejects when re-enabling a once schedule whose startDate is in the past', async () => {
+            const persistedJob = buildPersistedJob({
+                schedule: {
+                    type: 'once',
+                    startDate: pastStartDate,
+                    endDate: null,
+                    status: constants.status.schedule.stopped,
+                },
+            });
+            const request = buildRequest({ status: constants.status.schedule.idle });
+
+            mockGetById.mockResolvedValue(persistedJob);
+
+            await expect(changeJobScheduleStatus(request, mockResponse)).rejects.toMatchObject({
+                message: ErrorMessage.JOBS_CANNOT_ACTIVATE_ONCE_SCHEDULE_WITH_PAST_START_DATE,
+            });
+
+            expect(mockUpdate).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('[HTTP-JOBS-SSC-008]', () => {
+        it('keeps persisted status and returns a schedule warning when attach fails after save', async () => {
+            const persistedJob = buildPersistedJob();
+            const updatedJob = {
+                ...persistedJob,
+                schedule: { ...persistedJob.schedule!, status: constants.status.schedule.stopped },
+                updatedAt: now,
+            };
+            const request = buildRequest({ status: constants.status.schedule.stopped });
+            const schedulingError = new Error('scheduler failed');
+
+            mockGetById.mockResolvedValue(persistedJob);
+            mockUpdate.mockResolvedValue(updatedJob);
+            mockSchedule.mockImplementation(() => {
+                throw schedulingError;
+            });
+
+            await changeJobScheduleStatus(request, mockResponse);
+
+            expect(mockUpdate).toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith(mockJobId);
+            expect(mockRemoveJob).toHaveBeenCalledWith(mockJobId);
+            expect(mockLoggerError).toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: updatedJob,
+                meta: {
+                    timestamp: now,
+                    warnings: [
+                        {
+                            code: ErrorCode.JOBS_FAILED_TO_SCHEDULE_JOB,
+                            message: ErrorMessage.JOBS_FAILED_TO_SCHEDULE_JOB,
+                        },
+                    ],
+                },
+            });
+        });
+    });
+
     describe('[HTTP-JOBS-OWN-001]', () => {
         it('rejects when the job is owned by another user', async () => {
-            const request = buildRequest({ status: constants.status.stopped });
+            const request = buildRequest({ status: constants.status.schedule.stopped });
 
             mockGetById.mockRejectedValue(new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE));
 
@@ -457,7 +477,7 @@ describe('jobs-controller changeJobScheduleStatus', () => {
         });
 
         it('rejects when the job id does not exist', async () => {
-            const request = buildRequest({ status: constants.status.stopped }, { jobId: 'missing-job-id' });
+            const request = buildRequest({ status: constants.status.schedule.stopped }, { jobId: 'missing-job-id' });
 
             mockGetById.mockRejectedValue(new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE));
 

@@ -16,8 +16,8 @@ import type { Job } from 'shared/types/jobs';
 
 /**
  * Verification: unit proofs for retry-schedule HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/jobs/retry-schedule.md
- * @see documentation/architecture/http/jobs/ownership.md
+ * @see documentation/specification/architecture/http/jobs/retry-schedule.md
+ * @see documentation/specification/architecture/http/jobs/ownership.md
  */
 
 const mockGetById = vi.fn();
@@ -25,7 +25,6 @@ const mockSchedule = vi.fn();
 const mockDelete = vi.fn();
 const mockRegister = vi.fn();
 const mockRemoveJob = vi.fn();
-const mockGetNextAndPreviousRun = vi.fn();
 const mockResponseStatus = vi.fn();
 const mockResponseJson = vi.fn();
 
@@ -48,7 +47,6 @@ const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 const pastStartDate = new Date('2026-03-01T08:30:00.000Z').toISOString();
 const futureStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
 const expiredEndDate = new Date('2026-03-09T12:00:00.000Z').toISOString();
-const enrichedNextRun = new Date('2026-03-12T08:30:00.000Z');
 
 /**
  * Builds a persisted job returned by repository.getById for retryJobSchedule tests.
@@ -61,7 +59,7 @@ const buildPersistedJob = (overrides?: Partial<Job>): Job => ({
         type: 'daily',
         startDate: futureStartDate,
         endDate: null,
-        status: constants.status.idle,
+        status: constants.status.schedule.idle,
     },
     tools: [
         {
@@ -90,7 +88,7 @@ const buildPersistedJob = (overrides?: Partial<Job>): Job => ({
 const buildRequest = (options?: {
     jobId?: string;
     userId?: string;
-    runningJobs?: Map<string, { payload: { userId: string } }>;
+    runningJobs?: Array<{ jobId: string; userId: string }>;
 }): Request<IdRouteParam> =>
     ({
         params: {
@@ -108,10 +106,10 @@ const buildRequest = (options?: {
             scheduler: {
                 schedule: mockSchedule,
                 delete: mockDelete,
-                getNextAndPreviousRun: mockGetNextAndPreviousRun,
             },
             delegator: {
-                runningJobs: options?.runningJobs ?? new Map(),
+                getRunningJobsForUser: (userId: string) =>
+                    (options?.runningJobs ?? []).filter(job => job.userId === userId).map(({ jobId }) => ({ jobId })),
                 register: mockRegister,
                 removeJob: mockRemoveJob,
             },
@@ -124,10 +122,6 @@ describe('jobs-controller retryJobSchedule', () => {
         vi.useFakeTimers();
         vi.setSystemTime(now);
         mockResponseStatus.mockReturnValue(mockResponse);
-        mockGetNextAndPreviousRun.mockReturnValue({
-            nextRun: enrichedNextRun,
-            previousRun: null,
-        });
     });
 
     afterEach(() => {
@@ -160,12 +154,7 @@ describe('jobs-controller retryJobSchedule', () => {
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
-                data: expect.objectContaining({
-                    schedule: expect.objectContaining({
-                        status: constants.status.idle,
-                        nextRun: enrichedNextRun.toISOString(),
-                    }),
-                }),
+                data: persistedJob,
                 meta: {
                     timestamp: now,
                 },
@@ -180,7 +169,7 @@ describe('jobs-controller retryJobSchedule', () => {
                     type: 'daily',
                     startDate: futureStartDate,
                     endDate: null,
-                    status: constants.status.stopped,
+                    status: constants.status.schedule.stopped,
                 },
             });
             const request = buildRequest();
@@ -200,13 +189,7 @@ describe('jobs-controller retryJobSchedule', () => {
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
-                data: expect.objectContaining({
-                    schedule: expect.objectContaining({
-                        status: constants.status.stopped,
-                        nextRun: null,
-                        lastRun: null,
-                    }),
-                }),
+                data: persistedJob,
                 meta: {
                     timestamp: now,
                 },
@@ -232,13 +215,7 @@ describe('jobs-controller retryJobSchedule', () => {
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
-                data: expect.objectContaining({
-                    schedule: expect.objectContaining({
-                        status: constants.status.idle,
-                        nextRun: null,
-                        lastRun: null,
-                    }),
-                }),
+                data: persistedJob,
                 meta: {
                     timestamp: now,
                     warnings: [
@@ -271,7 +248,7 @@ describe('jobs-controller retryJobSchedule', () => {
     describe('[HTTP-JOBS-RTY-005]', () => {
         it('rejects with BUSINESS_LOGIC_ERROR while the job is running', async () => {
             const request = buildRequest({
-                runningJobs: new Map([[mockJobId, { payload: { userId: mockUserId } }]]),
+                runningJobs: [{ jobId: mockJobId, userId: mockUserId }],
             });
 
             await expect(retryJobSchedule(request, mockResponse)).rejects.toMatchObject({
@@ -290,7 +267,7 @@ describe('jobs-controller retryJobSchedule', () => {
                     type: 'daily',
                     startDate: pastStartDate,
                     endDate: expiredEndDate,
-                    status: constants.status.idle,
+                    status: constants.status.schedule.idle,
                 },
             });
             const request = buildRequest();
@@ -313,7 +290,7 @@ describe('jobs-controller retryJobSchedule', () => {
                     type: 'once',
                     startDate: pastStartDate,
                     endDate: null,
-                    status: constants.status.idle,
+                    status: constants.status.schedule.idle,
                 },
             });
             const request = buildRequest();

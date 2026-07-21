@@ -13,7 +13,7 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md).
   - Values: `schedule` = `null`; `tools` valid per OpenAPI / Zod `createJobInputSchema`
 - Response:
   - Status: `201`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
   - Notes: `data.schedule` is `null`; tools run starts after save (not asserted on this response)
 
 Traces:
@@ -31,12 +31,13 @@ Traces:
   - Values: `schedule.status` = `idle`; start/end valid per OpenAPI / Zod `createJobInputSchema`
 - Response:
   - Status: `201`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` = `idle`; `data.schedule.nextRun` may be an ISO string or `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` = `idle`
 
 Traces:
 - [FR-JOBS-CRT-001](../../../requirements/fr/jobs/lifecycle/create.md)
 - [FR-JOBS-CRT-003](../../../requirements/fr/jobs/lifecycle/create.md)
+- [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 
 ## HTTP-JOBS-CRT-003 — Create with stopped schedule
 
@@ -45,12 +46,13 @@ Traces:
   - Values: `schedule.status` = `stopped`
 - Response:
   - Status: `201`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` = `stopped`; `data.schedule.nextRun` = `null`; `data.schedule.lastRun` = `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` = `stopped`
 
 Traces:
 - [FR-JOBS-CRT-006](../../../requirements/fr/jobs/lifecycle/create.md)
 - [FR-JOBS-SSC-002](../../../requirements/fr/jobs/schedule/schedule-status.md)
+- [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 
 ## HTTP-JOBS-CRT-004 — Post-save schedule failure warning
 
@@ -61,14 +63,15 @@ Job is saved; runtime attach fails. Response still succeeds with a warning.
   - Values: otherwise valid create; scheduling fails after persist
 - Response:
   - Status: `201`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
-  - Notes: `data.schedule` still present with owner intent; `nextRun` / `lastRun` are `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
+  - Notes: `data.schedule` still present with owner intent
 
 Traces:
 - [FR-JOBS-CRT-005](../../../requirements/fr/jobs/lifecycle/create.md)
 - [FR-JOBS-SCH-007](../../../requirements/fr/jobs/schedule/schedule.md)
 - [FR-JOBS-SCH-011](../../../requirements/fr/jobs/schedule/schedule.md)
 - [FR-JOBS-STR-004](../../../requirements/fr/jobs/execution/execution.md)
+- [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 
 ## HTTP-JOBS-CRT-005 — Duplicate name for same user
 
@@ -80,8 +83,7 @@ Traces:
   - Body: `{ success: false, code: "CONFLICT_ERROR", timestamp: string }`
 
 Traces:
-- [FR-JOBS-UNQ-001](../../../requirements/fr/jobs/lifecycle/create.md)
-- [FR-JOBS-UNQ-002](../../../requirements/fr/jobs/lifecycle/create.md)
+- [FR-JOBS-UNQ-001](../../../requirements/fr/jobs/lifecycle/uniqueness.md)
 
 ## HTTP-JOBS-CRT-006 — Invalid body
 

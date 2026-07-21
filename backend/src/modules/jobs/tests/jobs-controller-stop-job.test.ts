@@ -39,7 +39,15 @@ const mockUserId = 'user-id-1';
 const mockOtherUserId = 'user-id-2';
 const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 
-const buildRequest = (runningJobs: Map<string, { payload: { userId: string } }> = new Map()) =>
+/**
+ * Builds a getRunningJobsForUser mock from in-memory running entries (filters by owner).
+ */
+const buildGetRunningJobsForUser =
+    (runningJobs: Array<{ jobId: string; userId: string }> = []) =>
+    (userId: string) =>
+        runningJobs.filter(job => job.userId === userId).map(({ jobId }) => ({ jobId }));
+
+const buildRequest = (runningJobs: Array<{ jobId: string; userId: string }> = []) =>
     ({
         params: {
             id: mockJobId,
@@ -55,7 +63,7 @@ const buildRequest = (runningJobs: Map<string, { payload: { userId: string } }> 
             },
             delegator: {
                 cancel: mockCancel,
-                runningJobs,
+                getRunningJobsForUser: buildGetRunningJobsForUser(runningJobs),
             },
         },
     }) as unknown as Request<IdRouteParam>;
@@ -76,7 +84,7 @@ describe('jobs-controller stopJob', () => {
 
     describe('[HTTP-JOBS-STP-001]', () => {
         it('requests cancel when the job is running for the current user', async () => {
-            const mockRequest = buildRequest(new Map([[mockJobId, { payload: { userId: mockUserId } }]]));
+            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockUserId }]);
 
             await stopJob(mockRequest, mockResponse);
 
@@ -108,7 +116,7 @@ describe('jobs-controller stopJob', () => {
         });
 
         it('rejects when another user job is running under the same id in memory', async () => {
-            const mockRequest = buildRequest(new Map([[mockJobId, { payload: { userId: mockOtherUserId } }]]));
+            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockOtherUserId }]);
 
             await expect(stopJob(mockRequest, mockResponse)).rejects.toThrow(BusinessLogicException);
             await expect(stopJob(mockRequest, mockResponse)).rejects.toMatchObject({
@@ -121,7 +129,7 @@ describe('jobs-controller stopJob', () => {
 
     describe('[HTTP-JOBS-OWN-001]', () => {
         it('propagates not-found when the job is not owned by the user', async () => {
-            const mockRequest = buildRequest(new Map([[mockJobId, { payload: { userId: mockUserId } }]]));
+            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockOtherUserId }]);
             mockGetById.mockRejectedValue(new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE));
 
             await expect(stopJob(mockRequest, mockResponse)).rejects.toThrow(ResourceNotFoundException);

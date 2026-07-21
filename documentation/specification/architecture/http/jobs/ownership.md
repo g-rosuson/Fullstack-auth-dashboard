@@ -23,5 +23,5 @@ Request for another user’s job is indistinguishable from a missing job.
   - Body: `{ success: false, code: "NOT_FOUND_ERROR", timestamp: string }`
 
 Traces:
+- [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 - [FR-JOBS-OWN-002](../../../requirements/fr/jobs/ownership/ownership.md)
-- [FR-JOBS-OWN-003](../../../requirements/fr/jobs/ownership/ownership.md)

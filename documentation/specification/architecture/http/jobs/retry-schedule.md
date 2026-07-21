@@ -12,8 +12,8 @@ Re-attaches runtime from persisted schedule intent without changing that intent.
   - No body
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` remains `idle`; `nextRun` / `lastRun` may be ISO string or `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` remains `idle`
 
 Traces:
 - [FR-JOBS-SCH-007](../../../requirements/fr/jobs/schedule/schedule.md)
@@ -26,8 +26,8 @@ Traces:
   - Values: persisted `schedule.status` = `stopped`
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` remains `stopped`; `nextRun` / `lastRun` are `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
+  - Notes: `data.schedule.status` remains `stopped`
 
 Traces:
 - [FR-JOBS-SCH-007](../../../requirements/fr/jobs/schedule/schedule.md)
@@ -40,8 +40,8 @@ Traces:
   - Values: otherwise valid retry; scheduling fails
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <enriched job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
-  - Notes: persisted status unchanged; `nextRun` / `lastRun` are `null`
+  - Body: `{ success: true, data: <Job>, meta: { timestamp: string, warnings: [{ code: "JOBS_FAILED_TO_SCHEDULE_JOB", message: string }] } }`
+  - Notes: persisted status unchanged
 
 Traces:
 - [FR-JOBS-SCH-007](../../../requirements/fr/jobs/schedule/schedule.md)

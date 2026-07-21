@@ -111,7 +111,7 @@ describe('Emitter', () => {
 
             emitter.emit(mockJobTargetFinishedEvent);
 
-            expect(emitter.allEmittedJobTargetEvents).toContainEqual(mockJobTargetFinishedEvent);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id')).toContainEqual(mockJobTargetFinishedEvent);
             expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobTargetFinished, mockJobTargetFinishedEvent);
         });
 
@@ -122,13 +122,11 @@ describe('Emitter', () => {
                 type: constants.events.jobs.jobFinished,
                 finishedAt: '2026-01-01T12:00:00.000Z',
                 executionId: 'exec-finished',
-                lastRun: null,
-                nextRun: null,
             };
 
             emitter.emit(mockEmitPayload);
 
-            expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockEmitPayload);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id')).toEqual([]);
             expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobFinished, mockEmitPayload);
         });
 
@@ -139,7 +137,7 @@ describe('Emitter', () => {
             };
 
             emitter.emit(mockEmitPayload);
-            expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockEmitPayload);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id')).toEqual([]);
             expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobsRunning, mockEmitPayload);
         });
 
@@ -154,7 +152,7 @@ describe('Emitter', () => {
 
             emitter.emit(mockEmitPayload);
 
-            expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockEmitPayload);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id')).toEqual([]);
             expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobFailed, mockEmitPayload);
         });
 
@@ -165,13 +163,11 @@ describe('Emitter', () => {
                 executionId: 'exec-cancelled',
                 type: constants.events.jobs.jobCancelled,
                 cancelledAt: '2026-01-01T12:00:00.000Z',
-                lastRun: null,
-                nextRun: null,
             };
 
             emitter.emit(mockEmitPayload);
 
-            expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockEmitPayload);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id')).toEqual([]);
             expect(mockEmit).toHaveBeenCalledWith(constants.events.jobs.jobCancelled, mockEmitPayload);
         });
 
@@ -188,7 +184,7 @@ describe('Emitter', () => {
                 expect.objectContaining({ issues: expect.any(Array) })
             );
             expect(mockEmit).not.toHaveBeenCalled();
-            expect(emitter.allEmittedJobTargetEvents).toEqual([]);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id')).toEqual([]);
         });
     });
 
@@ -205,6 +201,22 @@ describe('Emitter', () => {
             emitter.off(constants.events.jobs.jobsRunning, callback);
 
             expect(mockOff).toHaveBeenCalledWith(constants.events.jobs.jobsRunning, callback);
+        });
+    });
+
+    describe('getEmittedJobTargetEventsForUser', () => {
+        it('returns only buffered target-finished events for the given user', () => {
+            const ownerEvent = jobTargetFinishedFixture('job-a', 'user-a', 'exec-a', 'tool-a', 'target-a');
+            const otherEvent = jobTargetFinishedFixture('job-b', 'user-b', 'exec-b', 'tool-b', 'target-b');
+            const ownerEventTwo = jobTargetFinishedFixture('job-c', 'user-a', 'exec-c', 'tool-c', 'target-c');
+
+            emitter.emit(ownerEvent);
+            emitter.emit(otherEvent);
+            emitter.emit(ownerEventTwo);
+
+            expect(emitter.getEmittedJobTargetEventsForUser('user-a')).toEqual([ownerEvent, ownerEventTwo]);
+            expect(emitter.getEmittedJobTargetEventsForUser('user-b')).toEqual([otherEvent]);
+            expect(emitter.getEmittedJobTargetEventsForUser('nobody')).toEqual([]);
         });
     });
 
@@ -240,17 +252,19 @@ describe('Emitter', () => {
 
             emitter.clearJobTargetEvents('test-job-id');
 
-            expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockJobTargetFinishedEvent);
-            expect(emitter.allEmittedJobTargetEvents).not.toContainEqual(mockJobTargetFinishedEventTwo);
-            expect(emitter.allEmittedJobTargetEvents).toContainEqual(mockJobTargetFinishedEventThree);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id')).toEqual([]);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id-two')).toEqual([]);
+            expect(emitter.getEmittedJobTargetEventsForUser('test-user-id-three')).toEqual([
+                mockJobTargetFinishedEventThree,
+            ]);
         });
 
         it('does nothing harmful when the buffer is empty', () => {
-            expect(emitter.allEmittedJobTargetEvents).toEqual([]);
+            expect(emitter.getEmittedJobTargetEventsForUser('any-user-id')).toEqual([]);
 
             emitter.clearJobTargetEvents('any-job-id');
 
-            expect(emitter.allEmittedJobTargetEvents).toEqual([]);
+            expect(emitter.getEmittedJobTargetEventsForUser('any-user-id')).toEqual([]);
         });
 
         it('does not remove events when the job id does not match', () => {
@@ -260,8 +274,7 @@ describe('Emitter', () => {
 
             emitter.clearJobTargetEvents('job-b');
 
-            expect(emitter.allEmittedJobTargetEvents).toHaveLength(1);
-            expect(emitter.allEmittedJobTargetEvents).toContainEqual(event);
+            expect(emitter.getEmittedJobTargetEventsForUser('user-a')).toEqual([event]);
         });
 
         it('is idempotent when clearing the same job twice', () => {
@@ -269,11 +282,11 @@ describe('Emitter', () => {
 
             emitter.emit(event);
             emitter.clearJobTargetEvents('job-a');
-            expect(emitter.allEmittedJobTargetEvents).toEqual([]);
+            expect(emitter.getEmittedJobTargetEventsForUser('user-a')).toEqual([]);
 
             emitter.clearJobTargetEvents('job-a');
 
-            expect(emitter.allEmittedJobTargetEvents).toEqual([]);
+            expect(emitter.getEmittedJobTargetEventsForUser('user-a')).toEqual([]);
         });
     });
 });

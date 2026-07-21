@@ -4,10 +4,11 @@ Functional requirements for creating, reading, updating, deleting, scheduling, r
 
 ## Lifecycle
 
-- [lifecycle/create.md](./lifecycle/create.md) — `FR-JOBS-CRT-*`, `FR-JOBS-UNQ-*`
+- [lifecycle/create.md](./lifecycle/create.md) — `FR-JOBS-CRT-*`
 - [lifecycle/read.md](./lifecycle/read.md) — `FR-JOBS-LST-*`, `FR-JOBS-GET-*`
 - [lifecycle/update.md](./lifecycle/update.md) — `FR-JOBS-UPD-*`
 - [lifecycle/delete.md](./lifecycle/delete.md) — `FR-JOBS-DEL-*`
+- [lifecycle/uniqueness.md](./lifecycle/uniqueness.md) — `FR-JOBS-UNQ-*`
 
 ## Schedule
 
