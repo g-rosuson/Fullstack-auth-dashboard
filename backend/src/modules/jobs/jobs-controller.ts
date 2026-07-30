@@ -249,6 +249,52 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
 };
 
 /**
+ * Starts an on-demand run of a job's tools.
+ *
+ * FR-JOBS-RUN-001 / FR-JOBS-RUN-003 — Execute tools when the owner starts a run
+ * FR-JOBS-RUN-004 — Reject while already running
+ * FR-JOBS-ONCE-003 — Allowed when a once schedule can no longer activate
+ * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped; other-user ≡ not found
+ *
+ * Tools start after the response. Clients observe via SSE `running-jobs` / finished events.
+ */
+const runJob = async (req: Request<IdRouteParam>, res: Response) => {
+    try {
+        const jobId = req.params.id;
+        const userId = req.context.user.id;
+
+        // FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — other-user ≡ not found
+        const job = await req.context.db.repository.jobs.getById(jobId, userId);
+
+        // FR-JOBS-RUN-004 — Reject when already running for this owner
+        if (req.context.delegator.getRunningJobsForUser(userId).some(running => running.jobId === jobId)) {
+            throw new BusinessLogicException(ErrorMessage.JOBS_CANNOT_RUN_WHILE_RUNNING);
+        }
+
+        // FR-JOBS-RUN-001 / FR-JOBS-RUN-003 — Fire-and-forget; do not await tool completion
+        req.context.delegator.delegate({
+            jobId: job.id,
+            userId,
+            tools: job.tools,
+            scheduleType: job.schedule?.type ?? null,
+        });
+
+        res.status(HttpStatusCode.OK).json({
+            success: true,
+            data: {
+                jobId,
+            },
+            meta: {
+                timestamp: new Date().toISOString(),
+            },
+        });
+    } catch (error) {
+        logger.error('Failed to run job', { error: error as Error });
+        throw error;
+    }
+};
+
+/**
  * Requests cancellation of an in-flight job run.
  *
  * FR-JOBS-STP-001 — Owner may request cancellation of an in-flight run
@@ -728,6 +774,7 @@ export {
     getAllJobs,
     getJob,
     retryJobSchedule,
+    runJob,
     stopJob,
     streamJobs,
     updateJob,
