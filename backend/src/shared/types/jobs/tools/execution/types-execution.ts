@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
-import { CronJobType } from 'shared/types/cron';
-
 import {
+    executionScheduleSchema,
     executionStatusSchema,
     executionToolSchema,
     executionToolTargetSchema,
@@ -21,11 +20,7 @@ type ExecutionTool = z.infer<typeof executionToolSchema>;
 /**
  * An execution schedule.
  */
-type ExecutionSchedule = {
-    type: CronJobType | null;
-    delegatedAt: string;
-    finishedAt: string | null;
-};
+type ExecutionSchedule = z.infer<typeof executionScheduleSchema>;
 
 /**
  * Execution outcome status written by the Delegator.

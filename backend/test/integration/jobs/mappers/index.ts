@@ -86,7 +86,6 @@ function mapToUpdateJobPayload(
         name: partial.name ?? job.name,
         schedule,
         tools: partial.tools ?? job.tools,
-        status: partial.status ?? schedule?.status ?? constants.status.schedule.idle,
     };
 }
 

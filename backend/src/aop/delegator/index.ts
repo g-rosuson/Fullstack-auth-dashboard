@@ -131,6 +131,7 @@ export class Delegator {
 
         try {
             const delegatedAt = new Date().toISOString();
+            let cancelledAt: string | null = null;
 
             this.runningJobs.set(payload.jobId, { payload, aborter });
 
@@ -146,6 +147,7 @@ export class Delegator {
             for (let toolIndex = 0; toolIndex < payload.tools.length; toolIndex++) {
                 // FR-JOBS-STP-003 — Do not start subsequent tools after cancel
                 if (aborter.cancelled) {
+                    cancelledAt = new Date().toISOString();
                     break;
                 }
 
@@ -160,6 +162,7 @@ export class Delegator {
                         type: payload.scheduleType,
                         delegatedAt,
                         finishedAt: null,
+                        cancelledAt: null,
                     },
                     tool,
                     signal: aborter.signal,
@@ -187,6 +190,7 @@ export class Delegator {
                     type: payload.scheduleType,
                     delegatedAt,
                     finishedAt,
+                    cancelledAt,
                 },
                 tools: mappedTools,
                 status,
@@ -194,13 +198,13 @@ export class Delegator {
 
             await this.persistResult(executionPayload);
 
-            if (status === constants.status.execution.cancelled) {
+            if (status === constants.status.execution.cancelled && cancelledAt !== null) {
                 // FR-JOBS-STR-006 — Live cancellation event
                 this.emitter.emit({
                     type: constants.events.jobs.jobCancelled,
                     jobId: payload.jobId,
                     userId: payload.userId,
-                    cancelledAt: finishedAt,
+                    cancelledAt,
                     executionId,
                 });
             } else {

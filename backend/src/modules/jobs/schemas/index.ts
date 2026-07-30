@@ -104,7 +104,6 @@ const updateJobInputSchema = z
         schedule: jobScheduleSchema.nullable(),
         tools: z.array(updateJobToolSchema).min(1),
         name: z.string(),
-        status: jobScheduleStatusSchema,
     })
     .superRefine(validateJobSchedule)
     .openapi('UpdateJobInput');
@@ -146,6 +145,15 @@ const stopJobResultSchema = z
     })
     .openapi('StopJobResult');
 
+/**
+ * Response when a run request is accepted.
+ */
+const runJobResultSchema = z
+    .object({
+        jobId: z.string(),
+    })
+    .openapi('RunJobResult');
+
 export {
     createJobInputSchema,
     createJobToolSchema,
@@ -155,4 +163,5 @@ export {
     paginatedRouteParamSchema,
     changeJobScheduleStatusPayloadSchema,
     stopJobResultSchema,
+    runJobResultSchema,
 };

@@ -22,6 +22,7 @@ const executionScheduleSchema = z
         type: cronJobTypeSchema.nullable(),
         delegatedAt: z.string().datetime({ offset: true }),
         finishedAt: z.string().datetime({ offset: true }).nullable(),
+        cancelledAt: z.string().datetime({ offset: true }).nullable(),
     })
     .openapi('ExecutionSchedule');
 
