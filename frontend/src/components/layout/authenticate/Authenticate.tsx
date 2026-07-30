@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 
 import Dashboard from '../dashboard/Dashboard';
 import RefreshSessionModal from './refreshSession/RefreshSession';
+import Spinner from '@/components/ui-app/spinner/Spinner';
 
 import api from '@/api';
-import { Spinner } from '@/components/ui/spinner';
 import config from '@/config';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
