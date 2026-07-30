@@ -8,7 +8,7 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for stream-jobs HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/specification/architecture/http/jobs/stream.md
+ * @see docs/specs/architecture/http/jobs/stream.md
  */
 
 const mockResponseWrite = vi.fn();

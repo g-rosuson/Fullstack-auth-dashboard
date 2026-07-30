@@ -12,8 +12,8 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for login HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/auth/login.md
- * @see documentation/architecture/http/auth/session.md
+ * @see docs/specs/architecture/http/auth/login.md
+ * @see docs/specs/architecture/http/auth/session.md
  */
 
 const mockGetByEmail = vi.fn();

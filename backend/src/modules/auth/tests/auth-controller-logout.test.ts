@@ -8,7 +8,7 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for logout HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/auth/logout.md
+ * @see docs/specs/architecture/http/auth/logout.md
  */
 
 const mockGetRefreshCookieOptions = vi.fn();

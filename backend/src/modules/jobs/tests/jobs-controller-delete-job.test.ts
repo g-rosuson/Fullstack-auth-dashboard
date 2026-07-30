@@ -12,8 +12,8 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for delete-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/jobs/delete.md
- * @see documentation/architecture/http/jobs/ownership.md
+ * @see docs/specs/architecture/http/jobs/delete.md
+ * @see docs/specs/architecture/http/jobs/ownership.md
  */
 
 const mockDelete = vi.fn();

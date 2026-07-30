@@ -15,7 +15,7 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for update-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/specification/architecture/http/jobs/update.md
+ * @see docs/specs/architecture/http/jobs/update.md
  */
 
 const mockUpdate = vi.fn();
@@ -68,7 +68,6 @@ const buildRequestBody = (): UpdateJobInput => ({
             ],
         },
     ],
-    status: constants.status.schedule.idle,
 });
 
 /**
@@ -225,7 +224,6 @@ describe('jobs-controller updateJob', () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
-                status: constants.status.schedule.idle,
             };
             const request = buildRequest(requestBody);
             const updatedJob = buildUpdatedJob(requestBody);
@@ -270,7 +268,6 @@ describe('jobs-controller updateJob', () => {
                     ...baseBody.schedule!,
                     status: constants.status.schedule.stopped,
                 },
-                status: constants.status.schedule.stopped,
             };
             const request = buildRequest(requestBody);
             const updatedJob = buildUpdatedJob(requestBody);
@@ -379,7 +376,6 @@ describe('jobs-controller updateJob', () => {
             const requestBody: UpdateJobInput = {
                 ...buildRequestBody(),
                 schedule: null,
-                status: constants.status.schedule.idle,
             };
             const request = buildRequest(requestBody);
             const updatedJob = buildUpdatedJob(requestBody);

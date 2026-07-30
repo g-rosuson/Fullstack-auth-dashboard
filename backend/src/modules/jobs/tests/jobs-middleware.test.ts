@@ -17,10 +17,10 @@ import type { CreateJobInput, UpdateJobInput } from '../types';
  * Verification: unit proofs for jobs middleware gates (exception type + next()).
  * Full HTTP envelopes for invalid bodies live in integration (`HTTP-JOBS-CRT-006`, `UPD-007`, `SSC-009`).
  *
- * @see documentation/architecture/http/jobs/create.md
- * @see documentation/architecture/http/jobs/update.md
- * @see documentation/architecture/http/jobs/schedule-status.md
- * @see documentation/architecture/http/jobs/read.md
+ * @see docs/specs/architecture/http/jobs/create.md
+ * @see docs/specs/architecture/http/jobs/update.md
+ * @see docs/specs/architecture/http/jobs/schedule-status.md
+ * @see docs/specs/architecture/http/jobs/read.md
  */
 
 const futureStart = () => new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
@@ -40,7 +40,6 @@ const validCreateBody = (): CreateJobInput => ({
 
 const validUpdateBody = (): UpdateJobInput => ({
     ...validCreateBody(),
-    status: constants.status.schedule.idle,
 });
 
 describe('jobs-middleware', () => {

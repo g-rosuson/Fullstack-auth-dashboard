@@ -10,9 +10,9 @@ import constants from 'shared/constants';
 
 /**
  * Verification: unit proofs for auth middleware (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/auth/registration.md
- * @see documentation/architecture/http/auth/logout.md
- * @see documentation/architecture/http/auth/refresh.md
+ * @see docs/specs/architecture/http/auth/registration.md
+ * @see docs/specs/architecture/http/auth/logout.md
+ * @see docs/specs/architecture/http/auth/refresh.md
  */
 
 const validRegisterBody = {

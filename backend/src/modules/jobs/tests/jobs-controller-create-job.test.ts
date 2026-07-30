@@ -14,7 +14,7 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for create-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/specification/architecture/http/jobs/create.md
+ * @see docs/specs/architecture/http/jobs/create.md
  */
 
 const mockCreate = vi.fn();

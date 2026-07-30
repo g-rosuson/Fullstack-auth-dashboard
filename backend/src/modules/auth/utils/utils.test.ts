@@ -6,7 +6,7 @@ import utils from './index';
 
 /**
  * Verification: refresh cookie option contract (cite NFR IDs).
- * @see documentation/requirements/nfr/security/authentication.md
+ * @see docs/specs/requirements/nfr/security/authentication.md
  */
 
 describe('auth utils getRefreshCookieOptions', () => {

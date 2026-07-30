@@ -8,9 +8,9 @@ import { Delegator } from './';
 
 /**
  * Verification: unit proofs for job execution runtime (cite FR IDs).
- * @see documentation/specification/requirements/fr/jobs/execution/execution.md
- * @see documentation/specification/requirements/fr/jobs/execution/stop.md
- * @see documentation/specification/requirements/nfr/reliability/jobs.md
+ * @see docs/specs/requirements/fr/jobs/execution/execution.md
+ * @see docs/specs/requirements/fr/jobs/execution/stop.md
+ * @see docs/specs/requirements/nfr/reliability/jobs.md
  *
  * Out of scope here (covered elsewhere):
  * - FR-JOBS-RUN-003 — manual start UX / HTTP entry
@@ -306,6 +306,7 @@ describe('Delegator', () => {
                         type: null,
                         delegatedAt: expect.any(String),
                         finishedAt: expect.any(String),
+                        cancelledAt: null,
                     },
                     tools: [
                         expect.objectContaining({
@@ -463,6 +464,7 @@ describe('Delegator', () => {
                         type: null,
                         delegatedAt: expect.any(String),
                         finishedAt: null,
+                        cancelledAt: null,
                     },
                     tool: mockTool,
                     target: mockTargetListing,

@@ -2,7 +2,7 @@ const mockLoggerError = vi.hoisted(() => vi.fn());
 
 import { BusinessLogicException, ResourceNotFoundException } from 'aop/exceptions';
 
-import { stopJob } from '../jobs-controller';
+import { runJob } from '../jobs-controller';
 
 import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
@@ -11,13 +11,13 @@ import type { IdRouteParam } from '../types';
 import type { Request, Response } from 'express';
 
 /**
- * Verification: unit proofs for stop-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see docs/specs/architecture/http/jobs/stop.md
+ * Verification: unit proofs for run-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see docs/specs/architecture/http/jobs/run.md
  * @see docs/specs/architecture/http/jobs/ownership.md
  */
 
 const mockGetById = vi.fn();
-const mockCancel = vi.fn();
+const mockDelegate = vi.fn();
 const mockResponseStatus = vi.fn();
 const mockResponseJson = vi.fn();
 
@@ -37,6 +37,7 @@ const mockResponse = {
 const mockJobId = 'job-id-1';
 const mockUserId = 'user-id-1';
 const mockOtherUserId = 'user-id-2';
+const mockTools = [{ id: 'tool-1', type: 'scraper' }];
 const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 
 /**
@@ -62,19 +63,24 @@ const buildRequest = (runningJobs: Array<{ jobId: string; userId: string }> = []
                 },
             },
             delegator: {
-                cancel: mockCancel,
+                delegate: mockDelegate,
                 getRunningJobsForUser: buildGetRunningJobsForUser(runningJobs),
             },
         },
     }) as unknown as Request<IdRouteParam>;
 
-describe('jobs-controller stopJob', () => {
+describe('jobs-controller runJob', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
         vi.setSystemTime(now);
         mockResponseStatus.mockReturnValue(mockResponse);
-        mockGetById.mockResolvedValue({ id: mockJobId, userId: mockUserId });
+        mockGetById.mockResolvedValue({
+            id: mockJobId,
+            userId: mockUserId,
+            tools: mockTools,
+            schedule: null,
+        });
     });
 
     afterEach(() => {
@@ -82,14 +88,19 @@ describe('jobs-controller stopJob', () => {
         vi.restoreAllMocks();
     });
 
-    describe('[HTTP-JOBS-STP-001]', () => {
-        it('requests cancel when the job is running for the current user', async () => {
-            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockUserId }]);
+    describe('[HTTP-JOBS-RUN-001]', () => {
+        it('delegates when the job is not running for the current user', async () => {
+            const mockRequest = buildRequest();
 
-            await stopJob(mockRequest, mockResponse);
+            await runJob(mockRequest, mockResponse);
 
             expect(mockGetById).toHaveBeenCalledWith(mockJobId, mockUserId);
-            expect(mockCancel).toHaveBeenCalledWith(mockJobId);
+            expect(mockDelegate).toHaveBeenCalledWith({
+                jobId: mockJobId,
+                userId: mockUserId,
+                tools: mockTools,
+                scheduleType: null,
+            });
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
@@ -101,39 +112,55 @@ describe('jobs-controller stopJob', () => {
                 },
             });
         });
-    });
 
-    describe('[HTTP-JOBS-STP-002]', () => {
-        it('rejects when the job is not running', async () => {
+        it('passes the persisted schedule type when the job has a schedule', async () => {
+            mockGetById.mockResolvedValue({
+                id: mockJobId,
+                userId: mockUserId,
+                tools: mockTools,
+                schedule: { type: 'daily', status: 'idle' },
+            });
             const mockRequest = buildRequest();
 
-            await expect(stopJob(mockRequest, mockResponse)).rejects.toThrow(BusinessLogicException);
-            await expect(stopJob(mockRequest, mockResponse)).rejects.toMatchObject({
-                message: ErrorMessage.JOBS_CANNOT_STOP_WHEN_NOT_RUNNING,
-            });
+            await runJob(mockRequest, mockResponse);
 
-            expect(mockCancel).not.toHaveBeenCalled();
+            expect(mockDelegate).toHaveBeenCalledWith({
+                jobId: mockJobId,
+                userId: mockUserId,
+                tools: mockTools,
+                scheduleType: 'daily',
+            });
         });
+    });
 
-        it('rejects when another user job is running under the same id in memory', async () => {
-            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockOtherUserId }]);
+    describe('[HTTP-JOBS-RUN-002]', () => {
+        it('rejects when the job is already running', async () => {
+            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockUserId }]);
 
-            await expect(stopJob(mockRequest, mockResponse)).rejects.toThrow(BusinessLogicException);
-            await expect(stopJob(mockRequest, mockResponse)).rejects.toMatchObject({
-                message: ErrorMessage.JOBS_CANNOT_STOP_WHEN_NOT_RUNNING,
+            await expect(runJob(mockRequest, mockResponse)).rejects.toThrow(BusinessLogicException);
+            await expect(runJob(mockRequest, mockResponse)).rejects.toMatchObject({
+                message: ErrorMessage.JOBS_CANNOT_RUN_WHILE_RUNNING,
             });
 
-            expect(mockCancel).not.toHaveBeenCalled();
+            expect(mockDelegate).not.toHaveBeenCalled();
         });
     });
 
     describe('[HTTP-JOBS-OWN-001]', () => {
         it('propagates not-found when the job is not owned by the user', async () => {
+            const mockRequest = buildRequest();
+            mockGetById.mockRejectedValue(new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE));
+
+            await expect(runJob(mockRequest, mockResponse)).rejects.toThrow(ResourceNotFoundException);
+            expect(mockDelegate).not.toHaveBeenCalled();
+        });
+
+        it('does not treat another user running entry as blocking before ownership fails', async () => {
             const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockOtherUserId }]);
             mockGetById.mockRejectedValue(new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE));
 
-            await expect(stopJob(mockRequest, mockResponse)).rejects.toThrow(ResourceNotFoundException);
-            expect(mockCancel).not.toHaveBeenCalled();
+            await expect(runJob(mockRequest, mockResponse)).rejects.toThrow(ResourceNotFoundException);
+            expect(mockDelegate).not.toHaveBeenCalled();
         });
     });
 });

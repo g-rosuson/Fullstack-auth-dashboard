@@ -10,9 +10,9 @@ import parser from 'cron-parser';
 
 /**
  * Verification: unit proofs for scheduler runtime behavior (cite FR IDs; FRs via Traces in docs).
- * @see documentation/requirements/fr/jobs/schedule/schedule.md
- * @see documentation/requirements/fr/jobs/schedule/once.md
- * @see documentation/requirements/fr/jobs/execution/execution.md
+ * @see docs/specs/requirements/fr/jobs/schedule/schedule.md
+ * @see docs/specs/requirements/fr/jobs/schedule/once.md
+ * @see docs/specs/requirements/fr/jobs/execution/execution.md
  */
 
 const invalidCronExpression = 'invalid';

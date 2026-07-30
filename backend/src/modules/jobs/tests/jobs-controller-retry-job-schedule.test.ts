@@ -16,8 +16,8 @@ import type { Job } from 'shared/types/jobs';
 
 /**
  * Verification: unit proofs for retry-schedule HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/specification/architecture/http/jobs/retry-schedule.md
- * @see documentation/specification/architecture/http/jobs/ownership.md
+ * @see docs/specs/architecture/http/jobs/retry-schedule.md
+ * @see docs/specs/architecture/http/jobs/ownership.md
  */
 
 const mockGetById = vi.fn();

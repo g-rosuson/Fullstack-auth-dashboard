@@ -18,7 +18,7 @@ const mockRegisterPayload = mapToRegisterPayload(mockEmail);
 /**
  * Integration: auth HTTP — real Mongo, bcrypt, cookies, and JWT verification.
  *
- * Cites documentation/architecture/http/auth (`HTTP-AUTH-*`).
+ * Cites docs/specs/architecture/http/auth (`HTTP-AUTH-*`).
  *
  * Note on HTTP-AUTH-TOK-003: missing `Authorization` currently fails as
  * `VALIDATION_ERROR` (400) via InputValidationException; invalid Bearer fails as

@@ -10,8 +10,8 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for get-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/specification/architecture/http/jobs/read.md
- * @see documentation/specification/architecture/http/jobs/ownership.md
+ * @see docs/specs/architecture/http/jobs/read.md
+ * @see docs/specs/architecture/http/jobs/ownership.md
  */
 
 /**

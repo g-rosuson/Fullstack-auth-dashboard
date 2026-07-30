@@ -13,8 +13,8 @@ import type { Request, Response } from 'express';
 
 /**
  * Verification: unit proofs for refresh HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
- * @see documentation/architecture/http/auth/refresh.md
- * @see documentation/architecture/http/auth/session.md
+ * @see docs/specs/architecture/http/auth/refresh.md
+ * @see docs/specs/architecture/http/auth/session.md
  */
 
 const mockCreateTokens = vi.fn();

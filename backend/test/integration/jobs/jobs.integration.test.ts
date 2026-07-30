@@ -32,8 +32,8 @@ import { readJobsAggregatedStream, readJobsStreamUntilMatch } from './sse';
 /**
  * Integration: jobs HTTP — real Mongo, middleware, and route handlers.
  *
- * Cites documentation/specification/architecture/http/jobs (`HTTP-JOBS-*`).
- * Auth gate: documentation/specification/architecture/http/auth/session.md (`HTTP-AUTH-TOK-003`).
+ * Cites docs/specs/architecture/http/jobs (`HTTP-JOBS-*`).
+ * Auth gate: docs/specs/architecture/http/auth/session.md (`HTTP-AUTH-TOK-003`).
  *
  * Post-save schedule attach warnings (HTTP-JOBS-CRT-004, UPD-005, SSC-008, RTY-003) are covered
  * in controller unit tests — they need a forced scheduler failure not practical here.
@@ -144,7 +144,7 @@ describe('Integration: jobs HTTP', () => {
     });
 
     describe('[HTTP-JOBS-OWN-001] — other user’s job or unknown id', () => {
-        it('returns 404 on get / update / delete / stop / change-schedule-status / retry-schedule for another user’s job', async () => {
+        it('returns 404 on get / update / delete / stop / run / change-schedule-status / retry-schedule for another user’s job', async () => {
             const regA = await agent
                 .post(constants.routes.auth.register)
                 .send(mapToRegisterPayload('own-owner@example.com'));
@@ -189,6 +189,12 @@ describe('Integration: jobs HTTP', () => {
             expect(stopRes.status).toBe(404);
             expect(stopRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
+            const runRes = await agent
+                .post(mapToJobUrl(constants.routes.jobs.run, jobId))
+                .set('Authorization', `Bearer ${tokenB}`);
+            expect(runRes.status).toBe(404);
+            expect(runRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
+
             const sscRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, jobId))
                 .set('Authorization', `Bearer ${tokenB}`)
@@ -203,7 +209,7 @@ describe('Integration: jobs HTTP', () => {
             expect(rtyRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
         });
 
-        it('returns 404 on get / update / delete / stop / change-schedule-status / retry-schedule for a missing id', async () => {
+        it('returns 404 on get / update / delete / stop / run / change-schedule-status / retry-schedule for a missing id', async () => {
             const registerResponse = await agent
                 .post(constants.routes.auth.register)
                 .send(mapToRegisterPayload('own-missing@example.com'));
@@ -221,7 +227,7 @@ describe('Integration: jobs HTTP', () => {
             const putRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.update, missingId))
                 .set('Authorization', `Bearer ${token}`)
-                .send({ name: 'Ghost', schedule: null, tools: minimalTools, status: constants.status.schedule.idle });
+                .send({ name: 'Ghost', schedule: null, tools: minimalTools });
             expect(putRes.status).toBe(404);
             expect(putRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
@@ -236,6 +242,12 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${token}`);
             expect(stopRes.status).toBe(404);
             expect(stopRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
+
+            const runRes = await agent
+                .post(mapToJobUrl(constants.routes.jobs.run, missingId))
+                .set('Authorization', `Bearer ${token}`);
+            expect(runRes.status).toBe(404);
+            expect(runRes.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
 
             const sscRes = await agent
                 .put(mapToJobUrl(constants.routes.jobs.changeScheduleStatus, missingId))
@@ -1213,6 +1225,80 @@ describe('Integration: jobs HTTP', () => {
 
             expect(rtyRes.status).toBe(422);
             expect(rtyRes.body.code).toBe(ErrorCode.BUSINESS_LOGIC_ERROR);
+        });
+    });
+
+    describe(`POST ${constants.routes.jobs.run}`, () => {
+        it('[HTTP-JOBS-RUN-001] runs an owned job that is not running and returns the job id', async () => {
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('run-idle@example.com'));
+            expect(registerResponse.status).toBe(200);
+            const token = registerResponse.body.data as string;
+
+            const createRes = await agent
+                .post(constants.routes.jobs.create)
+                .set('Authorization', `Bearer ${token}`)
+                .send(mapToJobWithSchedulePayload('Run on demand'));
+            expect(createRes.status).toBe(201);
+
+            const jobId = createRes.body.data.id as string;
+            const delegator = Delegator.getInstance();
+
+            try {
+                const runRes = await agent
+                    .post(mapToJobUrl(constants.routes.jobs.run, jobId))
+                    .set('Authorization', `Bearer ${token}`);
+
+                expect(runRes.status).toBe(200);
+                expect(runRes.body.success).toBe(true);
+                expect(runRes.body.data.jobId).toBe(jobId);
+                expect(typeof runRes.body.meta.timestamp).toBe('string');
+            } finally {
+                delegator.cancel(jobId);
+                delegator.runningJobs.delete(jobId);
+            }
+        });
+
+        it('[HTTP-JOBS-RUN-002] rejects run when the job is already running', async () => {
+            const registerResponse = await agent
+                .post(constants.routes.auth.register)
+                .send(mapToRegisterPayload('run-running@example.com'));
+            expect(registerResponse.status).toBe(200);
+            const token = registerResponse.body.data as string;
+
+            const createRes = await agent
+                .post(constants.routes.jobs.create)
+                .set('Authorization', `Bearer ${token}`)
+                .send(mapToJobWithSchedulePayload('Already running'));
+            expect(createRes.status).toBe(201);
+
+            const job = createRes.body.data;
+            const jobId = job.id as string;
+            const aborter = new Aborter();
+            const delegator = Delegator.getInstance();
+
+            delegator.runningJobs.set(jobId, {
+                payload: {
+                    jobId,
+                    userId: job.userId,
+                    tools: job.tools,
+                    scheduleType: job.schedule?.type ?? null,
+                },
+                aborter,
+            });
+
+            try {
+                const runRes = await agent
+                    .post(mapToJobUrl(constants.routes.jobs.run, jobId))
+                    .set('Authorization', `Bearer ${token}`);
+
+                expect(runRes.status).toBe(422);
+                expect(runRes.body.success).toBe(false);
+                expect(runRes.body.code).toBe(ErrorCode.BUSINESS_LOGIC_ERROR);
+            } finally {
+                delegator.runningJobs.delete(jobId);
+            }
         });
     });
 
