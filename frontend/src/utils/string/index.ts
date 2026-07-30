@@ -10,12 +10,8 @@
  * capitalize('') // returns ''
  * capitalize(null) // returns ''
  */
-const capitalize = (str?: unknown): string => {
-    if (typeof str !== 'string' || str.length === 0) {
-        return '';
-    }
-
-    return str.charAt(0).toUpperCase() + str.slice(1);
+const capitalize = <T extends string>(str: T): Capitalize<T> => {
+    return (str.charAt(0).toUpperCase() + str.slice(1)) as Capitalize<T>;
 };
 
 const string = {
