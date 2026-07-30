@@ -36,6 +36,7 @@ export enum ErrorMessage {
     JOBS_CANNOT_RETRY_SCHEDULE_WITHOUT_SCHEDULE = 'Cannot retry scheduling a job without a schedule',
     JOBS_CANNOT_RETRY_SCHEDULE_WHILE_RUNNING = 'Cannot retry scheduling a job while it is running',
     JOBS_CANNOT_STOP_WHEN_NOT_RUNNING = 'Cannot stop a job when it is not running',
+    JOBS_CANNOT_RUN_WHILE_RUNNING = 'Cannot run a job while it is already running',
     JOBS_FAILED_TO_SCHEDULE_JOB = 'Failed to schedule job',
     JOBS_FAILED_TO_DELEGATE_JOB = 'Failed to delegate job',
     DATABASE_OPERATION_FAILED_ERROR = 'Database operation failed',

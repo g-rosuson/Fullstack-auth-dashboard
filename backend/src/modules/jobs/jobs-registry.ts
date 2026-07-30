@@ -7,6 +7,7 @@ import {
     createJobInputSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,
+    runJobResultSchema,
     stopJobResultSchema,
     updateJobInputSchema,
 } from './schemas';
@@ -169,6 +170,24 @@ jobsRegistry.registerPath({
             content: {
                 'application/json': {
                     schema: stopJobResultSchema,
+                },
+            },
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'post',
+    path: constants.routes.jobs.run,
+    responses: {
+        200: {
+            description: 'On-demand run requested for the job',
+            content: {
+                'application/json': {
+                    schema: runJobResultSchema,
                 },
             },
         },
