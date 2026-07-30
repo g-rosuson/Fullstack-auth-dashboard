@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const DropdownMenu = ({ dropdownItems, trigger }: DropdownMenuProps) => {
+const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
     // Determine the trigger
     let dropdownMenuTrigger = <EllipsisIcon size={18} />;
 
@@ -35,7 +35,7 @@ const DropdownMenu = ({ dropdownItems, trigger }: DropdownMenuProps) => {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
-                {dropdownItems.map(item => {
+                {dropdownMenuItems.map(item => {
                     const addSeparator = item.variant === 'destructive';
 
                     return (
