@@ -2,9 +2,10 @@
 
 Functional and non-functional requirements for this product.
 
-- How to write and trace: [software-requirements-specification](../guides/software-requirements-specification.md)
-- Doc stack: [software-documentation](../guides/software-documentation.md)
+- How to write and trace: [software-requirements-specification](../../guides/software-docs/software-requirements-specification.md)
+- Doc stack: [software-documentation](../../guides/software-docs/software-documentation.md)
 - HTTP acceptance (not requirements): [architecture/http](../architecture/http/README.md)
+- Client acceptance (not requirements): [architecture/client](../architecture/client/README.md)
 
 FRs state **what** the system shall do. NFRs state **how well**. Implementation details belong in architecture docs, not here.
 

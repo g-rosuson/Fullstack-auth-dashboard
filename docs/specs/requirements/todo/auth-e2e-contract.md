@@ -2,7 +2,7 @@
 
 # Auth — end-to-end test requirements
 
-**Canonical source** for browser-level auth test cases. Playwright specs in [`tests/e2e/spec/auth/`](../../tests/e2e/spec/auth/) MUST implement scenarios listed here.
+**Canonical source** for browser-level auth test cases. Playwright specs in [`tests/e2e/spec/auth/`](../../../../tests/e2e/spec/auth/) MUST implement scenarios listed here.
 
 **Scope:** Login, logout, registration (feature-flagged), protected routes, and session bootstrap via the React app with a live backend and MongoDB.
 
@@ -14,9 +14,9 @@
 |----------|----------|
 | [auth-http-contract.md](./auth-http-contract.md) | API rules (`AUTH-*`) |
 | [jobs-e2e-contract.md](./jobs-e2e-contract.md) | Jobs page cases that assume auth (`AUTH-E2E-022`) |
-| [e2e-testing.md](../guides/e2e-testing.md) | Playwright setup and conventions |
+| [e2e-testing.md](../../../artifacts/e2e-testing.md) | Playwright setup and conventions |
 
-Smoke tests (`SMK-*`) are frontend-only and live in [`tests/e2e/spec/smoke/`](../../tests/e2e/spec/smoke/) — not duplicated here.
+Smoke tests (`SMK-*`) are frontend-only and live in [`tests/e2e/spec/smoke/`](../../../../tests/e2e/spec/smoke/) — not duplicated here.
 
 ---
 
@@ -42,14 +42,14 @@ cd backend && npm run start:e2e
 npm run test:e2e -- tests/e2e/spec/auth
 ```
 
-**CI:** Backend must be up — auth failures block deploy (see [e2e-testing.md](../guides/e2e-testing.md)). Locally, if the backend is unavailable, the suite **fails** (does not skip).
+**CI:** Backend must be up — auth failures block deploy (see [e2e-testing.md](../../../artifacts/e2e-testing.md)). Locally, if the backend is unavailable, the suite **fails** (does not skip).
 
-**Backend:** [`backend/.env.e2e.test`](../../backend/.env.e2e.test) via `npm run start:e2e` (local) or `npm run build && npm run start:e2e:built` (CI/prod parity). See [Backend bootstrap](../guides/e2e-testing.md#backend-bootstrap).
+**Backend:** [`backend/.env.e2e.test`](../../../../backend/.env.e2e.test) via `npm run start:e2e` (local) or `npm run build && npm run start:e2e:built` (CI/prod parity). See [Backend bootstrap](../../../artifacts/e2e-testing.md#backend-bootstrap).
 
 **Fixtures:**
 
-- `loginPage` — [`tests/e2e/pages/login.page.ts`](../../tests/e2e/pages/login.page.ts) ([`fixtures/base.ts`](../../tests/e2e/fixtures/base.ts))
-- `testUser` — unique user seeded via `POST /api/auth/register` before each test ([`fixtures/authenticated.ts`](../../tests/e2e/fixtures/authenticated.ts))
+- `loginPage` — [`tests/e2e/pages/login.page.ts`](../../../../tests/e2e/pages/login.page.ts) ([`fixtures/base.ts`](../../../../tests/e2e/fixtures/base.ts))
+- `testUser` — unique user seeded via `POST /api/auth/register` before each test ([`fixtures/authenticated.ts`](../../../../tests/e2e/fixtures/authenticated.ts))
 
 **Naming:** `*.e2e.test.ts`; titles prefixed `[AUTH-E2E-xxx]`. Prefer `getByRole` / `getByLabel`; no `waitForTimeout()`.
 
@@ -61,12 +61,12 @@ npm run test:e2e -- tests/e2e/spec/auth
 
 | Route | Page / component |
 |-------|------------------|
-| `/login` | [`Authentication`](../../frontend/src/components/pages/authentication/Authentication.tsx) |
+| `/login` | [`Authentication`](../../../../frontend/src/components/pages/authentication/Authentication.tsx) |
 | `/register` | Same (when `registrationEnabled`) |
 | `/` | Home — heading **Home** (level 1) |
 | `/jobs` | Jobs — heading **Jobs** (level 1); see [jobs-e2e-contract.md](./jobs-e2e-contract.md) |
 
-**Login page** ([`LoginPage`](../../tests/e2e/pages/login.page.ts)):
+**Login page** ([`LoginPage`](../../../../tests/e2e/pages/login.page.ts)):
 
 | Control | Label / role |
 |---------|--------------|
@@ -76,7 +76,7 @@ npm run test:e2e -- tests/e2e/spec/auth
 | Password | **Password** |
 | Submit | **Login** (button) |
 
-**Logout** ([`DashboardPage`](../../tests/e2e/pages/dashboard.page.ts)): user menu **Dropdown menu trigger** → menu item **Logout**.
+**Logout** ([`DashboardPage`](../../../../tests/e2e/pages/dashboard.page.ts)): user menu **Dropdown menu trigger** → menu item **Logout**.
 
 API routes invoked by auth flows: see [auth-http-contract.md](./auth-http-contract.md) § Canonical routes.
 
@@ -119,7 +119,7 @@ Maps each E2E case to related HTTP rule(s). Full rule text: [auth-http-contract.
 
 ### Registration
 
-Requires `features.registrationEnabled === true` in [`features.config.ts`](../../frontend/src/config/features.config.ts). **Skipped in current product config.**
+Requires `features.registrationEnabled === true` in [`features.config.ts`](../../../../frontend/src/config/features.config.ts). **Skipped in current product config.**
 
 | ID | P | Business rule | Setup | Steps | Assertions |
 |----|---|---------------|-------|-------|------------|

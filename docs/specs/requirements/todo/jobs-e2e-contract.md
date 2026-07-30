@@ -1,21 +1,22 @@
 # Jobs — end-to-end test requirements
 
-**Canonical source** for browser-level jobs test cases. Playwright specs in [`tests/e2e/spec/jobs/`](../../tests/e2e/spec/jobs/) MUST implement scenarios listed here.
+**Canonical source** for browser-level jobs test cases. Playwright specs in [`tests/e2e/spec/jobs/`](../../../../tests/e2e/spec/jobs/) MUST implement scenarios listed here.
 
 **Scope:** User-visible behavior on `/jobs` with a live backend and MongoDB.
 
-**HTTP rules** live in [jobs-http-contract.md](./jobs-http-contract.md) (`JOBS-*`). This document defines UI setup, steps, and assertions only — link to the contract by ID, do not restate API rules here.
+**Client acceptance** (stable scenario IDs): [architecture/client/jobs](../../architecture/client/jobs/index.md) (`CLIENT-JOBS-*`). Prefer citing those IDs in new specs; this document retains `JOBS-E2E-*` until migrated.
 
-> **Prerequisite — error UI not yet implemented.** [`Jobs.tsx`](../../frontend/src/components/pages/jobs/Jobs.tsx) logs API failures to the console only. Defer E2E cases marked **blocked until error UI** in the [traceability table](#traceability). See [Error UX policy](#error-ux-policy).
+**HTTP rules** live in [architecture/http/jobs](../../architecture/http/jobs/index.md) (`HTTP-JOBS-*`). This document defines UI setup, steps, and assertions only — link to client/HTTP by ID, do not restate API rules here.
+
+> **Prerequisite — error UI not yet implemented.** [`Jobs.tsx`](../../../../frontend/src/components/pages/jobs/Jobs.tsx) logs API failures to the console only. Defer E2E cases marked **blocked until error UI** in the [traceability table](#traceability). See [Error UX policy](#error-ux-policy).
 
 **Related documents:**
 
 | Document | Use when |
 |----------|----------|
-| [jobs-http-contract.md](./jobs-http-contract.md) | API rules (`JOBS-*`) |
-| [auth-http-contract.md](./auth-http-contract.md) | Session model |
+| [client/jobs](../../architecture/client/jobs/index.md) | UI acceptance (`CLIENT-JOBS-*`) + E2E ID map |
+| [http/jobs](../../architecture/http/jobs/index.md) | API acceptance (`HTTP-JOBS-*`) |
 | [auth-e2e-contract.md](./auth-e2e-contract.md) | Auth browser journeys (`AUTH-E2E-*`) |
-| [e2e-testing.md](../guides/e2e-testing.md) | Playwright setup and conventions |
 
 ---
 
@@ -23,11 +24,12 @@
 
 | Prefix | Verified by |
 |--------|-------------|
-| **`JOBS-E2E-*`** | `tests/e2e/spec/jobs/*.e2e.test.ts` |
-| **`JOBS-*`** | `backend/test/integration/jobs-integration.test.ts` |
+| **`CLIENT-JOBS-*`** | Client acceptance → Playwright (preferred cite) |
+| **`JOBS-E2E-*`** | `tests/e2e/spec/jobs/*.e2e.test.ts` (legacy titles until migrated) |
+| **`HTTP-JOBS-*`** | `backend/test/integration/jobs-integration.test.ts` |
 | **`AUTH-E2E-*`** | `tests/e2e/spec/auth/*.e2e.test.ts` |
 
-E2E complements integration: integration asserts HTTP; E2E asserts the UI calls those APIs and reflects results to the user. See [cross-reference](#cross-reference).
+E2E complements integration: integration asserts HTTP; E2E asserts the UI reflects client acceptance. Map: [client/jobs § E2E mapping](../../architecture/client/jobs/index.md#e2e-mapping).
 
 ---
 
@@ -41,9 +43,9 @@ cd backend && npm run start:e2e
 npm run test:e2e -- tests/e2e/spec/jobs
 ```
 
-Auth tests **fail** when the backend is unreachable (same as auth E2E). See [e2e-testing.md](../guides/e2e-testing.md#backend-bootstrap).
+Auth tests **fail** when the backend is unreachable (same as auth E2E). See [e2e-testing.md](../../../artifacts/e2e-testing.md#backend-bootstrap).
 
-**Fixtures:** `authenticated` — unique user via `POST /api/auth/register` ([`tests/e2e/fixtures/authenticated.ts`](../../tests/e2e/fixtures/authenticated.ts)). Log in before visiting `/jobs` unless stated otherwise.
+**Fixtures:** `authenticated` — unique user via `POST /api/auth/register` ([`tests/e2e/fixtures/authenticated.ts`](../../../../tests/e2e/fixtures/authenticated.ts)). Log in before visiting `/jobs` unless stated otherwise.
 
 **Naming:** `*.e2e.test.ts`; titles prefixed `[JOBS-E2E-xxx]`. Prefer `getByRole` / `getByLabel`; no `waitForTimeout()`.
 
@@ -64,7 +66,7 @@ All cases below assume a logged-in user.
 
 ## Application UI reference
 
-**Route:** `/jobs` · **Page:** [`Jobs.tsx`](../../frontend/src/components/pages/jobs/Jobs.tsx)
+**Route:** `/jobs` · **Page:** [`Jobs.tsx`](../../../../frontend/src/components/pages/jobs/Jobs.tsx)
 
 | Control | Label / role |
 |---------|--------------|
@@ -79,9 +81,9 @@ All cases below assume a logged-in user.
 | Detail sheet | Job name; **Executions** |
 | Delete confirm | **Delete job** dialog; confirm **Delete** |
 
-Status badges: **Pending**, **Running**, **Idle**, **Next run**, **Last run** ([`JobDetails.tsx`](../../frontend/src/components/pages/jobs/components/shared/jobDetails/JobDetails.tsx)).
+Status badges: **Pending**, **Running**, **Idle**, **Next run**, **Last run** ([`JobDetails.tsx`](../../../../frontend/src/components/pages/jobs/components/shared/jobDetails/JobDetails.tsx)).
 
-API routes invoked by the page: see [jobs-http-contract.md](./jobs-http-contract.md) § Canonical routes.
+API routes invoked by the page: see [http/jobs](../../architecture/http/jobs/index.md).
 
 ---
 
@@ -95,7 +97,7 @@ Do not implement error-dependent E2E until the frontend surfaces these failures.
 
 ## Cross-reference
 
-Maps each E2E case to related HTTP rule(s). Full rule text: [jobs-http-contract.md](./jobs-http-contract.md).
+Maps each E2E case to related HTTP rule(s). Prefer the [CLIENT-* map](../../architecture/client/jobs/index.md#e2e-mapping). Full HTTP text: [http/jobs](../../architecture/http/jobs/index.md).
 
 | E2E ID | HTTP ID(s) |
 |--------|------------|
@@ -277,5 +279,5 @@ Mark **Implemented** when `[JOBS-E2E-xxx]` exists in spec and passes in CI.
 ## Change control
 
 - **UI-only changes** preserving behavior: no ID change.
-- **New E2E case:** assign next `JOBS-E2E-*`; add rows to [cross-reference](#cross-reference) and [traceability](#traceability).
-- **HTTP contract changes:** update [jobs-http-contract.md](./jobs-http-contract.md) first, then cross-ref links here.
+- **New E2E case:** assign next `CLIENT-JOBS-*` in [client/jobs](../../architecture/client/jobs/index.md); add `JOBS-E2E-*` only if still using legacy titles; update [cross-reference](#cross-reference) and [traceability](#traceability).
+- **HTTP / client acceptance changes:** update architecture acceptance first, then cross-ref links here.

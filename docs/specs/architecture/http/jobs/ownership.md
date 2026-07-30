@@ -2,7 +2,7 @@
 
 Cross-cutting id-scoped access. Auth gate: [HTTP-AUTH-TOK-003](../auth/session.md).
 
-Applies to get, update, delete, stop, change schedule status, and retry schedule.
+Applies to get, update, delete, stop, run, change schedule status, and retry schedule.
 
 ## HTTP-JOBS-OWN-001 — Other user’s job or unknown id
 
@@ -16,6 +16,7 @@ Request for another user’s job is indistinguishable from a missing job.
     - `PUT /api/jobs/update/:id`
     - `DELETE /api/jobs/delete/:id`
     - `POST /api/jobs/stop/:id`
+    - `POST /api/jobs/run/:id`
     - `PUT /api/jobs/change-schedule-status/:id`
     - `POST /api/jobs/retry-schedule/:id`
 - Response:

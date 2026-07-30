@@ -4,7 +4,7 @@ Running jobs and streaming progress. Who may receive stream events is FR-JOBS-OW
 
 - **FR-JOBS-RUN-001** — The system shall execute a job’s tools when the job is run (on create without a schedule, on demand, or when the schedule fires).
 - **FR-JOBS-RUN-002** — The system shall record executions so the owner can see outcomes for a job.
-- **FR-JOBS-RUN-003** — The system shall allow the owner to manually start running a job’s tools from the job card (or equivalent list entry) without opening edit.
+- **FR-JOBS-RUN-003** — The system shall allow the owner to manually start running a job’s tools from the jobs list entry without opening edit.
 - **FR-JOBS-RUN-004** — The system shall reject starting a run while the job is already running.
 - **FR-JOBS-STR-001** — The system shall provide a live stream of job activity (which jobs are running; when targets finish; when a job finishes, fails, or is cancelled per FR-JOBS-STP-001) so the owner can observe updates without a full page reload.
 - **FR-JOBS-STR-002** — On stream connect, the system shall send one aggregated snapshot of the owner’s running jobs (with any in-flight target-finished events) and scheduled jobs (each with runtime schedule status, next run, and last run when applicable), so the client can hydrate running and schedule UI state.

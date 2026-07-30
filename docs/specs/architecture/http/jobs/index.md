@@ -1,6 +1,7 @@
 # Jobs — HTTP
 
-Realizes [fr/jobs](../../../requirements/fr/jobs/index.md). Writing rules: [HTTP acceptance](../README.md).
+Realizes [fr/jobs](../../../requirements/fr/jobs/index.md). Writing rules: [HTTP acceptance](../README.md).  
+UI scenarios: [client/jobs](../../client/jobs/index.md).
 
 All routes below are protected: missing/invalid `Authorization: Bearer` fails as [HTTP-AUTH-TOK-003](../auth/session.md).
 
@@ -13,6 +14,7 @@ All routes below are protected: missing/invalid `Authorization: Bearer` fails as
 - Delete — `DELETE /api/jobs/delete/:id`
 - Change schedule status — `PUT /api/jobs/change-schedule-status/:id`
 - Retry schedule — `POST /api/jobs/retry-schedule/:id`
+- Run — `POST /api/jobs/run/:id`
 - Stop — `POST /api/jobs/stop/:id`
 - Stream — `GET /api/jobs/stream-all`
 
@@ -24,6 +26,7 @@ All routes below are protected: missing/invalid `Authorization: Bearer` fails as
 - [delete.md](./delete.md) — `HTTP-JOBS-DEL-*`
 - [schedule-status.md](./schedule-status.md) — `HTTP-JOBS-SSC-*`
 - [retry-schedule.md](./retry-schedule.md) — `HTTP-JOBS-RTY-*`
+- [run.md](./run.md) — `HTTP-JOBS-RUN-*`
 - [stop.md](./stop.md) — `HTTP-JOBS-STP-*`
 - [stream.md](./stream.md) — `HTTP-JOBS-STR-*`
 - [ownership.md](./ownership.md) — `HTTP-JOBS-OWN-*`

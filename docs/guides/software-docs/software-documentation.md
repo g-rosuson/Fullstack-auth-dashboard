@@ -40,6 +40,8 @@ Common documents include:
 - **ADR (Architecture Decision Record):** Records important technical decisions and why they were made.
 - **C4 Model:** Visualizes the system at different levels, from the overall architecture down to individual components.
 - **OpenAPI / AsyncAPI:** Defines precise API contracts that developers and systems integrate against.
+- **HTTP acceptance:** Human-readable API scenarios traced to FRs (`HTTP-*`).
+- **Client acceptance:** Human-readable UI scenarios traced to FRs (`CLIENT-*`).
 
 Architecture documents describe implementation while remaining aligned with the requirements defined in the SRS.
 

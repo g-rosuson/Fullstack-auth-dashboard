@@ -16,11 +16,11 @@ Examples:
 
 ## Rules
 
-- One file per capability (mirrors `documentation/requirements/fr/<domain>/`)
+- One file per capability (mirrors `docs/specs/requirements/fr/<domain>/`)
 - Route once at the top of the file (or section)
 - Each scenario: unique ID, linked FR(s) / NFR(s), then status + assertable body/cookie shape
 - No “shall” language; do not restate domain intent
-- Client-only FRs (views, redirects, client lifecycle) belong in client acceptance, not here
+- Client-only FRs (views, redirects, client lifecycle) belong in [client acceptance](../client/README.md), not here
 - Pin fields tests assert; leave full request/response schemas to OpenAPI / Zod
 
 ## Identifiers

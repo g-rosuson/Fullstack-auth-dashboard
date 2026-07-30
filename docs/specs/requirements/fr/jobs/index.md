@@ -2,6 +2,8 @@
 
 Functional requirements for creating, reading, updating, deleting, scheduling, running, and streaming jobs.
 
+Acceptance (not FRs): [HTTP](../../../architecture/http/jobs/index.md) · [Client](../../../architecture/client/jobs/index.md)
+
 ## Lifecycle
 
 - [lifecycle/create.md](./lifecycle/create.md) — `FR-JOBS-CRT-*`
