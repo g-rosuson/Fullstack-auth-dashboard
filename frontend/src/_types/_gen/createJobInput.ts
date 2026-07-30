@@ -10,5 +10,6 @@ import type { CreateJobTool } from './createJobTool';
 export interface CreateJobInput {
   name: string;
   schedule: JobSchedule;
+  /** @minItems 1 */
   tools: CreateJobTool[];
 }

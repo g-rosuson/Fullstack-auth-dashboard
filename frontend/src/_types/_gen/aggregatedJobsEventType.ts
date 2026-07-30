@@ -5,10 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type RunningJobsEventType = typeof RunningJobsEventType[keyof typeof RunningJobsEventType];
+export type AggregatedJobsEventType = typeof AggregatedJobsEventType[keyof typeof AggregatedJobsEventType];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const RunningJobsEventType = {
-  'jobs-running': 'jobs-running',
+export const AggregatedJobsEventType = {
+  'jobs-aggregated': 'jobs-aggregated',
 } as const;

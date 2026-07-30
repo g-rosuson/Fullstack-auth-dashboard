@@ -5,8 +5,11 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { JobTargetFinishedEvent } from './jobTargetFinishedEvent';
+import type { AggregatedJobsEvent } from './aggregatedJobsEvent';
 import type { RunningJobsEvent } from './runningJobsEvent';
+import type { ScheduledJobsEvent } from './scheduledJobsEvent';
 import type { JobFinishedEvent } from './jobFinishedEvent';
 import type { JobFailedEvent } from './jobFailedEvent';
+import type { JobCancelledEvent } from './jobCancelledEvent';
 
-export type JobEvent = JobTargetFinishedEvent | RunningJobsEvent | JobFinishedEvent | JobFailedEvent;
+export type JobEvent = JobTargetFinishedEvent | AggregatedJobsEvent | RunningJobsEvent | ScheduledJobsEvent | JobFinishedEvent | JobFailedEvent | JobCancelledEvent;

@@ -9,7 +9,7 @@ import type { UpdateJobTool } from './updateJobTool';
 
 export interface UpdateJobInput {
   name: string;
-  runJob: boolean;
   schedule: JobSchedule;
+  /** @minItems 1 */
   tools: UpdateJobTool[];
 }

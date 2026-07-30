@@ -5,15 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { JobScheduleStatus } from './jobScheduleStatus';
-import type { JobScheduleType } from './jobScheduleType';
 
-/**
- * @nullable
- */
-export type JobSchedule = {
-  /** @nullable */
-  endDate: string | null;
-  startDate: string;
+export interface ChangeJobScheduleStatusPayload {
   status: JobScheduleStatus;
-  type: JobScheduleType;
-} | null;
+}

@@ -5,15 +5,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { JobScheduleStatus } from './jobScheduleStatus';
-import type { JobScheduleType } from './jobScheduleType';
 
-/**
- * @nullable
- */
-export type JobSchedule = {
+export interface ScheduledJobEvent {
+  jobId: string;
   /** @nullable */
-  endDate: string | null;
-  startDate: string;
+  lastRun: string | null;
+  /** @nullable */
+  nextRun: string | null;
   status: JobScheduleStatus;
-  type: JobScheduleType;
-} | null;
+}

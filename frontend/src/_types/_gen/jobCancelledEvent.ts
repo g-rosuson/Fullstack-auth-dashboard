@@ -4,12 +4,12 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
-import type { JobFinishedEventType } from './jobFinishedEventType';
+import type { JobCancelledEventType } from './jobCancelledEventType';
 
-export interface JobFinishedEvent {
+export interface JobCancelledEvent {
+  cancelledAt: string;
   executionId: string;
-  finishedAt: string;
   jobId: string;
-  type: JobFinishedEventType;
+  type: JobCancelledEventType;
   userId: string;
 }
