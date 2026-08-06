@@ -18,7 +18,16 @@ const textVariants = cva('text-base', {
             light: 'font-light',
             thin: 'font-thin',
         },
+        align: {
+            left: 'text-left',
+            center: 'text-center',
+            right: 'text-right',
+        },
         appearance: {
+            primary: 'text-primary-foreground',
+            destructive: 'text-destructive-foreground',
+            warning: 'text-warning-foreground',
+            success: 'text-success-foreground',
             muted: 'text-muted-foreground',
             foreground: 'text-foreground',
         },
@@ -27,6 +36,7 @@ const textVariants = cva('text-base', {
         size: 'm',
         appearance: 'foreground',
         weight: 'medium',
+        align: 'left',
     },
 });
 

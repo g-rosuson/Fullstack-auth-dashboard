@@ -10,9 +10,9 @@ type TextProps = TextVariants & {
 };
 
 const Text = (props: TextProps) => {
-    const { children, className, as: Tag = 'p', appearance, size, weight } = props;
+    const { children, className, as: Tag = 'p', appearance, size, weight, align } = props;
 
-    return <Tag className={cn(textVariants({ size, appearance, weight }), className)}>{children}</Tag>;
+    return <Tag className={cn(textVariants({ size, appearance, weight, align }), className)}>{children}</Tag>;
 };
 
 Text.displayName = 'Text';
