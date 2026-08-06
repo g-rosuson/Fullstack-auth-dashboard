@@ -54,10 +54,39 @@ const getTimeFromDate = (date: string, locale?: string): string | null => {
     }
 };
 
+/**
+ * Gets the formatted date from a date string using locale-aware formatting.
+ * @param date - The date string to get the formatted date from.
+ * @param locale - Optional locale (e.g., 'en-US', 'de-CH'). Defaults to system locale.
+ * @returns The formatted date string or null if invalid.
+ */
+const formatDate = (date: string, locale?: string): string | null => {
+    try {
+        const parsed = new Date(date);
+
+        if (isNaN(parsed.getTime())) {
+            return null;
+        }
+        const formatter = new Intl.DateTimeFormat(locale, {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+
+        return formatter.format(parsed);
+    } catch {
+        return null;
+    }
+};
+
 const time = {
     sleep,
     throttle,
     getTimeFromDate,
+    formatDate,
 };
 
 export default time;
