@@ -1,14 +1,33 @@
 import React from 'react';
 
-import type { SheetProps } from './Sheet.types';
+import Spinner from '@/components/ui-app/spinner/Spinner';
 
 import { Button } from '@/components/ui/button';
-import { DialogFooter } from '@/components/ui/dialog';
+import { DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Sheet as SheetPrimitive, SheetContent } from '@/components/ui/sheet';
-import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
+interface SheetProps {
+    open: boolean;
+    ariaDescribedby: string;
+    side?: 'top' | 'right' | 'bottom' | 'left';
+    children: React.ReactNode;
+    className?: string;
+    enableForm?: boolean;
+    // eslint-disable-next-line no-unused-vars
+    onFormSubmit?: (e: React.SubmitEvent<HTMLFormElement>) => Promise<void>;
+    // eslint-disable-next-line no-unused-vars
+    onPrimaryButtonClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    isSubmitting?: boolean;
+    primaryButtonLabel?: string;
+    secondaryLabel?: string;
+    onSecondaryClick?: () => void;
+    // eslint-disable-next-line no-unused-vars
+    onOpenChange: (open: boolean) => void;
+}
+
 const Sheet = ({
+    open,
     children,
     className,
     enableForm,
@@ -16,21 +35,28 @@ const Sheet = ({
     onPrimaryButtonClick,
     isSubmitting,
     primaryButtonLabel,
+    ariaDescribedby,
     side = 'right',
-    ...props
+    onOpenChange,
 }: SheetProps) => {
     /**
      * Handles the submit event for the form.
      * @param e - The form event.
      */
-    const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const onSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
         e.preventDefault();
         onFormSubmit?.(e);
     };
 
-    // Determine the footer
-    const footer = (
-        <DialogFooter className="sticky bottom-0 left-0 right-0" showCloseButton>
+    // Determine the sheet footer
+    const sheetFooter = (
+        <div
+            data-slot="sheet-footer"
+            className="sticky bottom-0 left-0 right-0 flex flex-col justify-end gap-2 mt-6 -mx-4 border-t bg-muted p-4 sm:flex-row">
+            <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+            </DialogClose>
+
             {primaryButtonLabel && (
                 <Button
                     type={enableForm ? 'submit' : 'button'}
@@ -40,31 +66,34 @@ const Sheet = ({
                     {isSubmitting ? <Spinner /> : primaryButtonLabel}
                 </Button>
             )}
-        </DialogFooter>
-    );
-
-    // Determine the inner content
-    const inner = enableForm ? (
-        <form onSubmit={onSubmit} className="flex flex-col justify-between gap-3 h-full">
-            {children}
-            {footer}
-        </form>
-    ) : (
-        <div className="flex flex-col justify-between gap-3 h-full">
-            {children}
-            {footer}
         </div>
     );
 
-    const baseClassName = 'min-w-[70%] overflow-scroll p-4 pb-0';
+    // Determine the inner content
+    const layoutClassName = 'h-full flex flex-col justify-between';
+
+    const content = React.createElement(
+        enableForm ? 'form' : 'div',
+        {
+            className: layoutClassName,
+            ...(enableForm ? { onSubmit } : {}),
+        },
+        children,
+        sheetFooter
+    );
 
     return (
-        <SheetPrimitive {...props}>
-            <SheetContent className={cn(baseClassName, className)} side={side}>
-                {inner}
+        <SheetPrimitive open={open} onOpenChange={onOpenChange}>
+            <SheetContent
+                className={cn('min-w-[60%] flex flex-col justify-between px-4 pt-4 overflow-scroll', className)}
+                side={side}>
+                {content}
+                <DialogDescription className="sr-only">{ariaDescribedby}</DialogDescription>
             </SheetContent>
         </SheetPrimitive>
     );
 };
 
 export default Sheet;
+
+export type { SheetProps };
