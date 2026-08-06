@@ -22,6 +22,7 @@ const flexVariants = cva('flex', {
             end: 'items-end',
             between: 'items-between',
             around: 'items-around',
+            stretch: 'items-stretch',
         },
         as: {
             div: 'div',
@@ -54,7 +55,7 @@ interface FlexProps {
     direction?: 'row' | 'column';
     justify?: 'start' | 'center' | 'end' | 'between' | 'around';
     wrap?: 'wrap' | 'nowrap';
-    align?: 'start' | 'center' | 'end' | 'between' | 'around';
+    align?: 'start' | 'center' | 'end' | 'between' | 'around' | 'stretch';
     as?: React.ElementType;
     gap?: 'xsmall' | 'small' | 'medium' | 'large';
 }
