@@ -3,14 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import PasswordValidator from './passwordValidator/PasswordValidator';
 import Button from '@/components/ui-app/button/Button';
+import Card from '@/components/ui-app/card/Card';
 import Field from '@/components/ui-app/field/Field';
-import Text from '@/components/ui-app/text/Text';
+import Text from '@/components/ui-app/typography/text/Text';
 
 import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 
 import constants from './constants';
 import api from '@/api';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import config from '@/config';
 import { CustomError } from '@/services/error';
 import logging from '@/services/logging';

@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { BriefcaseBusiness, Home } from 'lucide-react';
 
-import Text from '@/components/ui-app/text/Text';
+import Text from '@/components/ui-app/typography/text/Text';
 
 import {
     Sidebar as ShadcnSidebar,
