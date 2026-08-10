@@ -18,14 +18,14 @@ const headingVariants = cva('mb-2 text-xl', {
             light: 'font-light',
             thin: 'font-thin',
         },
-        appearance: {
+        variant: {
             muted: 'text-muted-foreground',
             foreground: 'text-foreground',
         },
     },
     defaultVariants: {
         size: 'm',
-        appearance: 'foreground',
+        variant: 'foreground',
         weight: 'bold',
     },
 });

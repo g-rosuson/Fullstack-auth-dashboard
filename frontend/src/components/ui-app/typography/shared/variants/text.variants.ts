@@ -23,7 +23,7 @@ const textVariants = cva('text-base', {
             center: 'text-center',
             right: 'text-right',
         },
-        appearance: {
+        variant: {
             primary: 'text-primary-foreground',
             destructive: 'text-destructive-foreground',
             warning: 'text-warning-foreground',
@@ -34,12 +34,11 @@ const textVariants = cva('text-base', {
     },
     defaultVariants: {
         size: 'm',
-        appearance: 'foreground',
+        variant: 'foreground',
         weight: 'medium',
         align: 'left',
     },
 });
 
 export { textVariants };
-
 export type { TextVariants };

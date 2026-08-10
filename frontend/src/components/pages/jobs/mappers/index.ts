@@ -1,4 +1,4 @@
-import { Execution, ExecutionTool, JobTargetFinishedEvent } from '@/_types/_gen';
+import type { Execution, ExecutionTool, JobTargetFinishedEvent } from '@/_types/_gen';
 
 /**
  * Applies one `job-target-finished` stream event to `executions`.

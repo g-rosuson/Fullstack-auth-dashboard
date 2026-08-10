@@ -1,7 +1,8 @@
+import Spinner from '@/components/ui-app/spinner/Spinner';
+
 import type { ButtonProps } from './Button.types';
 
 import { Button as ShadcnButton } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 
 const Button = (props: ButtonProps) => {
     const { type, size, variant, disabled, hidden, isLoading, icon, ariaLabel, label, onClick } = props;

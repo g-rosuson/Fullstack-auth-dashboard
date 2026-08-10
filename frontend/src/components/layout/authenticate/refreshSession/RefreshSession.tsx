@@ -172,7 +172,7 @@ const RefreshSession = ({ open, close }: Props) => {
                     </DialogDescription>
                 </DialogHeader>
 
-                <Text size="s" appearance="foreground">
+                <Text size="s" variant="foreground">
                     You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
                 </Text>
 

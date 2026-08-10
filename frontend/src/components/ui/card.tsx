@@ -1,10 +1,9 @@
 import * as React from 'react';
 
-import { textVariants } from '../ui-app/text/Text';
-import { headingVariants } from '@/components/ui-app/heading/Heading';
-
 import type { VariantProps } from 'class-variance-authority';
 
+import { headingVariants } from '@/components/ui-app/typography/shared/variants/heading.variants';
+import { textVariants } from '@/components/ui-app/typography/shared/variants/text.variants';
 import { cn } from '@/lib/utils';
 
 function Card({ className, size = 'default', ...props }: React.ComponentProps<'div'> & { size?: 'default' | 'sm' }) {

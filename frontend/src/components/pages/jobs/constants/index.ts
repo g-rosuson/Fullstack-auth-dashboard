@@ -1,18 +1,25 @@
+const statusKey = {
+    running: 'running',
+    active: 'active',
+    paused: 'paused',
+    inactive: 'inactive',
+    missing: 'missing',
+} as const;
+
 const constants = {
-    labels: {
-        idle: 'Idle',
-        running: 'Running',
-        pending: 'Pending',
-        unscheduled: 'Un-scheduled',
-        edit: 'Edit',
-        open: 'Open',
-        delete: 'Delete',
-        nextRun: 'Next run',
-        lastRun: 'Last run',
-        start: 'Start',
-        end: 'End',
-        empty: 'n/a',
+    key: {
+        status: statusKey,
     },
-};
+
+    label: {
+        status: {
+            running: 'Running',
+            active: 'Active',
+            paused: 'Paused',
+            inactive: 'Inactive',
+            missing: 'Missing',
+        } as const satisfies Record<keyof typeof statusKey, string>,
+    },
+} as const;
 
 export default constants;

@@ -28,11 +28,12 @@ const flexVariants = cva('flex', {
             div: 'div',
             section: 'section',
         },
+        // TODO: sync gap keys with shared size variants: xs, s, m, l etc
         gap: {
-            xsmall: 'gap-1',
-            small: 'gap-2',
-            medium: 'gap-4',
-            large: 'gap-6',
+            xs: 'gap-1',
+            s: 'gap-1.5',
+            m: 'gap-4',
+            l: 'gap-6',
         },
         wrap: {
             wrap: 'flex-wrap',
@@ -44,7 +45,7 @@ const flexVariants = cva('flex', {
         justify: 'start',
         align: 'start',
         as: 'div',
-        gap: 'small',
+        gap: 's',
         wrap: 'nowrap',
     },
 });
@@ -57,7 +58,7 @@ interface FlexProps {
     wrap?: 'wrap' | 'nowrap';
     align?: 'start' | 'center' | 'end' | 'between' | 'around' | 'stretch';
     as?: React.ElementType;
-    gap?: 'xsmall' | 'small' | 'medium' | 'large';
+    gap?: 'xs' | 's' | 'm' | 'l';
 }
 
 const Flex = ({ children, className, direction, justify, wrap, align, as: Tag = 'div', gap }: FlexProps) => {

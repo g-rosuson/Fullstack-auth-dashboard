@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 const Heading = ({
     size,
     level,
-    appearance,
+    variant,
     weight,
     children,
     className,
@@ -19,7 +19,7 @@ const Heading = ({
     return (
         <Tag
             className={cn(
-                headingVariants({ size, appearance, weight }),
+                headingVariants({ size, variant, weight }),
                 className,
                 'w-full',
                 removeMargin && 'mb-0',
