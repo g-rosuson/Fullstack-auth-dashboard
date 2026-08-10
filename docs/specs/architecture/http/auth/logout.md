@@ -21,7 +21,7 @@ Traces:
   - Cookie: request includes `refreshToken` (valid refresh JWT)
 - Response:
   - Status: `200`
-  - Body: `{ success: true, meta: { timestamp: number } }` (no `data`)
+  - Body: `{ success: true, meta: { timestamp: string } }` (no `data`)
   - Cookie: response includes `Set-Cookie` with name `refreshToken` that clears the cookie (expired or `Max-Age=0`; same `Path` / `HttpOnly` / `SameSite` as when set)
 
 Traces:

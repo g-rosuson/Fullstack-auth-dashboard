@@ -1,6 +1,7 @@
 # Authentication — HTTP
 
-Realizes [fr/auth](../../../requirements/fr/auth/index.md). Writing rules: [HTTP acceptance](../README.md).
+Realizes [fr/auth](../../../requirements/fr/auth/index.md). Writing rules: [HTTP acceptance](../README.md).  
+UI scenarios: [client/auth](../../client/auth/index.md).
 
 ## Routes
 

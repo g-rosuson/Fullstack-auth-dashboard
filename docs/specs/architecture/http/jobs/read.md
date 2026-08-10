@@ -18,7 +18,6 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Other-user / missing id: [HTTP-JO
 Traces:
 - [FR-JOBS-LST-001](../../../requirements/fr/jobs/lifecycle/read.md)
 - [FR-JOBS-LST-002](../../../requirements/fr/jobs/lifecycle/read.md)
-- [FR-JOBS-GET-002](../../../requirements/fr/jobs/lifecycle/read.md)
 - [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 
 ## HTTP-JOBS-GET-001 — Get own job by id
@@ -31,5 +30,4 @@ Traces:
   - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
 Traces:
 - [FR-JOBS-GET-001](../../../requirements/fr/jobs/lifecycle/read.md)
-- [FR-JOBS-GET-002](../../../requirements/fr/jobs/lifecycle/read.md)
 - [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)

@@ -4,16 +4,6 @@ API-boundary scenarios that realize FRs. Not requirements — see [requirements]
 
 OpenAPI is the machine-readable contract; these docs are the human-readable, ID-traced scenarios for tests and implementation.
 
-## TODO
-
-Define consistent response contracts for success and error responses for all endpoints.
-
-Examples:
-- Authentication:
-    - timestamp property is a Date.now() number nested in a meta object on `success: true` responses, and is a ISO string top level property on `success: false` responses
-- Jobs:
-    - success `meta.timestamp` is currently an ISO-8601 string (see [jobs/](./jobs/index.md)); align with auth or document as intentional
-
 ## Rules
 
 - One file per capability (mirrors `docs/specs/requirements/fr/<domain>/`)
@@ -34,10 +24,12 @@ Tests and implementation cite the HTTP ID (and may also cite the FR). Every HTTP
 
 ## Response envelopes
 
-Success (auth and other timestamped operations):
+All datetimes on the wire are ISO-8601 / RFC 3339 UTC strings (`YYYY-MM-DDTHH:mm:ss.sssZ`), including envelope timestamps and resource/event fields (e.g. `createdAt`, `startDate`, `nextRun`).
+
+Success:
 
 ```text
-{ success: true, data?: T, meta: { timestamp: number } }
+{ success: true, data?: T, meta: { timestamp: string } }
 ```
 
 Error (from exceptions middleware only):

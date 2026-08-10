@@ -30,7 +30,8 @@ const mockResponse = {
     cookie: mockResponseCookie,
 } as unknown as Response;
 
-const now = 1_710_072_000_000;
+const nowMs = 1_710_072_000_000;
+const now = new Date(nowMs).toISOString();
 const cookieOptions = { httpOnly: true, secure: true, sameSite: 'strict' as const, path: '/' };
 
 const userDocument = {
@@ -78,7 +79,7 @@ describe('auth-controller login', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
-        vi.setSystemTime(now);
+        vi.setSystemTime(nowMs);
         mockResponseStatus.mockReturnValue(mockResponse);
         mockCreateTokens.mockReturnValue({ accessToken: 'access-jwt', refreshToken: 'refresh-jwt' });
         mockGetRefreshCookieOptions.mockReturnValue(cookieOptions);

@@ -27,7 +27,8 @@ const mockResponse = {
     cookie: mockResponseCookie,
 } as unknown as Response;
 
-const now = 1_710_072_000_000;
+const nowMs = 1_710_072_000_000;
+const now = new Date(nowMs).toISOString();
 const cookieOptions = { httpOnly: true, secure: true, sameSite: 'strict' as const, path: '/' };
 
 vi.mock('bcrypt', () => ({
@@ -75,7 +76,7 @@ describe('auth-controller register', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
-        vi.setSystemTime(now);
+        vi.setSystemTime(nowMs);
         mockResponseStatus.mockReturnValue(mockResponse);
         mockBcryptHash.mockResolvedValue('hashed-password');
         mockCreate.mockResolvedValue({ insertedId: { toString: () => 'user-id-1' } });

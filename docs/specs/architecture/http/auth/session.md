@@ -9,7 +9,7 @@ Applies to register, login, or refresh success responses.
 - Request: per [registration](./registration.md), [login](./login.md), or [refresh](./refresh.md) success scenario
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <JWT string>, meta: { timestamp: number } }`
+  - Body: `{ success: true, data: <JWT string>, meta: { timestamp: string } }`
   - Note: access token appears only in `data`, never in a cookie
 
 Traces:

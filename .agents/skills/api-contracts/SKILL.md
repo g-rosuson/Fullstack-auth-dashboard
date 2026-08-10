@@ -25,7 +25,7 @@ All backend responses use one of these shapes:
 { success: true, data: T }
 
 // Auth operations (with timestamp metadata)
-{ success: true, data: T, meta: { timestamp: number } }
+{ success: true, data: T, meta: { timestamp: string } }
 
 // Paginated list
 { success: true, data: T[], limit: number, offset: number, count: number }

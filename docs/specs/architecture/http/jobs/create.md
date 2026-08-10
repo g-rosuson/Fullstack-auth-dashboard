@@ -100,6 +100,10 @@ Missing/invalid fields, tools, or schedule rules (OpenAPI / Zod `createJobInputS
 
 Traces:
 - [FR-JOBS-TLR-001](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-003](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-004](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-005](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-007](../../../requirements/fr/jobs/tools/tools.md)
 - [FR-JOBS-SCH-001](../../../requirements/fr/jobs/schedule/schedule.md)
 - [FR-JOBS-SCH-002](../../../requirements/fr/jobs/schedule/schedule.md)
 - [FR-JOBS-ONCE-001](../../../requirements/fr/jobs/schedule/once.md)

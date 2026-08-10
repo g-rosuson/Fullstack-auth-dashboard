@@ -27,7 +27,8 @@ const mockResponse = {
     json: mockResponseJson,
 } as unknown as Response;
 
-const now = 1_710_072_000_000;
+const nowMs = 1_710_072_000_000;
+const now = new Date(nowMs).toISOString();
 
 const validPayload = {
     firstName: 'Jane',
@@ -66,7 +67,7 @@ describe('auth-controller renewAccessToken', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
-        vi.setSystemTime(now);
+        vi.setSystemTime(nowMs);
         mockResponseStatus.mockReturnValue(mockResponse);
         mockCreateTokens.mockReturnValue({ accessToken: 'new-access-jwt', refreshToken: 'unused' });
     });

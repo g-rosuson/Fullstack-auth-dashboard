@@ -11,7 +11,7 @@
   - Values: registered email + correct password
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <JWT string>, meta: { timestamp: number } }`
+  - Body: `{ success: true, data: <JWT string>, meta: { timestamp: string } }`
   - Cookie: response includes `Set-Cookie` with name `refreshToken` (value = refresh JWT; attributes per [HTTP-AUTH-TOK-002](./session.md))
 
 Traces:

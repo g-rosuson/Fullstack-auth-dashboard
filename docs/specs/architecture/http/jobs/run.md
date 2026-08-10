@@ -21,6 +21,7 @@ Traces:
 - [FR-JOBS-RUN-003](../../../requirements/fr/jobs/execution/execution.md)
 - [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 - [FR-JOBS-ONCE-003](../../../requirements/fr/jobs/schedule/once.md)
+- [FR-JOBS-SCH-012](../../../requirements/fr/jobs/schedule/schedule.md)
 
 ## HTTP-JOBS-RUN-002 — Reject when already running
 

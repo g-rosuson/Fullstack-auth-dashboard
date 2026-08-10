@@ -9,7 +9,7 @@
   - Cookie: request includes `refreshToken` (valid refresh JWT)
 - Response:
   - Status: `200`
-  - Body: `{ success: true, data: <JWT string>, meta: { timestamp: number } }`
+  - Body: `{ success: true, data: <JWT string>, meta: { timestamp: string } }`
   - Note: `data` is a new access token (may differ from the previous access token)
 
 Traces:

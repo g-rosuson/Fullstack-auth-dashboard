@@ -22,7 +22,8 @@ const mockResponse = {
     clearCookie: mockResponseClearCookie,
 } as unknown as Response;
 
-const now = 1_710_072_000_000;
+const nowMs = 1_710_072_000_000;
+const now = new Date(nowMs).toISOString();
 const clearCookieOptions = { httpOnly: true, secure: true, sameSite: 'strict' as const, path: '/' };
 
 vi.mock('../utils', () => ({
@@ -35,7 +36,7 @@ describe('auth-controller logout', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
-        vi.setSystemTime(now);
+        vi.setSystemTime(nowMs);
         mockResponseStatus.mockReturnValue(mockResponse);
         mockGetRefreshCookieOptions.mockReturnValue(clearCookieOptions);
     });
