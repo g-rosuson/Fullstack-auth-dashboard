@@ -2,6 +2,7 @@ import routes from '../../../../frontend/src/config/routes.config';
 
 import { test } from '../../fixtures/base';
 import { expect } from '@playwright/test';
+import features from '../../../../frontend/src/config/features.config';
 
 test.describe('smoke', () => {
     test('[SMK-001] login page loads and primary UI is visible', async ({ loginPage }) => {
@@ -12,6 +13,8 @@ test.describe('smoke', () => {
     });
 
     test('[SMK-002] register route redirects to login when registration is disabled', async ({ page, loginPage }) => {
+        test.skip(features.registrationEnabled, 'Registration is enabled in frontend config');
+
         await page.goto(routes.register);
 
         await expect(page).toHaveURL(routes.login);
