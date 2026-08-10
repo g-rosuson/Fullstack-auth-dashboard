@@ -136,12 +136,11 @@ describe('jobs-middleware', () => {
         });
 
         describe('[HTTP-JOBS-UPD-007]', () => {
-            it('rejects an update body missing runJob', () => {
+            it('rejects an invalid update body', () => {
                 const mockNext = vi.fn();
-                const body = validUpdateBody();
                 const request = {
                     path: constants.routes.jobs.update,
-                    body: { name: body.name, schedule: body.schedule, tools: body.tools },
+                    body: { ...validUpdateBody(), name: undefined },
                 } as unknown as Request;
 
                 expect(() => validateCreateOrUpdateJobPayload(request, {} as Response, mockNext)).toThrow(
