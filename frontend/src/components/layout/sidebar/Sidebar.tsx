@@ -47,7 +47,7 @@ const Sidebar = () => {
                                         <SidebarMenuButton asChild isActive={isActive}>
                                             <NavLink to={item.route}>
                                                 <Icon />
-                                                <Text size="s" appearance="foreground">
+                                                <Text size="s" variant="foreground">
                                                     {item.label}
                                                 </Text>
                                             </NavLink>

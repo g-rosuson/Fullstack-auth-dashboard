@@ -77,7 +77,7 @@ const KeyWordsField: React.FC<KeyWordsFieldProps> = ({
             <div className="flex flex-wrap gap-2 border rounded-md p-2 mt-1" hidden={keywords.length === 0}>
                 {keywords.map((keyword, index) => (
                     <div key={index} className="flex items-center justify-center gap-1 rounded-md bg-primary pl-1.5">
-                        <Text size="xs" appearance="foreground">
+                        <Text size="xs" variant="foreground">
                             {keyword}
                         </Text>
 

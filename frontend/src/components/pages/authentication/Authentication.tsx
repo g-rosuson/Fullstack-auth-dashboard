@@ -247,7 +247,7 @@ const Authentication = () => {
                 {config.features.registrationEnabled && (
                     <CardFooter className="justify-center">
                         <Link to={route}>
-                            <Text size="s" appearance="foreground">
+                            <Text size="s" variant="foreground">
                                 {authModeLinkLabel}
                             </Text>
                         </Link>
