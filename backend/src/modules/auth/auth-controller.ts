@@ -59,7 +59,7 @@ const register = async (req: Request<unknown, unknown, RegisterUserInput>, res: 
     res.status(HttpStatusCode.OK).json({
         success: true,
         data: accessToken,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 
@@ -102,7 +102,7 @@ const login = async (req: Request<unknown, unknown, LoginUserInput>, res: Respon
     res.status(HttpStatusCode.OK).json({
         success: true,
         data: accessToken,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 
@@ -117,7 +117,7 @@ const logout = async (_req: Request, res: Response) => {
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 
@@ -144,7 +144,7 @@ const renewAccessToken = async (req: Request, res: Response) => {
     res.status(HttpStatusCode.OK).json({
         success: true,
         data: accessToken,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 
