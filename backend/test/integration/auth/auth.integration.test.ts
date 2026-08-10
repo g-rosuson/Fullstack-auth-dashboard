@@ -8,6 +8,7 @@ import constants from 'shared/constants';
 import type { Express } from 'express';
 
 import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
+import { expectErrorEnvelope, expectSuccessEnvelope } from '../helpers/expect';
 import { expectRefreshTokenClearCookie, expectRefreshTokenCookieContract, expectValidAccessToken } from './expect';
 
 /** Email fixed for auth-route scenarios that assume a single registered user. */
@@ -54,9 +55,7 @@ describe('Integration: auth HTTP', () => {
                 const res = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
 
                 expect(res.status).toBe(403);
-                expect(res.body.success).toBe(false);
-                expect(res.body.code).toBe(ErrorCode.FORBIDDEN_ERROR);
-                expect(typeof res.body.timestamp).toBe('string');
+                expectErrorEnvelope(res.body, ErrorCode.FORBIDDEN_ERROR);
             } finally {
                 config.enableRegistration = previous;
             }
@@ -66,9 +65,8 @@ describe('Integration: auth HTTP', () => {
             const res = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
 
             expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
             expectValidAccessToken(res.body.data, mockEmail);
-            expect(typeof res.body.meta.timestamp).toBe('number');
+            expectSuccessEnvelope(res.body);
             expectRefreshTokenCookieContract(res.headers['set-cookie']);
         });
 
@@ -80,9 +78,7 @@ describe('Integration: auth HTTP', () => {
             const second = await agent.post(constants.routes.auth.register).send(conflictPayload);
 
             expect(second.status).toBe(409);
-            expect(second.body.success).toBe(false);
-            expect(second.body.code).toBe(ErrorCode.CONFLICT_ERROR);
-            expect(typeof second.body.timestamp).toBe('string');
+            expectErrorEnvelope(second.body, ErrorCode.CONFLICT_ERROR);
         });
 
         describe('[HTTP-AUTH-REG-003] — invalid body', () => {
@@ -92,10 +88,8 @@ describe('Integration: auth HTTP', () => {
                     email: 'invalid-email',
                 });
                 expect(res.status).toBe(400);
-                expect(res.body.success).toBe(false);
-                expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
+                expectErrorEnvelope(res.body, ErrorCode.VALIDATION_ERROR);
                 expect(Array.isArray(res.body.issues)).toBe(true);
-                expect(typeof res.body.timestamp).toBe('string');
             });
 
             it('returns validation error when there is no email', async () => {
@@ -182,9 +176,8 @@ describe('Integration: auth HTTP', () => {
             });
 
             expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
             expectValidAccessToken(res.body.data, mockEmail);
-            expect(typeof res.body.meta.timestamp).toBe('number');
+            expectSuccessEnvelope(res.body);
             expectRefreshTokenCookieContract(res.headers['set-cookie']);
         });
 
@@ -198,9 +191,7 @@ describe('Integration: auth HTTP', () => {
                 });
 
                 expect(res.status).toBe(404);
-                expect(res.body.success).toBe(false);
-                expect(res.body.code).toBe(ErrorCode.NOT_FOUND_ERROR);
-                expect(typeof res.body.timestamp).toBe('string');
+                expectErrorEnvelope(res.body, ErrorCode.NOT_FOUND_ERROR);
             });
 
             it('fails when the email is wrong', async () => {
@@ -233,9 +224,7 @@ describe('Integration: auth HTTP', () => {
             const res = await agent.post(constants.routes.auth.logout);
 
             expect(res.status).toBe(401);
-            expect(res.body.success).toBe(false);
-            expect(res.body.code).toBe(ErrorCode.AUTHENTICATION_ERROR);
-            expect(typeof res.body.timestamp).toBe('string');
+            expectErrorEnvelope(res.body, ErrorCode.AUTHENTICATION_ERROR);
         });
 
         it('[AUTH-OUT-002] returns a success response on successful logout', async () => {
@@ -244,9 +233,8 @@ describe('Integration: auth HTTP', () => {
             const logoutResponse = await agent.post(constants.routes.auth.logout).set('Cookie', setCookie);
 
             expect(logoutResponse.status).toBe(200);
-            expect(logoutResponse.body.success).toBe(true);
             expect(logoutResponse.body.data).toBeUndefined();
-            expect(typeof logoutResponse.body.meta.timestamp).toBe('number');
+            expectSuccessEnvelope(logoutResponse.body);
             expectRefreshTokenClearCookie(logoutResponse.headers['set-cookie']);
         });
 
@@ -278,19 +266,16 @@ describe('Integration: auth HTTP', () => {
             const refreshResponse = await agent.get(constants.routes.auth.refresh).set('Cookie', setCookie);
 
             expect(refreshResponse.status).toBe(200);
-            expect(refreshResponse.body.success).toBe(true);
             expectValidAccessToken(refreshResponse.body.data, mockEmail);
             expect(refreshResponse.body.data).not.toBe(firstAccess);
-            expect(typeof refreshResponse.body.meta.timestamp).toBe('number');
+            expectSuccessEnvelope(refreshResponse.body);
         });
 
         it('[HTTP-AUTH-REF-002] rejects refresh without the cookie', async () => {
             const refreshResponse = await agent.get(constants.routes.auth.refresh);
 
             expect(refreshResponse.status).toBe(401);
-            expect(refreshResponse.body.success).toBe(false);
-            expect(refreshResponse.body.code).toBe(ErrorCode.AUTHENTICATION_ERROR);
-            expect(typeof refreshResponse.body.timestamp).toBe('string');
+            expectErrorEnvelope(refreshResponse.body, ErrorCode.AUTHENTICATION_ERROR);
         });
 
         describe('[HTTP-AUTH-REF-003] — invalid refresh credential', () => {
@@ -324,9 +309,8 @@ describe('Integration: auth HTTP', () => {
             const res = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
 
             expect(res.status).toBe(200);
-            expect(res.body.success).toBe(true);
             expectValidAccessToken(res.body.data, mockEmail);
-            expect(typeof res.body.meta.timestamp).toBe('number');
+            expectSuccessEnvelope(res.body);
             expect(JSON.stringify(res.body)).not.toMatch(/refreshToken/);
         });
 
@@ -344,9 +328,7 @@ describe('Integration: auth HTTP', () => {
 
                 // Wire today: InputValidationException → 400 VALIDATION_ERROR (doc wants 401).
                 expect(res.status).toBe(400);
-                expect(res.body.success).toBe(false);
-                expect(res.body.code).toBe(ErrorCode.VALIDATION_ERROR);
-                expect(typeof res.body.timestamp).toBe('string');
+                expectErrorEnvelope(res.body, ErrorCode.VALIDATION_ERROR);
             });
 
             it('rejects a protected jobs route when the Bearer token is invalid', async () => {
@@ -355,9 +337,7 @@ describe('Integration: auth HTTP', () => {
                     .set('Authorization', 'Bearer not-a-valid-jwt');
 
                 expect(res.status).toBe(401);
-                expect(res.body.success).toBe(false);
-                expect(res.body.code).toBe(ErrorCode.AUTHENTICATION_ERROR);
-                expect(typeof res.body.timestamp).toBe('string');
+                expectErrorEnvelope(res.body, ErrorCode.AUTHENTICATION_ERROR);
             });
         });
     });

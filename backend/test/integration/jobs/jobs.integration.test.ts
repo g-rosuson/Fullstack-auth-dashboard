@@ -25,6 +25,7 @@ import type { Express } from 'express';
 
 import { expectValidAccessToken } from '../auth/expect';
 import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
+import { expectErrorEnvelope, expectSuccessEnvelope } from '../helpers/expect';
 import { updatePersistedJobSchedule } from './db';
 import { expectBusinessLogicBlockWhilePossiblyRunning } from './expect';
 import { readJobsAggregatedStream, readJobsStreamUntilMatch } from './sse';
@@ -81,12 +82,11 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${registerResponse.body.data}`);
 
             expect(getAllResponse.status).toBe(200);
-            expect(getAllResponse.body.success).toBe(true);
             expect(getAllResponse.body.data).toEqual([]);
             expect(getAllResponse.body.limit).toBe(0);
             expect(getAllResponse.body.offset).toBe(0);
             expect(getAllResponse.body.count).toBe(0);
-            expect(typeof getAllResponse.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(getAllResponse.body);
         });
 
         it('respects limit and offset query params and returns only the requester’s jobs', async () => {
@@ -284,12 +284,11 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(getRes.status).toBe(200);
-            expect(getRes.body.success).toBe(true);
             expect(getRes.body.data.id).toBe(jobId);
             expect(getRes.body.data.name).toBe('Owner fetch');
             expect(getRes.body.data.schedule).not.toBeNull();
             expect(getRes.body.data.schedule.type).toBe('daily');
-            expect(typeof getRes.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(getRes.body);
         });
     });
 
@@ -309,7 +308,6 @@ describe('Integration: jobs HTTP', () => {
                 .send(mapToJobWithoutSchedulePayload(name));
 
             expect(res.status).toBe(201);
-            expect(res.body.success).toBe(true);
             expect(res.body.data.userId).toBe(userId);
             expect(res.body.data.name).toBe(name);
             expect(res.body.data.id).toBeDefined();
@@ -317,7 +315,7 @@ describe('Integration: jobs HTTP', () => {
             expect(res.body.data.tools).toHaveLength(1);
             expect(res.body.data.tools[0].toolId).toBeDefined();
             expect(res.body.data.tools[0].targets[0].targetId).toBeDefined();
-            expect(typeof res.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(res.body);
         });
 
         it('[HTTP-JOBS-CRT-002] creates a scheduled idle job and returns the persisted schedule', async () => {
@@ -334,14 +332,13 @@ describe('Integration: jobs HTTP', () => {
                 .send(mapToJobWithSchedulePayload(name));
 
             expect(res.status).toBe(201);
-            expect(res.body.success).toBe(true);
             expect(res.body.data.userId).toBe(userId);
             expect(res.body.data.name).toBe(name);
             expect(res.body.data.schedule).not.toBeNull();
             expect(res.body.data.schedule.status).toBe(constants.status.schedule.idle);
             expect(res.body.data.schedule.type).toBe('daily');
             expect(res.body.data.schedule.startDate).toBeDefined();
-            expect(typeof res.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(res.body);
         });
 
         it('[HTTP-JOBS-CRT-003] creates a job with stopped schedule', async () => {
@@ -381,9 +378,7 @@ describe('Integration: jobs HTTP', () => {
                 .send(mapToJobWithoutSchedulePayload('Duplicate create'));
 
             expect(second.status).toBe(409);
-            expect(second.body.success).toBe(false);
-            expect(second.body.code).toBe(ErrorCode.CONFLICT_ERROR);
-            expect(typeof second.body.timestamp).toBe('string');
+            expectErrorEnvelope(second.body, ErrorCode.CONFLICT_ERROR);
         });
 
         it('[HTTP-JOBS-CRT-005] allows different users to create jobs with the same name', async () => {
@@ -622,11 +617,10 @@ describe('Integration: jobs HTTP', () => {
                 .send(mapToUpdateJobPayload(createRes.body.data, { name: 'After PUT' }));
 
             expect(putRes.status).toBe(200);
-            expect(putRes.body.success).toBe(true);
             expect(putRes.body.data.userId).toBe(userId);
             expect(putRes.body.data.name).toBe('After PUT');
             expect(putRes.body.data.schedule.status).toBe(constants.status.schedule.idle);
-            expect(typeof putRes.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(putRes.body);
 
             const getRes = await agent
                 .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
@@ -747,9 +741,7 @@ describe('Integration: jobs HTTP', () => {
                 .send(mapToUpdateJobPayload(secondJob.body.data, { name: 'First job' }));
 
             expect(putRes.status).toBe(409);
-            expect(putRes.body.success).toBe(false);
-            expect(putRes.body.code).toBe(ErrorCode.CONFLICT_ERROR);
-            expect(typeof putRes.body.timestamp).toBe('string');
+            expectErrorEnvelope(putRes.body, ErrorCode.CONFLICT_ERROR);
         });
 
         it('[HTTP-JOBS-UPD-007] rejects an invalid update body', async () => {
@@ -804,9 +796,8 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(delRes.status).toBe(200);
-            expect(delRes.body.success).toBe(true);
             expect(delRes.body.data.id).toBe(jobId);
-            expect(typeof delRes.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(delRes.body);
 
             const getRes = await agent
                 .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
@@ -858,14 +849,13 @@ describe('Integration: jobs HTTP', () => {
                 .send({ status: 'stopped' });
 
             expect(putRes.status).toBe(200);
-            expect(putRes.body.success).toBe(true);
             expect(putRes.body.data.schedule.status).toBe(constants.status.schedule.stopped);
             expect(putRes.body.data.name).toBe(before.name);
             expect(putRes.body.data.tools).toEqual(before.tools);
             expect(putRes.body.data.schedule.type).toBe(before.schedule.type);
             expect(putRes.body.data.schedule.startDate).toBe(before.schedule.startDate);
             expect(putRes.body.data.schedule.endDate).toBe(before.schedule.endDate);
-            expect(typeof putRes.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(putRes.body);
 
             const getRes = await agent
                 .get(mapToJobUrl(constants.routes.jobs.getById, jobId))
@@ -1095,9 +1085,8 @@ describe('Integration: jobs HTTP', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(rtyRes.status).toBe(200);
-            expect(rtyRes.body.success).toBe(true);
             expect(rtyRes.body.data.schedule.status).toBe(constants.status.schedule.idle);
-            expect(typeof rtyRes.body.meta.timestamp).toBe('string');
+            expectSuccessEnvelope(rtyRes.body);
         });
 
         it('[HTTP-JOBS-RTY-002] retries a stopped schedule; status stays stopped', async () => {
@@ -1251,9 +1240,8 @@ describe('Integration: jobs HTTP', () => {
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(runRes.status).toBe(200);
-                expect(runRes.body.success).toBe(true);
                 expect(runRes.body.data.jobId).toBe(jobId);
-                expect(typeof runRes.body.meta.timestamp).toBe('string');
+                expectSuccessEnvelope(runRes.body);
             } finally {
                 delegator.cancel(jobId);
                 delegator.runningJobs.delete(jobId);
@@ -1337,9 +1325,8 @@ describe('Integration: jobs HTTP', () => {
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(stopRes.status).toBe(200);
-                expect(stopRes.body.success).toBe(true);
                 expect(stopRes.body.data.jobId).toBe(jobId);
-                expect(typeof stopRes.body.meta.timestamp).toBe('string');
+                expectSuccessEnvelope(stopRes.body);
                 expect(aborter.cancelled).toBe(true);
             } finally {
                 delegator.runningJobs.delete(jobId);
