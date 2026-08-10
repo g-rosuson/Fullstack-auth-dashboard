@@ -29,4 +29,5 @@ Tests and implementation cite the client ID (and may also cite the FR and HTTP I
 
 Each `client/<domain>/index.md` lists the surface and links to scenario files only. Do not repeat these rules there.
 
+- [auth/](./auth/index.md) — `CLIENT-AUTH-*`
 - [jobs/](./jobs/index.md) — `CLIENT-JOBS-*`

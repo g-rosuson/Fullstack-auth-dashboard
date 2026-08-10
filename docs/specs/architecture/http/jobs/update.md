@@ -15,10 +15,11 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Other-user / missing id: [HTTP-JO
 - Response:
   - Status: `200`
   - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` = `idle`
+  - Notes: `data.schedule.status` = `idle`; tools run does not start from this response
 
 Traces:
 - [FR-JOBS-UPD-001](../../../requirements/fr/jobs/lifecycle/update.md)
+- [FR-JOBS-UPD-005](../../../requirements/fr/jobs/lifecycle/update.md)
 - [FR-JOBS-OWN-001](../../../requirements/fr/jobs/ownership/ownership.md)
 
 ## HTTP-JOBS-UPD-002 — Clear schedule
@@ -29,10 +30,11 @@ Traces:
 - Response:
   - Status: `200`
   - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule` is `null`
+  - Notes: `data.schedule` is `null`; tools run does not start from this response
 
 Traces:
 - [FR-JOBS-UPD-002](../../../requirements/fr/jobs/lifecycle/update.md)
+- [FR-JOBS-UPD-005](../../../requirements/fr/jobs/lifecycle/update.md)
 
 ## HTTP-JOBS-UPD-003 — Update with stopped schedule
 
@@ -42,10 +44,11 @@ Traces:
 - Response:
   - Status: `200`
   - Body: `{ success: true, data: <Job>, meta: { timestamp: string } }`
-  - Notes: `data.schedule.status` = `stopped`
+  - Notes: `data.schedule.status` = `stopped`; tools run does not start from this response
 
 Traces:
 - [FR-JOBS-UPD-004](../../../requirements/fr/jobs/lifecycle/update.md)
+- [FR-JOBS-UPD-005](../../../requirements/fr/jobs/lifecycle/update.md)
 - [FR-JOBS-SSC-002](../../../requirements/fr/jobs/schedule/schedule-status.md)
 
 ## HTTP-JOBS-UPD-004 — Reject while running
@@ -100,4 +103,10 @@ Traces:
 
 Traces:
 - [FR-JOBS-TLR-001](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-003](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-004](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-005](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-007](../../../requirements/fr/jobs/tools/tools.md)
 - [FR-JOBS-SCH-001](../../../requirements/fr/jobs/schedule/schedule.md)
+- [FR-JOBS-SCH-002](../../../requirements/fr/jobs/schedule/schedule.md)
+- [FR-JOBS-ONCE-001](../../../requirements/fr/jobs/schedule/once.md)

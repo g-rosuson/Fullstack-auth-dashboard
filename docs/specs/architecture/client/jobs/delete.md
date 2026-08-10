@@ -17,7 +17,7 @@ Traces:
 
 - Setup: owned job currently running
 - Action: choose delete → confirm
-- Assert: visible error; job remains
+- Assert: delete unavailable and a visible error is shown; job remains
 
 Traces:
 - [FR-JOBS-DEL-003](../../../requirements/fr/jobs/lifecycle/delete.md)

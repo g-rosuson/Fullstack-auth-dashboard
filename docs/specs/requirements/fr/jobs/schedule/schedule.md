@@ -13,5 +13,6 @@ Rules for job schedules: when a schedule is valid, how it runs while active, and
 - **FR-JOBS-SCH-009** — When the runtime stops a schedule because its end time is reached, or when scheduling fails, the system shall not change the persisted schedule status. Those outcomes are operational (FR-JOBS-STR-004), not a change of owner intent.
 - **FR-JOBS-SCH-010** — The system shall not change persisted schedule status as a side effect of server restart.
 - **FR-JOBS-SCH-011** — When scheduling fails after the job is saved, the runtime shall remain unattached (any half-attached schedule shall be cleared). That outcome shall not be presented as the owner having stopped the schedule (FR-JOBS-SCH-008, FR-JOBS-STR-004).
+- **FR-JOBS-SCH-012** — When a recurring schedule cannot be activated because its end time is now or in the past, the system shall still allow the owner to run the job on demand ([FR-JOBS-RUN-003](../execution/execution.md)).
 
 Changing active vs stopped is in [schedule-status.md](./schedule-status.md). Once-specific rules are in [once.md](./once.md). Operational scheduling outcomes are in [execution](../execution/execution.md) (`FR-JOBS-STR-004`, `FR-JOBS-STR-005`).

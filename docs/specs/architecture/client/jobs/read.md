@@ -2,37 +2,28 @@
 
 Route: `/jobs`
 
-## CLIENT-JOBS-LST-001 — Jobs page ready
+## CLIENT-JOBS-LST-001 — Loading state
 
 - Setup: authenticated owner
 - Action: navigate to `/jobs`
-- Assert: URL is `/jobs`; page heading for Jobs is visible; create control is enabled after load
+- Assert: while loading, a loading indicator is shown; the list create control is not shown
 
 Traces:
 - [FR-JOBS-LST-001](../../../requirements/fr/jobs/lifecycle/read.md)
 
-## CLIENT-JOBS-LST-002 — Empty list
+## CLIENT-JOBS-LST-002 — Empty list placeholder
 
 - Setup: authenticated owner with no jobs
 - Action: navigate to `/jobs` and wait for load
-- Assert: no job list entries; create control enabled
+- Assert: placeholder is shown with a create-job control; list create control is not shown; opening create from the placeholder opens the create flow
 
 Traces:
 - [FR-JOBS-LST-001](../../../requirements/fr/jobs/lifecycle/read.md)
 - [HTTP-JOBS-LST-001](../../http/jobs/read.md)
 
-## CLIENT-JOBS-LST-003 — Loading state
+## CLIENT-JOBS-LST-003 — Owner’s jobs only
 
-- Setup: authenticated owner
-- Action: navigate to `/jobs`
-- Assert: while loading, a loading indicator is shown and create is disabled; after load, create is enabled
-
-Traces:
-- [FR-JOBS-LST-001](../../../requirements/fr/jobs/lifecycle/read.md)
-
-## CLIENT-JOBS-LST-004 — Owner’s jobs only
-
-- Setup: authenticated owner who has at least one job (other users may have jobs in the system)
+- Setup: authenticated owner who has at least one job
 - Action: view the jobs list
 - Assert: only this owner’s jobs appear
 

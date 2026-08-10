@@ -1,54 +1,42 @@
 # Client — Job sheet
 
-Route: `/jobs` (create or edit JobSheet)
+Route: `/jobs`
 
-Shared form surface for name-adjacent tools and schedule fields. Create/update happy paths stay in [create.md](./create.md) and [update.md](./update.md). List-entry retry lives in [list-entry.md](./list-entry.md) (`CLIENT-JOBS-SCH-005`).
+Shared form surface for name-adjacent tools and schedule fields. Create/update happy paths stay in [create.md](./create.md) and [update.md](./update.md).
 
 ## CLIENT-JOBS-TLR-001 — Open add-tool flow
 
 - Setup: create or edit flow open
 - Action: open add tool
-- Assert: tool-type choice is available (scraper and email)
+- Assert: tool-type choice is available
 
 Traces:
 - [FR-JOBS-TLR-002](../../../requirements/fr/jobs/tools/tools.md)
 
-## CLIENT-JOBS-TLR-002 — Persist scraper tool
+## CLIENT-JOBS-TLR-002 — Persist configured tool
 
-- Setup: create flow open; scraper configured with at least one keyword and max-pages
+- Setup: create flow open; a supported tool configured with required target(s) and config
 - Action: save tool and submit create
-- Assert: job appears; after reload, scraper tool is still present with those inputs
+- Assert: job appears; after reload, that tool is still present with its config
 
 Traces:
 - [FR-JOBS-TLR-001](../../../requirements/fr/jobs/tools/tools.md)
 - [FR-JOBS-TLR-002](../../../requirements/fr/jobs/tools/tools.md)
-- [FR-JOBS-TLR-003](../../../requirements/fr/jobs/tools/tools.md)
-- [FR-JOBS-TLR-004](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-006](../../../requirements/fr/jobs/tools/tools.md)
+- [FR-JOBS-TLR-007](../../../requirements/fr/jobs/tools/tools.md)
 - [FR-JOBS-CRT-001](../../../requirements/fr/jobs/lifecycle/create.md)
 
-## CLIENT-JOBS-TLR-004 — Persist email tool
+## CLIENT-JOBS-TLR-006 — Invalid tool blocked in add-tool flow
 
-- Setup: create flow open; email tool with subject and body
-- Action: save tool and submit create
-- Assert: job appears; after reload, email tool still has subject and body
-
-Traces:
-- [FR-JOBS-TLR-001](../../../requirements/fr/jobs/tools/tools.md)
-- [FR-JOBS-TLR-002](../../../requirements/fr/jobs/tools/tools.md)
-- [FR-JOBS-TLR-005](../../../requirements/fr/jobs/tools/tools.md)
-
-## CLIENT-JOBS-TLR-006 — Invalid tools blocked
-
-- Setup: create or edit flow open; tools missing, or a tool without a target, or a tool/target with required field(s) empty
-- Action: submit create/edit (or submit tool, when the defect is in the tool dialog)
-- Assert: visible error; sheet/tool flow remains open; job not saved in that invalid state
+- Setup: add-tool flow open; tool without a target, or missing required config on the tool/target
+- Action: submit tool
+- Assert: visible error; add-tool flow remains open; tool is not added to the sheet
 
 Traces:
-- [FR-JOBS-TLR-001](../../../requirements/fr/jobs/tools/tools.md)
 - [FR-JOBS-TLR-003](../../../requirements/fr/jobs/tools/tools.md)
 - [FR-JOBS-TLR-004](../../../requirements/fr/jobs/tools/tools.md)
 - [FR-JOBS-TLR-005](../../../requirements/fr/jobs/tools/tools.md)
-- [HTTP-JOBS-CRT-006](../../http/jobs/create.md)
+- [FR-JOBS-TLR-007](../../../requirements/fr/jobs/tools/tools.md)
 
 ## CLIENT-JOBS-SCH-001 — Schedule fields required when type selected
 
@@ -59,11 +47,11 @@ Traces:
 Traces:
 - [FR-JOBS-SCH-001](../../../requirements/fr/jobs/schedule/schedule.md)
 
-## CLIENT-JOBS-SCH-002 — Once schedule rejects end time
+## CLIENT-JOBS-SCH-002 — Once schedule hides end fields
 
-- Setup: create or edit flow open; schedule type `once`; end time provided
-- Action: submit
-- Assert: visible error; sheet remains open; job not saved with that schedule
+- Setup: create or edit flow open; schedule section available
+- Action: choose schedule type `once`
+- Assert: end date and end time controls are not shown
 
 Traces:
 - [FR-JOBS-ONCE-001](../../../requirements/fr/jobs/schedule/once.md)

@@ -10,4 +10,4 @@ Functional requirements for registration, login, logout, session, and access con
 
 Security qualities live under `nfr/security/authentication.md`.
 
-HTTP acceptance: [architecture/http/auth](../../../architecture/http/auth/index.md).
+Acceptance (not FRs): [HTTP](../../../architecture/http/auth/index.md) · [Client](../../../architecture/client/auth/index.md).

@@ -2,9 +2,7 @@
 
 Route: `/jobs`
 
-Card and detail chrome on the list: status badge, primary action, schedule cues, and list actions. Stop cancels an in-flight run; it is distinct from schedule status stopped (UI label **Paused**).
-
-Sheet form validation: [sheet.md](./sheet.md). Detail open/close: [read.md](./read.md).
+Card and detail chrome on the list: status badge, primary action, schedule cues, and list actions.
 
 ## Presentation
 
@@ -102,26 +100,27 @@ Traces:
 
 Traces:
 - [FR-JOBS-SCH-009](../../../requirements/fr/jobs/schedule/schedule.md)
+- [FR-JOBS-SCH-012](../../../requirements/fr/jobs/schedule/schedule.md)
 - [FR-JOBS-RUN-003](../../../requirements/fr/jobs/execution/execution.md)
 
 ## Actions
 
 ### CLIENT-JOBS-RUN-001 — Run from list entry
 
-- Setup: owned job that is not running; list visible; edit flow closed
+- Setup: owned job that is not running; list visible
 - Action: start a run from the list entry
-- Assert: entry shows **Running** without opening edit
+- Assert: entry shows **Running**
 
 Traces:
 - [FR-JOBS-RUN-003](../../../requirements/fr/jobs/execution/execution.md)
 - [FR-JOBS-RUN-001](../../../requirements/fr/jobs/execution/execution.md)
 - [HTTP-JOBS-RUN-001](../../http/jobs/run.md)
 
-### CLIENT-JOBS-RUN-002 — Run rejected while already running
+### CLIENT-JOBS-RUN-002 — Run unavailable while already running
 
 - Setup: owned job currently running
-- Action: attempt to start another run from the list
-- Assert: start unavailable or visible error; still a single in-flight run
+- Action: view list entry
+- Assert: start (Run) unavailable; primary action is **Stop**; still a single in-flight run
 
 Traces:
 - [FR-JOBS-RUN-004](../../../requirements/fr/jobs/execution/execution.md)
@@ -138,6 +137,17 @@ Traces:
 - [FR-JOBS-RUN-003](../../../requirements/fr/jobs/execution/execution.md)
 - [HTTP-JOBS-RUN-001](../../http/jobs/run.md)
 
+### CLIENT-JOBS-RUN-004 — On-demand run when recurring end has passed
+
+- Setup: owned recurring-scheduled job; end has passed; not running
+- Action: start a run from the list entry
+- Assert: run starts; owner is not forced to recreate the job
+
+Traces:
+- [FR-JOBS-SCH-012](../../../requirements/fr/jobs/schedule/schedule.md)
+- [FR-JOBS-RUN-003](../../../requirements/fr/jobs/execution/execution.md)
+- [HTTP-JOBS-RUN-001](../../http/jobs/run.md)
+
 ### CLIENT-JOBS-STP-001 — Stop a running job
 
 - Setup: owned job currently running; list or detail visible
@@ -149,20 +159,10 @@ Traces:
 - [FR-JOBS-STP-004](../../../requirements/fr/jobs/execution/stop.md)
 - [HTTP-JOBS-STP-001](../../http/jobs/stop.md)
 
-### CLIENT-JOBS-STP-002 — Stop when not running
-
-- Setup: owned job that is not running
-- Action: attempt stop (if the control is offered)
-- Assert: stop unavailable or visible error; job state unchanged
-
-Traces:
-- [FR-JOBS-STP-002](../../../requirements/fr/jobs/execution/stop.md)
-- [HTTP-JOBS-STP-002](../../http/jobs/stop.md)
-
 ### CLIENT-JOBS-SSC-001 — Pause an active schedule
 
 - Setup: owned scheduled job with active intent; not running
-- Action: pause schedule (set status to stopped)
+- Action: pause schedule
 - Assert: entry shows **Paused**; job does not run on that schedule until activated
 
 Traces:
@@ -182,11 +182,11 @@ Traces:
 - [FR-JOBS-SSC-003](../../../requirements/fr/jobs/schedule/schedule-status.md)
 - [HTTP-JOBS-SSC-002](../../http/jobs/schedule-status.md)
 
-### CLIENT-JOBS-SSC-003 — Status change blocked while running
+### CLIENT-JOBS-SSC-003 — Status change unavailable while running
 
 - Setup: owned scheduled job currently running
-- Action: attempt to change schedule status
-- Assert: change unavailable or visible error; status unchanged
+- Action: view list entry
+- Assert: schedule status change unavailable; primary action is **Stop**; status unchanged
 
 Traces:
 - [FR-JOBS-SSC-006](../../../requirements/fr/jobs/schedule/schedule-status.md)
@@ -250,7 +250,6 @@ Traces:
 - [FR-JOBS-STP-004](../../../requirements/fr/jobs/execution/stop.md)
 
 ### CLIENT-JOBS-STR-004 — Scheduling operational failure remains visible
-
 - Setup: scheduling failed after save; owner may navigate away and return to `/jobs` or reopen the job
 - Action: view the job on the list or in detail
 - Assert: failure remains observable until scheduling succeeds or the owner clears/stops the schedule
