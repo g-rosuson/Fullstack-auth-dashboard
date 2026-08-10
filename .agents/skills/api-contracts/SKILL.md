@@ -25,7 +25,7 @@ All backend responses use one of these shapes:
 { success: true, data: T }
 
 // Auth operations (with timestamp metadata)
-{ success: true, data: T, meta: { timestamp: number } }
+{ success: true, data: T, meta: { timestamp: string } }
 
 // Paginated list
 { success: true, data: T[], limit: number, offset: number, count: number }
@@ -40,12 +40,23 @@ Controllers MUST NOT produce custom shapes outside these four.
 
 ```typescript
 // ✅ In modules/<name>/schemas/
+import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
-export const createJobInputSchema = z.object({
-    name: z.string().min(1),
-    tools: z.array(toolSchema),
-    schedule: jobScheduleSchema.nullable(),
+extendZodWithOpenApi(z);
+
+// API-exposed schemas (request/response) — add .openapi()
+export const createJobInputSchema = z
+    .object({
+        name: z.string().min(1),
+        tools: z.array(toolSchema),
+        schedule: jobScheduleSchema.nullable(),
+    })
+    .openapi('CreateJobInput');
+
+// Internal-only schemas (config, DB helpers, non-API validation) — no .openapi()
+const internalHelperSchema = z.object({
+    internalField: z.string(),
 });
 
 // ✅ In modules/<name>/types/
@@ -57,6 +68,8 @@ export type CreateJobInput = z.infer<typeof createJobInputSchema>;
 // ❌ Never write duplicate manual types
 interface CreateJobInput { name: string; tools: Tool[]; ... }
 ```
+
+**Rule**: Only add `.openapi('Name')` to schemas exposed to clients via API endpoints / OpenAPI. Internal schemas (config, env, non-exported helpers) MUST NOT use `.openapi()`.
 
 ## OpenAPI registration — `*-registry.ts`
 
@@ -166,6 +179,7 @@ const response = await api.service.resources.jobs.create(payload);
 # Anti-Patterns
 
 - **Never** write TypeScript interfaces that duplicate a Zod schema — use `z.infer<typeof schema>`.
+- **Never** add `.openapi()` to internal-only schemas (config, env, non-API helpers).
 - **Never** manually edit files in `src/_types/_gen/` — they are overwritten by Orval.
 - **Never** hardcode response shapes differently from the four canonical shapes.
 - **Never** return raw MongoDB documents — always map through a typed schema before `res.json`.
@@ -174,6 +188,7 @@ const response = await api.service.resources.jobs.create(payload);
 # Validation Checklist
 
 - [ ] Request body has a Zod schema in `modules/<name>/schemas/`
+- [ ] API-exposed schemas use `.openapi()`; internal schemas do not
 - [ ] TypeScript type derived with `z.infer` — no duplicate manual definitions
 - [ ] Response uses one of the four canonical shapes
 - [ ] Path registered in `<name>-registry.ts` with correct request + response schemas

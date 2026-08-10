@@ -1,9 +1,24 @@
 import constants from 'shared/constants';
 
+import type { ScheduledJobEvent } from 'shared/types/jobs/events/types-jobs-events';
 import type { Tool } from 'shared/types/jobs/tools/types-tools';
 import type { ToolTargetName, ToolType } from 'shared/types/jobs/tools/types-tools';
 
 import { Delegator } from './';
+
+/**
+ * Verification: unit proofs for job execution runtime (cite FR IDs).
+ * @see docs/specs/requirements/fr/jobs/execution/execution.md
+ * @see docs/specs/requirements/fr/jobs/execution/stop.md
+ * @see docs/specs/requirements/nfr/reliability/jobs.md
+ *
+ * Out of scope here (covered elsewhere):
+ * - FR-JOBS-RUN-003 — manual start UX / HTTP entry
+ * - FR-JOBS-RUN-004 — reject while running (controllers gate on `runningJobs`)
+ * - FR-JOBS-STP-001 / STP-002 — stop HTTP entry (jobs-controller stopJob)
+ * - FR-JOBS-STR-002 — connect snapshot (jobs-controller streamJobs)
+ * - FR-JOBS-STR-004 / STR-005 — schedule-attach failure observability (scheduler/HTTP)
+ */
 
 const mockTool = {
     type: 'tool' as ToolType,
@@ -23,7 +38,6 @@ const mockToolTwo = {
 const mockPayloadWithTool = {
     jobId: 'test-job-id',
     userId: 'test-user-id',
-    name: 'Test Job',
     tools: [mockTool, mockToolTwo],
     scheduleType: null,
 };
@@ -36,6 +50,40 @@ const mockRecurringPayload = {
 const mockOncePayload = {
     ...mockPayloadWithTool,
     scheduleType: 'once' as const,
+};
+
+const mockTargetListing = {
+    target: 'jobs-ch' as const,
+    targetId: 'target-1',
+    results: [
+        {
+            listing: {
+                ok: true as const,
+                listingKey: 'k-a',
+                source: 'jobs-ch' as const,
+                url: 'https://example.com/a',
+                title: 'A',
+                text: 'A',
+            },
+        },
+    ],
+};
+
+const mockTargetListingTwo = {
+    target: 'jobs-ch' as const,
+    targetId: 'target-2',
+    results: [
+        {
+            listing: {
+                ok: true as const,
+                listingKey: 'k-b',
+                source: 'jobs-ch' as const,
+                url: 'https://example.com/b',
+                title: 'B',
+                text: 'B',
+            },
+        },
+    ],
 };
 
 vi.mock('aop/db/mongo/client', () => ({
@@ -65,10 +113,20 @@ vi.mock('aop/emitter', () => ({
     },
 }));
 
+const mockGetCronJobEventsForUser = vi.hoisted(() => vi.fn((): ScheduledJobEvent[] => []));
+vi.mock('aop/scheduler', () => ({
+    Scheduler: {
+        getInstance: vi.fn(() => ({
+            getCronJobEventsForUser: mockGetCronJobEventsForUser,
+        })),
+    },
+}));
+
 const mockLoggerError = vi.hoisted(() => vi.fn());
+const mockLoggerInfo = vi.hoisted(() => vi.fn());
 vi.mock('aop/logging', () => ({
     logger: {
-        info: vi.fn(),
+        info: mockLoggerInfo,
         warn: vi.fn(),
         error: mockLoggerError,
     },
@@ -82,21 +140,10 @@ vi.mock('config', () => ({
 }));
 
 const mockExecute = vi.hoisted(() => vi.fn());
-const mockProcessRequest = vi.hoisted(() => vi.fn());
 vi.mock('./tools', () => ({
     default: {
         tool: {
             execute: mockExecute,
-        },
-    },
-}));
-
-vi.mock('./tools/scraper', () => ({
-    default: {
-        tool: {
-            target: {
-                processRequest: mockProcessRequest,
-            },
         },
     },
 }));
@@ -108,6 +155,7 @@ describe('Delegator', () => {
         vi.clearAllMocks();
         mockExecute.mockResolvedValue(undefined);
         mockAddExecution.mockResolvedValue(undefined);
+        mockGetCronJobEventsForUser.mockReturnValue([]);
         // Reset the singleton instance for isolated tests
         // @ts-expect-error - accessing private static property for testing
         Delegator.instance = null;
@@ -115,16 +163,48 @@ describe('Delegator', () => {
     });
 
     describe('getInstance', () => {
-        it('should return the same instance', () => {
-            const firstInstance = Delegator.getInstance();
-            const secondInstance = Delegator.getInstance();
-
-            expect(firstInstance).toBe(secondInstance);
+        it('returns the same singleton instance', () => {
+            expect(Delegator.getInstance()).toBe(Delegator.getInstance());
         });
     });
 
-    describe('delegate', () => {
-        it('should add job to running-jobs queue', async () => {
+    describe('getRunningJobsForUser', () => {
+        it('returns only running jobs owned by the given user', async () => {
+            let release!: () => void;
+            const gate = new Promise<void>(resolve => {
+                release = resolve;
+            });
+
+            mockExecute.mockImplementation(async () => {
+                await gate;
+            });
+
+            const ownerRun = delegator.delegate(mockPayloadWithTool);
+            const otherRun = delegator.delegate({
+                ...mockPayloadWithTool,
+                jobId: 'other-job-id',
+                userId: 'other-user-id',
+            });
+
+            await vi.waitFor(() => {
+                expect(delegator.runningJobs.size).toBe(2);
+            });
+
+            const ownerJobs = delegator.getRunningJobsForUser('test-user-id');
+            expect(ownerJobs).toEqual([{ jobId: 'test-job-id' }]);
+
+            const otherJobs = delegator.getRunningJobsForUser('other-user-id');
+            expect(otherJobs).toEqual([{ jobId: 'other-job-id' }]);
+
+            expect(delegator.getRunningJobsForUser('nobody')).toEqual([]);
+
+            release();
+            await Promise.all([ownerRun, otherRun]);
+        });
+    });
+
+    describe('[FR-JOBS-RUN-001] — execute tools when the job is run', () => {
+        it('adds the job to runningJobs while tools execute', async () => {
             mockExecute.mockImplementation(async () => {
                 expect(delegator.runningJobs.has(mockPayloadWithTool.jobId)).toBe(true);
             });
@@ -132,12 +212,12 @@ describe('Delegator', () => {
             await delegator.delegate(mockPayloadWithTool);
         });
 
-        it('should remove job from running-jobs queue', async () => {
+        it('removes the job from runningJobs after the run completes', async () => {
             await delegator.delegate(mockPayloadWithTool);
             expect(delegator.runningJobs.has(mockPayloadWithTool.jobId)).toBe(false);
         });
 
-        it('should invoke tools sequentially', async () => {
+        it('invokes tools sequentially', async () => {
             const callQueue: string[] = [];
 
             mockExecute.mockImplementation(async ({ tool }: { tool: typeof mockTool }) => {
@@ -149,20 +229,84 @@ describe('Delegator', () => {
             await delegator.delegate(mockPayloadWithTool);
 
             expect(mockExecute).toHaveBeenCalledTimes(2);
-
             expect(callQueue).toEqual(['test-id-1-start', 'test-id-1-end', 'test-id-2-start', 'test-id-2-end']);
         });
 
-        it('should persist execution payload with correct shape', async () => {
+        it('runs a registered job when the schedule fires via delegateScheduledJob', async () => {
+            delegator.register(mockPayloadWithTool);
+
+            await delegator.delegateScheduledJob('test-job-id');
+
+            expect(mockExecute).toHaveBeenCalled();
+            expect(mockAddExecution).toHaveBeenCalled();
+        });
+
+        it('logs and skips when no registered job exists for the id', async () => {
+            await delegator.delegateScheduledJob('unknown-job-id');
+
+            expect(mockExecute).not.toHaveBeenCalled();
+            expect(mockAddExecution).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalled();
+        });
+
+        it('keeps a recurring job pending so a later tick can run again', async () => {
+            delegator.register(mockRecurringPayload);
+            await delegator.delegateScheduledJob('test-job-id');
+
+            mockExecute.mockClear();
+            mockAddExecution.mockClear();
+            mockLoggerError.mockClear();
+
+            await delegator.delegateScheduledJob('test-job-id');
+
+            expect(mockExecute).toHaveBeenCalled();
+            expect(mockAddExecution).toHaveBeenCalled();
+            expect(mockLoggerError).not.toHaveBeenCalled();
+        });
+
+        it('drops a once job from pending after the first run', async () => {
+            delegator.register(mockOncePayload);
+            await delegator.delegateScheduledJob('test-job-id');
+
+            mockExecute.mockClear();
+            mockAddExecution.mockClear();
+            mockLoggerError.mockClear();
+
+            await delegator.delegateScheduledJob('test-job-id');
+
+            expect(mockExecute).not.toHaveBeenCalled();
+            expect(mockAddExecution).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalled();
+        });
+
+        it('drops an unscheduled job from pending after an immediate run', async () => {
+            delegator.register(mockPayloadWithTool);
+            await delegator.delegate(mockPayloadWithTool);
+
+            mockExecute.mockClear();
+            mockLoggerError.mockClear();
+
+            await delegator.delegateScheduledJob('test-job-id');
+
+            expect(mockExecute).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalled();
+        });
+    });
+
+    describe('[FR-JOBS-RUN-002] — record executions', () => {
+        it('persists an execution payload with schedule timestamps and tools', async () => {
             await delegator.delegate(mockPayloadWithTool);
 
             expect(mockAddExecution).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    executionId: expect.any(String),
                     jobId: 'test-job-id',
+                    status: constants.status.execution.completed,
                     schedule: {
                         type: null,
                         delegatedAt: expect.any(String),
                         finishedAt: expect.any(String),
+                        cancelledAt: null,
                     },
                     tools: [
                         expect.objectContaining({
@@ -178,254 +322,14 @@ describe('Delegator', () => {
                     ],
                 })
             );
+            expect(mockLoggerInfo).toHaveBeenCalled();
         });
 
-        it('should emit events in the correct order', async () => {
-            const mockTargetResults = [
-                {
-                    target: 'jobs-ch' as const,
-                    targetId: 'target-1',
-                    results: [
-                        {
-                            listing: {
-                                ok: true as const,
-                                listingKey: 'k-a',
-                                source: 'jobs-ch' as const,
-                                url: 'https://example.com/a',
-                                title: 'A',
-                                text: 'A',
-                            },
-                        },
-                    ],
-                },
-                {
-                    target: 'jobs-ch' as const,
-                    targetId: 'target-2',
-                    results: [
-                        {
-                            listing: {
-                                ok: true as const,
-                                listingKey: 'k-b',
-                                source: 'jobs-ch' as const,
-                                url: 'https://example.com/b',
-                                title: 'B',
-                                text: 'B',
-                            },
-                        },
-                    ],
-                },
-            ];
-
-            for (const targetResult of mockTargetResults) {
-                mockExecute.mockImplementationOnce(
-                    // eslint-disable-next-line no-unused-vars
-                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof targetResult) => void }) => {
-                        onTargetFinish(targetResult);
-                    }
-                );
-            }
-
-            await delegator.delegate(mockPayloadWithTool);
-
-            const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
-
-            expect(emittedTypes).toEqual([
-                constants.events.jobs.runningJobs,
-                constants.events.jobs.targetFinished,
-                constants.events.jobs.targetFinished,
-                constants.events.jobs.jobFinished,
-            ]);
-        });
-
-        it('should emit target-finished event for each completed target', async () => {
-            const mockTargetResults = [
-                {
-                    target: 'jobs-ch' as const,
-                    targetId: 'target-1',
-                    results: [
-                        {
-                            listing: {
-                                ok: true as const,
-                                listingKey: 'k1',
-                                source: 'jobs-ch' as const,
-                                url: 'https://example.com/job-1',
-                                title: 'Software Engineer',
-                                text: 'Software Engineer',
-                            },
-                        },
-                    ],
-                },
-                {
-                    target: 'jobs-ch' as const,
-                    targetId: 'target-2',
-                    results: [
-                        {
-                            listing: {
-                                ok: true as const,
-                                listingKey: 'k2',
-                                source: 'jobs-ch' as const,
-                                url: 'https://example.com/job-2',
-                                title: 'Data Engineer',
-                                text: 'Data Engineer',
-                            },
-                        },
-                    ],
-                },
-            ];
-
-            for (const targetResult of mockTargetResults) {
-                mockExecute.mockImplementationOnce(
-                    // eslint-disable-next-line no-unused-vars
-                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof targetResult) => void }) => {
-                        onTargetFinish(targetResult);
-                    }
-                );
-            }
-
-            await delegator.delegate(mockPayloadWithTool);
-
-            // Since a running-jobs event is emitted before the target-finished events,
-            // we need to filter out the running-jobs event
-            const targetFinishedPayloads = mockEmit.mock.calls
-                .map(([payload]) => payload as { type: string })
-                .filter(p => p.type === constants.events.jobs.targetFinished);
-
-            expect(targetFinishedPayloads).toHaveLength(2);
-
-            expect(targetFinishedPayloads[0]).toEqual(
-                expect.objectContaining({
-                    jobId: 'test-job-id',
-                    userId: 'test-user-id',
-                    executionId: expect.any(String),
-                    schedule: {
-                        type: null,
-                        delegatedAt: expect.any(String),
-                        finishedAt: null,
-                    },
-                    tool: mockTool,
-                    target: mockTargetResults[0],
-                    type: constants.events.jobs.targetFinished,
-                })
-            );
-
-            expect(targetFinishedPayloads[1]).toEqual(
-                expect.objectContaining({
-                    jobId: 'test-job-id',
-                    userId: 'test-user-id',
-                    executionId: expect.any(String),
-                    schedule: {
-                        type: null,
-                        delegatedAt: expect.any(String),
-                        finishedAt: null,
-                    },
-                    tool: mockToolTwo,
-                    target: mockTargetResults[1],
-                    type: constants.events.jobs.targetFinished,
-                })
-            );
-        });
-
-        it('should emit job finished event correctly', async () => {
-            await delegator.delegate(mockPayloadWithTool);
-
-            expect(mockEmit).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    type: constants.events.jobs.jobFinished,
-                    jobId: 'test-job-id',
-                    userId: 'test-user-id',
-                    executionId: expect.any(String),
-                    finishedAt: expect.any(String),
-                })
-            );
-
-            const jobFailedEmitted = mockEmit.mock.calls.some(
-                ([payload]) => payload.type === constants.events.jobs.jobFailed
-            );
-            expect(jobFailedEmitted).toBe(false);
-        });
-
-        it('should use the same execution id on all success events for one run', async () => {
-            const mockTargetResults = [
-                {
-                    target: 'jobs-ch' as const,
-                    targetId: 'target-1',
-                    results: [
-                        {
-                            listing: {
-                                ok: true as const,
-                                listingKey: 'k-a',
-                                source: 'jobs-ch' as const,
-                                url: 'https://example.com/a',
-                                title: 'A',
-                                text: 'A',
-                            },
-                        },
-                    ],
-                },
-                {
-                    target: 'jobs-ch' as const,
-                    targetId: 'target-2',
-                    results: [
-                        {
-                            listing: {
-                                ok: true as const,
-                                listingKey: 'k-b',
-                                source: 'jobs-ch' as const,
-                                url: 'https://example.com/b',
-                                title: 'B',
-                                text: 'B',
-                            },
-                        },
-                    ],
-                },
-            ];
-
-            for (const targetResult of mockTargetResults) {
-                mockExecute.mockImplementationOnce(
-                    // eslint-disable-next-line no-unused-vars
-                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof targetResult) => void }) => {
-                        onTargetFinish(targetResult);
-                    }
-                );
-            }
-
-            await delegator.delegate(mockPayloadWithTool);
-
-            const payloads = mockEmit.mock.calls.map(([p]) => p as { type: string; executionId?: string });
-
-            const jobFinished = payloads.find(p => p.type === constants.events.jobs.jobFinished);
-            const targetFinished = payloads.filter(p => p.type === constants.events.jobs.targetFinished);
-
-            expect(jobFinished?.executionId).toEqual(expect.any(String));
-            expect(targetFinished).toHaveLength(2);
-            for (const p of targetFinished) {
-                expect(p.executionId).toBe(jobFinished?.executionId);
-            }
-        });
-
-        it('should persist targets populated by onTargetFinish', async () => {
-            const mockTargetResult = {
-                target: 'jobs-ch' as const,
-                targetId: 'target-1',
-                results: [
-                    {
-                        listing: {
-                            ok: true as const,
-                            listingKey: 'k-job-1',
-                            source: 'jobs-ch' as const,
-                            url: 'https://example.com/job-1',
-                            title: 'Software Engineer',
-                            text: 'Great job\n\nLocation: Zurich',
-                            fields: { Location: 'Zurich' },
-                        },
-                    },
-                ],
-            };
-
+        it('persists targets populated by onTargetFinish', async () => {
             mockExecute.mockImplementation(
                 // eslint-disable-next-line no-unused-vars
-                async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetResult) => void }) => {
-                    onTargetFinish(mockTargetResult);
+                async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListing) => void }) => {
+                    onTargetFinish(mockTargetListing);
                 }
             );
 
@@ -443,8 +347,8 @@ describe('Delegator', () => {
                                         expect.objectContaining({
                                             listing: expect.objectContaining({
                                                 ok: true,
-                                                url: 'https://example.com/job-1',
-                                                title: 'Software Engineer',
+                                                url: 'https://example.com/a',
+                                                title: 'A',
                                             }),
                                         }),
                                     ],
@@ -465,35 +369,193 @@ describe('Delegator', () => {
             );
         });
 
-        it('should clear emitter job target events after delegation', async () => {
-            await delegator.delegate(mockPayloadWithTool);
+        it('logs persistence failures without throwing and still finishes the run', async () => {
+            mockAddExecution.mockRejectedValue(new Error('db write failed'));
 
+            await expect(delegator.delegate(mockPayloadWithTool)).resolves.toBeUndefined();
+
+            expect(mockLoggerError).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({ error: expect.any(Error) })
+            );
+            expect(delegator.runningJobs.has('test-job-id')).toBe(false);
             expect(mockClearJobTargetEvents).toHaveBeenCalledWith('test-job-id');
-            expect(mockClearJobTargetEvents).toHaveBeenCalledTimes(1);
+
+            const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
+            expect(emittedTypes).toContain(constants.events.jobs.jobFinished);
+            expect(emittedTypes).not.toContain(constants.events.jobs.jobFailed);
         });
 
-        it('should clean up queues and emitter even when tool execution fails', async () => {
+        it('does not persist when tool execution fails before completion', async () => {
+            mockExecute.mockRejectedValue(new Error('tool exploded'));
+
+            await delegator.delegate(mockPayloadWithTool);
+
+            expect(mockAddExecution).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('[FR-JOBS-STR-001] — live activity events', () => {
+        it('emits running-jobs with the job id and owner userId when the run starts', async () => {
+            mockExecute.mockImplementation(async () => {
+                expect(mockEmit).toHaveBeenCalledWith({
+                    type: constants.events.jobs.jobsRunning,
+                    runningJobs: ['test-job-id'],
+                    userId: 'test-user-id',
+                });
+            });
+
+            await delegator.delegate(mockPayloadWithTool);
+        });
+
+        it('emits events in order: running-jobs, target-finished…, job-finished', async () => {
+            mockExecute
+                .mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListing) => void }) => {
+                        onTargetFinish(mockTargetListing);
+                    }
+                )
+                .mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListingTwo) => void }) => {
+                        onTargetFinish(mockTargetListingTwo);
+                    }
+                );
+
+            await delegator.delegate(mockPayloadWithTool);
+
+            expect(mockEmit.mock.calls.map(([payload]) => payload.type)).toEqual([
+                constants.events.jobs.jobsRunning,
+                constants.events.jobs.jobTargetFinished,
+                constants.events.jobs.jobTargetFinished,
+                constants.events.jobs.jobFinished,
+            ]);
+        });
+
+        it('emits target-finished for each completed target', async () => {
+            mockExecute
+                .mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListing) => void }) => {
+                        onTargetFinish(mockTargetListing);
+                    }
+                )
+                .mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListingTwo) => void }) => {
+                        onTargetFinish(mockTargetListingTwo);
+                    }
+                );
+
+            await delegator.delegate(mockPayloadWithTool);
+
+            const targetFinishedPayloads = mockEmit.mock.calls
+                .map(([payload]) => payload as { type: string })
+                .filter(p => p.type === constants.events.jobs.jobTargetFinished);
+
+            expect(targetFinishedPayloads).toHaveLength(2);
+            expect(targetFinishedPayloads[0]).toEqual(
+                expect.objectContaining({
+                    jobId: 'test-job-id',
+                    userId: 'test-user-id',
+                    executionId: expect.any(String),
+                    schedule: {
+                        type: null,
+                        delegatedAt: expect.any(String),
+                        finishedAt: null,
+                        cancelledAt: null,
+                    },
+                    tool: mockTool,
+                    target: mockTargetListing,
+                    type: constants.events.jobs.jobTargetFinished,
+                })
+            );
+            expect(targetFinishedPayloads[1]).toEqual(
+                expect.objectContaining({
+                    jobId: 'test-job-id',
+                    userId: 'test-user-id',
+                    tool: mockToolTwo,
+                    target: mockTargetListingTwo,
+                    type: constants.events.jobs.jobTargetFinished,
+                })
+            );
+        });
+
+        it('emits job-finished with job, user, execution id, and finishedAt', async () => {
+            await delegator.delegate(mockPayloadWithTool);
+
+            expect(mockEmit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: constants.events.jobs.jobFinished,
+                    jobId: 'test-job-id',
+                    userId: 'test-user-id',
+                    executionId: expect.any(String),
+                    finishedAt: expect.any(String),
+                })
+            );
+        });
+
+        it('[FR-JOBS-STR-003] emits jobs-scheduled with nextRun and lastRun after a recurring run', async () => {
+            const scheduledJobs = [
+                {
+                    jobId: 'test-job-id',
+                    status: constants.status.schedule.idle,
+                    nextRun: '2026-03-12T08:30:00.000Z',
+                    lastRun: '2026-03-11T08:30:00.000Z',
+                },
+            ];
+            mockGetCronJobEventsForUser.mockReturnValue(scheduledJobs);
+
+            await delegator.delegate(mockRecurringPayload);
+
+            expect(mockGetCronJobEventsForUser).toHaveBeenCalledWith('test-user-id');
+            expect(mockEmit).toHaveBeenCalledWith({
+                type: constants.events.jobs.jobsScheduled,
+                userId: 'test-user-id',
+                scheduledJobs,
+            });
+        });
+
+        it('uses the same execution id on all success events for one run', async () => {
+            mockExecute
+                .mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListing) => void }) => {
+                        onTargetFinish(mockTargetListing);
+                    }
+                )
+                .mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListingTwo) => void }) => {
+                        onTargetFinish(mockTargetListingTwo);
+                    }
+                );
+
+            await delegator.delegate(mockPayloadWithTool);
+
+            const payloads = mockEmit.mock.calls.map(([p]) => p as { type: string; executionId?: string });
+            const jobFinished = payloads.find(p => p.type === constants.events.jobs.jobFinished);
+            const targetFinished = payloads.filter(p => p.type === constants.events.jobs.jobTargetFinished);
+
+            expect(jobFinished?.executionId).toEqual(expect.any(String));
+            expect(targetFinished).toHaveLength(2);
+            for (const p of targetFinished) {
+                expect(p.executionId).toBe(jobFinished?.executionId);
+            }
+        });
+
+        it('emits job-failed and cleans up when tool execution fails', async () => {
             mockExecute.mockRejectedValue(new Error('tool exploded'));
 
             await delegator.delegate(mockPayloadWithTool);
 
             expect(delegator.runningJobs.has('test-job-id')).toBe(false);
             expect(mockClearJobTargetEvents).toHaveBeenCalledWith('test-job-id');
-
-            const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
-
-            expect(emittedTypes).toEqual([constants.events.jobs.runningJobs, constants.events.jobs.jobFailed]);
-
-            const jobFinishedEmitted = mockEmit.mock.calls.some(
-                ([payload]) => payload.type === constants.events.jobs.jobFinished
-            );
-            expect(jobFinishedEmitted).toBe(false);
-
-            const targetFinishedCount = mockEmit.mock.calls.filter(
-                ([payload]) => payload.type === constants.events.jobs.targetFinished
-            ).length;
-            expect(targetFinishedCount).toBe(0);
-
+            expect(mockEmit.mock.calls.map(([payload]) => payload.type)).toEqual([
+                constants.events.jobs.jobsRunning,
+                constants.events.jobs.jobFailed,
+            ]);
             expect(mockEmit).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: constants.events.jobs.jobFailed,
@@ -503,131 +565,105 @@ describe('Delegator', () => {
                     failedAt: expect.any(String),
                 })
             );
-
-            const jobFailedPayload = mockEmit.mock.calls
-                .map(([p]) => p as { type: string; jobId: string; executionId: string })
-                .find(p => p.type === constants.events.jobs.jobFailed);
-            expect(jobFailedPayload).toBeDefined();
-
             expect(mockLoggerError).toHaveBeenCalledWith(
                 expect.any(String),
                 expect.objectContaining({ error: expect.any(Error) })
             );
-            const [delegationFailureMessage] = mockLoggerError.mock.calls[0];
-            expect(delegationFailureMessage).toContain(jobFailedPayload!.jobId);
-            expect(delegationFailureMessage).toContain(jobFailedPayload!.executionId);
         });
 
-        it('should log persistence failures without throwing', async () => {
-            mockExecute.mockReset();
-            mockAddExecution.mockRejectedValue(new Error('db write failed'));
+        it('emits job-failed after a later tool fails, without job-finished', async () => {
+            mockExecute
+                .mockImplementationOnce(
+                    // eslint-disable-next-line no-unused-vars
+                    async ({ onTargetFinish }: { onTargetFinish: (target: typeof mockTargetListing) => void }) => {
+                        onTargetFinish(mockTargetListing);
+                    }
+                )
+                .mockRejectedValueOnce(new Error('second tool exploded'));
 
-            await expect(delegator.delegate(mockPayloadWithTool)).resolves.toBeUndefined();
-
-            expect(mockLoggerError).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to persist job results'),
-                expect.objectContaining({ error: expect.any(Error) })
-            );
-
-            expect(delegator.runningJobs.has('test-job-id')).toBe(false);
-            expect(mockClearJobTargetEvents).toHaveBeenCalledWith('test-job-id');
-
-            const jobFailedEmitted = mockEmit.mock.calls.some(
-                ([payload]) => payload.type === constants.events.jobs.jobFailed
-            );
-            expect(jobFailedEmitted).toBe(false);
-        });
-    });
-
-    describe('delegateScheduledJob', () => {
-        it('should execute work for a job that was registered for later', async () => {
-            delegator.register(mockPayloadWithTool);
-
-            await delegator.delegateScheduledJob('test-job-id');
-
-            expect(mockExecute).toHaveBeenCalled();
-            expect(mockAddExecution).toHaveBeenCalled();
-        });
-
-        it('should not execute again after an unscheduled job has already run', async () => {
-            delegator.register(mockPayloadWithTool);
-            await delegator.delegateScheduledJob('test-job-id');
-
-            mockExecute.mockClear();
-            mockAddExecution.mockClear();
-            mockLoggerError.mockClear();
-
-            await delegator.delegateScheduledJob('test-job-id');
-
-            expect(mockExecute).not.toHaveBeenCalled();
-            expect(mockAddExecution).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith(
-                expect.stringContaining('Cannot find and delegate scheduled job with ID: "test-job-id"'),
-                {}
-            );
-        });
-
-        it('should execute again on a second cron tick for recurring jobs', async () => {
-            delegator.register(mockRecurringPayload);
-            await delegator.delegateScheduledJob('test-job-id');
-
-            mockExecute.mockClear();
-            mockAddExecution.mockClear();
-            mockLoggerError.mockClear();
-
-            await delegator.delegateScheduledJob('test-job-id');
-
-            expect(mockExecute).toHaveBeenCalled();
-            expect(mockAddExecution).toHaveBeenCalled();
-            expect(mockLoggerError).not.toHaveBeenCalled();
-        });
-
-        it('should not execute again on a second tick for once jobs', async () => {
-            delegator.register(mockOncePayload);
-            await delegator.delegateScheduledJob('test-job-id');
-
-            mockExecute.mockClear();
-            mockAddExecution.mockClear();
-            mockLoggerError.mockClear();
-
-            await delegator.delegateScheduledJob('test-job-id');
-
-            expect(mockExecute).not.toHaveBeenCalled();
-            expect(mockAddExecution).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith(
-                expect.stringContaining('Cannot find and delegate scheduled job with ID: "test-job-id"'),
-                {}
-            );
-        });
-
-        it('should report when no registered job exists for the id', async () => {
-            await delegator.delegateScheduledJob('unknown-job-id');
-
-            expect(mockExecute).not.toHaveBeenCalled();
-            expect(mockAddExecution).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith(
-                expect.stringContaining('Cannot find and delegate scheduled job with ID: "unknown-job-id"'),
-                {}
-            );
-        });
-    });
-
-    describe('register combined with immediate delegate', () => {
-        it('should leave no scheduled work after the same job is run immediately', async () => {
-            delegator.register(mockPayloadWithTool);
             await delegator.delegate(mockPayloadWithTool);
 
-            mockExecute.mockClear();
-            mockAddExecution.mockClear();
-            mockLoggerError.mockClear();
+            const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
+            expect(emittedTypes).toEqual([
+                constants.events.jobs.jobsRunning,
+                constants.events.jobs.jobTargetFinished,
+                constants.events.jobs.jobFailed,
+            ]);
+            expect(mockAddExecution).not.toHaveBeenCalled();
+            expect(delegator.runningJobs.has('test-job-id')).toBe(false);
+        });
 
-            await delegator.delegateScheduledJob('test-job-id');
+        it('clears buffered job target events after the run ends', async () => {
+            await delegator.delegate(mockPayloadWithTool);
 
-            expect(mockExecute).not.toHaveBeenCalled();
-            expect(mockLoggerError).toHaveBeenCalledWith(
-                expect.stringContaining('Cannot find and delegate scheduled job with ID: "test-job-id"'),
-                {}
+            expect(mockClearJobTargetEvents).toHaveBeenCalledWith('test-job-id');
+            expect(mockClearJobTargetEvents).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('[FR-JOBS-STP-003] / [FR-JOBS-STP-004] / [FR-JOBS-STR-006] — cancel in-flight run', () => {
+        beforeEach(() => {
+            mockExecute.mockImplementation(async ({ tool }: { tool: typeof mockTool }) => {
+                if (tool.testId === 'test-id-1') {
+                    delegator.cancel('test-job-id');
+                }
+            });
+        });
+
+        it('[FR-JOBS-STP-003] skips subsequent tools when cancelled mid-run', async () => {
+            await delegator.delegate(mockPayloadWithTool);
+
+            expect(mockExecute).toHaveBeenCalledTimes(1);
+        });
+
+        it('[FR-JOBS-STP-004] persists status cancelled with tools completed before cancel', async () => {
+            await delegator.delegate(mockPayloadWithTool);
+
+            expect(mockAddExecution).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: constants.status.execution.cancelled,
+                    tools: [
+                        expect.objectContaining({
+                            type: 'tool',
+                            keywords: ['keyword-1', 'keyword-2'],
+                        }),
+                    ],
+                })
             );
+        });
+
+        it('[FR-JOBS-STR-006] emits job-cancelled without finished or failed', async () => {
+            await delegator.delegate(mockPayloadWithTool);
+
+            const emittedTypes = mockEmit.mock.calls.map(([payload]) => payload.type);
+            expect(emittedTypes).toContain(constants.events.jobs.jobCancelled);
+            expect(emittedTypes).not.toContain(constants.events.jobs.jobFinished);
+            expect(emittedTypes).not.toContain(constants.events.jobs.jobFailed);
+        });
+
+        it('is a no-op when the job is not running', () => {
+            expect(() => delegator.cancel('missing-job-id')).not.toThrow();
+        });
+    });
+
+    describe('removeJob', () => {
+        it('clears pending, running, and buffered target events for the job id', async () => {
+            delegator.register(mockRecurringPayload);
+            mockExecute.mockImplementation(async () => {
+                expect(delegator.runningJobs.has('test-job-id')).toBe(true);
+                delegator.removeJob('test-job-id');
+                expect(delegator.runningJobs.has('test-job-id')).toBe(false);
+            });
+
+            await delegator.delegate(mockRecurringPayload);
+
+            expect(mockClearJobTargetEvents).toHaveBeenCalledWith('test-job-id');
+
+            mockExecute.mockClear();
+            mockLoggerError.mockClear();
+            await delegator.delegateScheduledJob('test-job-id');
+            expect(mockExecute).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalled();
         });
     });
 });

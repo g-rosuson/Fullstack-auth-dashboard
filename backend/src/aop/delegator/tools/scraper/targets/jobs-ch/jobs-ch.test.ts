@@ -163,7 +163,7 @@ async function runTarget(page: Page, overrides?: Partial<ScraperTargetConfig>) {
         close: browserClose,
     } as never);
 
-    const results = await jobsChTarget.run(buildTargetConfig(overrides));
+    const results = await jobsChTarget.run(buildTargetConfig(overrides), new AbortController().signal);
     return { results, browserClose };
 }
 
@@ -584,7 +584,9 @@ describe('jobsChTarget — error handling', () => {
 
     it('propagates when browser launch throws', async () => {
         vi.mocked(chromium.launch).mockRejectedValue(new Error('launch failed'));
-        await expect(jobsChTarget.run(buildTargetConfig())).rejects.toThrow('launch failed');
+        await expect(jobsChTarget.run(buildTargetConfig(), new AbortController().signal)).rejects.toThrow(
+            'launch failed'
+        );
     });
 
     it('always closes the browser and page', async () => {
@@ -600,7 +602,7 @@ describe('jobsChTarget — error handling', () => {
             close: browserClose,
         } as never);
 
-        await jobsChTarget.run(buildTargetConfig());
+        await jobsChTarget.run(buildTargetConfig(), new AbortController().signal);
 
         expect(pageClose).toHaveBeenCalled();
         expect(browserClose).toHaveBeenCalled();

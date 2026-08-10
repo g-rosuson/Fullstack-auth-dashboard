@@ -1,0 +1,49 @@
+# .cursorignore — hard block (no index, no Agent/Tab, no @ mentions)
+# Docs: https://cursor.com/docs/reference/ignore-file
+# Prefer .cursorindexingignore for large files you still want to @ on demand.
+
+# --- Secrets & credentials (always hard-block) ---
+.env
+.env.*
+**/.env
+**/.env.*
+*.local
+**/credentials.json
+**/secrets.json
+**/*.key
+**/*.pem
+**/id_rsa
+**/id_rsa.pub
+
+# --- Dependencies (never useful to the model) ---
+node_modules/
+.npm/
+.yarn/
+.pnp/
+.pnp.js
+.pnpm-store/
+
+# --- Build & generated output ---
+dist/
+build/
+out/
+.next/
+.nuxt/
+coverage/
+*.tsbuildinfo
+
+# --- Caches ---
+.cache/
+.eslintcache/
+.parcel-cache/
+.turbo/
+.sass-cache/
+
+# --- Logs & local runtime noise ---
+*.log
+logs/
+.playwright/
+playwright-report/
+blob-report/
+**/test-results/
+storage/

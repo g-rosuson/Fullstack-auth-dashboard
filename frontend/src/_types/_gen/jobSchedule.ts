@@ -4,6 +4,7 @@
  * Openapi documentation
  * OpenAPI spec version: 1.0.0
  */
+import type { JobScheduleStatus } from './jobScheduleStatus';
 import type { JobScheduleType } from './jobScheduleType';
 
 /**
@@ -13,5 +14,6 @@ export type JobSchedule = {
   /** @nullable */
   endDate: string | null;
   startDate: string;
+  status: JobScheduleStatus;
   type: JobScheduleType;
 } | null;

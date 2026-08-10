@@ -4,6 +4,7 @@ import { z } from 'zod';
 import constants from 'shared/constants';
 
 import { executionScheduleSchema, executionToolTargetSchema } from '../tools/execution/schemas-execution';
+import { jobScheduleStatusSchema } from 'shared/schemas/jobs';
 import { toolSchema } from 'shared/schemas/jobs/tools/schemas-tools';
 
 extendZodWithOpenApi(z);
@@ -11,7 +12,37 @@ extendZodWithOpenApi(z);
 /**
  * A job target finished event type schema.
  */
-const jobTargetFinishedEventTypeSchema = z.literal(constants.events.jobs.targetFinished);
+const jobTargetFinishedEventTypeSchema = z.literal(constants.events.jobs.jobTargetFinished);
+
+/**
+ * A running jobs event type schema.
+ */
+const runningJobsEventTypeSchema = z.literal(constants.events.jobs.jobsRunning);
+
+/**
+ * A scheduled jobs event type schema — job IDs currently attached in the scheduler runtime.
+ */
+const scheduledJobsEventTypeSchema = z.literal(constants.events.jobs.jobsScheduled);
+
+/**
+ * A job finished event type schema.
+ */
+const jobFinishedEventTypeSchema = z.literal(constants.events.jobs.jobFinished);
+
+/**
+ * A job failed event type schema.
+ */
+const jobFailedEventTypeSchema = z.literal(constants.events.jobs.jobFailed);
+
+/**
+ * A job cancelled event type schema.
+ */
+const jobCancelledEventTypeSchema = z.literal(constants.events.jobs.jobCancelled);
+
+/**
+ * A jobs aggregated event type schema.
+ */
+const jobsAggregatedEventTypeSchema = z.literal(constants.events.jobs.jobsAggregated);
 
 /**
  * A job target finished event schema.
@@ -29,11 +60,6 @@ const jobTargetFinishedEventSchema = z
     .openapi('JobTargetFinishedEvent');
 
 /**
- * A running jobs event type schema.
- */
-const runningJobsEventTypeSchema = z.literal(constants.events.jobs.runningJobs);
-
-/**
  * A running jobs event schema.
  */
 const runningJobsEventSchema = z
@@ -45,9 +71,53 @@ const runningJobsEventSchema = z
     .openapi('RunningJobsEvent');
 
 /**
- * A job finished event type schema.
+ * A scheduled job schema.
+ *
+ * `nextRun` / `lastRun` are runtime fields from the scheduler (null when stopped,
+ * unattached, or not yet computable). Clients hydrate these from the stream —
+ * not from CRUD responses.
  */
-const jobFinishedEventTypeSchema = z.literal(constants.events.jobs.jobFinished);
+const scheduledJobEventSchema = z
+    .object({
+        jobId: z.string(),
+        status: jobScheduleStatusSchema,
+        nextRun: z.string().datetime({ offset: true }).nullable(),
+        lastRun: z.string().datetime({ offset: true }).nullable(),
+    })
+    .openapi('ScheduledJobEvent');
+
+/**
+ * A running job schema.
+ */
+const aggregatedRunningJobSchema = z
+    .object({
+        jobId: z.string(),
+        emittedEvents: z.array(jobTargetFinishedEventSchema),
+    })
+    .openapi('AggregatedRunningJob');
+
+/**
+ * A jobs aggregated event schema.
+ */
+const aggregatedJobsEventSchema = z
+    .object({
+        userId: z.string(),
+        type: jobsAggregatedEventTypeSchema,
+        runningJobs: z.array(aggregatedRunningJobSchema),
+        scheduledJobs: z.array(scheduledJobEventSchema),
+    })
+    .openapi('AggregatedJobsEvent');
+
+/**
+ * A scheduled jobs event schema.
+ */
+const scheduledJobsEventSchema = z
+    .object({
+        scheduledJobs: z.array(scheduledJobEventSchema),
+        userId: z.string(),
+        type: scheduledJobsEventTypeSchema,
+    })
+    .openapi('ScheduledJobsEvent');
 
 /**
  * A job finished event schema.
@@ -59,15 +129,8 @@ const jobFinishedEventSchema = z
         type: jobFinishedEventTypeSchema,
         finishedAt: z.string().datetime({ offset: true }),
         executionId: z.string(),
-        lastRun: z.string().datetime({ offset: true }).nullable(),
-        nextRun: z.string().datetime({ offset: true }).nullable(),
     })
     .openapi('JobFinishedEvent');
-
-/**
- * A job failed event type schema.
- */
-const jobFailedEventTypeSchema = z.literal(constants.events.jobs.jobFailed);
 
 /**
  * A job failed event schema.
@@ -83,21 +146,42 @@ const jobFailedEventSchema = z
     .openapi('JobFailedEvent');
 
 /**
+ * A job cancelled event schema.
+ */
+const jobCancelledEventSchema = z
+    .object({
+        jobId: z.string(),
+        userId: z.string(),
+        type: jobCancelledEventTypeSchema,
+        cancelledAt: z.string().datetime({ offset: true }),
+        executionId: z.string(),
+    })
+    .openapi('JobCancelledEvent');
+
+/**
  * A job event schema.
  */
 const jobEventSchema = z
     .discriminatedUnion('type', [
         jobTargetFinishedEventSchema,
+        aggregatedJobsEventSchema,
         runningJobsEventSchema,
+        scheduledJobsEventSchema,
         jobFinishedEventSchema,
         jobFailedEventSchema,
+        jobCancelledEventSchema,
     ])
     .openapi('JobEvent');
 
 export {
+    aggregatedJobsEventSchema,
+    aggregatedRunningJobSchema,
     jobTargetFinishedEventSchema,
     runningJobsEventSchema,
+    scheduledJobsEventSchema,
+    scheduledJobEventSchema,
     jobFinishedEventSchema,
     jobEventSchema,
     jobFailedEventSchema,
+    jobCancelledEventSchema,
 };

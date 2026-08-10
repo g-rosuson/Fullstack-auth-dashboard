@@ -1,6 +1,8 @@
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
+import constants from 'shared/constants';
+
 import {
     executionEmailToolSchema,
     executionEmailToolTargetResultSchema,
@@ -20,6 +22,7 @@ const executionScheduleSchema = z
         type: cronJobTypeSchema.nullable(),
         delegatedAt: z.string().datetime({ offset: true }),
         finishedAt: z.string().datetime({ offset: true }).nullable(),
+        cancelledAt: z.string().datetime({ offset: true }).nullable(),
     })
     .openapi('ExecutionSchedule');
 
@@ -47,18 +50,29 @@ const exectutionToolTargetResultSchema = z
     .openapi('ExecutionToolTargetResult');
 
 /**
+ * Execution outcome status. Optional so legacy documents without `status` still
+ * validate on read (treat missing as completed at the consumer).
+ */
+const executionStatusSchema = z
+    .enum([constants.status.execution.completed, constants.status.execution.cancelled])
+    .openapi('ExecutionStatus');
+
+/**
  * An execution schema.
+ * `tools` may be empty when a run is cancelled before any tool completes.
  */
 const executionSchema = z
     .object({
         schedule: executionScheduleSchema,
-        tools: z.array(executionToolSchema).min(1),
+        tools: z.array(executionToolSchema),
         executionId: z.string(),
+        status: executionStatusSchema.optional(),
     })
     .openapi('Execution');
 
 export {
     executionSchema,
+    executionStatusSchema,
     executionToolTargetSchema,
     executionToolSchema,
     exectutionToolTargetResultSchema,

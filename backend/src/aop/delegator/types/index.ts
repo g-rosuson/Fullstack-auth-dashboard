@@ -4,16 +4,25 @@ import { ExecutionSchedule } from 'shared/types/jobs/tools/execution/types-execu
 
 import type { Tool } from 'shared/types/jobs/tools/types-tools';
 
+import { Aborter } from '../aborter';
+
 /**
  * A delegation payload.
  */
 interface DelegationPayload {
     jobId: string;
     userId: string;
-    name: string;
     tools: Tool[];
     scheduleType: CronJobType | null;
 }
+
+/**
+ * A job currently executing in the Delegator, with its cancel handle.
+ */
+type RunningJob = {
+    payload: DelegationPayload;
+    aborter: Aborter;
+};
 
 /**
  * A payload for getting the tool targets with results.
@@ -24,6 +33,7 @@ type TargetWithResultsPayload<T extends ToolType> = {
     userId: string;
     tool: ToolMap[T];
     schedule: ExecutionSchedule;
+    signal: AbortSignal;
 };
 
-export type { DelegationPayload, TargetWithResultsPayload };
+export type { DelegationPayload, RunningJob, TargetWithResultsPayload };

@@ -3,14 +3,14 @@ import type { JobStreamEvents } from './types';
 
 import client from '../../client';
 import config from './config';
-import { CreateJobInput, DeleteJobResult, EnrichedJob, UpdateJobInput } from '@/_types/_gen';
+import { ChangeJobScheduleStatusPayload, CreateJobInput, DeleteJobResult, Job, RunJobResult, UpdateJobInput } from '@/_types/_gen';
 import { ApiResponse } from '@/_types/infrastructure';
 
 /**
  * Creates a job.
  */
 const create = async (payload: CreateJobInput) => {
-    return await client.post<ApiResponse<EnrichedJob>, CreateJobInput>(config.path.create, payload);
+    return await client.post<ApiResponse<Job>, CreateJobInput>(config.path.create, payload);
 };
 
 /**
@@ -18,7 +18,42 @@ const create = async (payload: CreateJobInput) => {
  */
 const update = async (jobId: string, payload: UpdateJobInput) => {
     const path = config.path.update + jobId;
-    return await client.put<ApiResponse<EnrichedJob>, UpdateJobInput>(path, payload);
+    return await client.put<ApiResponse<Job>, UpdateJobInput>(path, payload);
+};
+
+/**
+ * Stops a job.
+ */
+const stop = async (jobId: string) => {
+    const path = config.path.stop + jobId;
+    return await client.post<ApiResponse<Job>>(path);
+};
+
+/**
+ * Runs a job on demand.
+ */
+const run = async (jobId: string): Promise<ApiResponse<RunJobResult>> => {
+    const path = config.path.run + jobId;
+    return await client.post<ApiResponse<RunJobResult>>(path);
+};
+
+/**
+ * Changes the schedule status of a job.
+ */
+const changeScheduleStatus = async (
+    jobId: string,
+    payload: ChangeJobScheduleStatusPayload
+): Promise<ApiResponse<Job>> => {
+    const path = config.path.changeScheduleStatus + jobId;
+    return await client.put<ApiResponse<Job>, ChangeJobScheduleStatusPayload>(path, payload);
+};
+
+/**
+ * Retries the schedule of a job.
+ */
+const retrySchedule = async (jobId: string): Promise<ApiResponse<Job>> => {
+    const path = config.path.retrySchedule + jobId;
+    return await client.post<ApiResponse<Job>>(path);
 };
 
 /**
@@ -26,14 +61,14 @@ const update = async (jobId: string, payload: UpdateJobInput) => {
  */
 const getById = async (jobId: string) => {
     const path = config.path.getById + jobId;
-    return await client.get<ApiResponse<EnrichedJob>>(path);
+    return await client.get<ApiResponse<Job>>(path);
 };
 
 /**
  * Retrieves all jobs.
  */
-const getAll = async () => {
-    return await client.get<ApiResponse<EnrichedJob[]>>(config.path.getAll);
+const getAll = async (): Promise<ApiResponse<Job[]>> => {
+    return await client.get<ApiResponse<Job[]>>(config.path.getAll);
 };
 
 /**
@@ -52,10 +87,14 @@ const streamAll = (options: StreamOptions<JobStreamEvents>): StreamSubscription 
 };
 
 const resources = {
+    changeScheduleStatus,
+    retrySchedule,
     create,
     getById,
     getAll,
     update,
+    run,
+    stop,
     streamAll,
     deleteById,
 };

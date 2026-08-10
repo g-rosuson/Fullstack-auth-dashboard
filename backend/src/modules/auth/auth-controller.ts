@@ -19,14 +19,18 @@ import jwtService from 'services/jwt';
 import { jwtPayloadSchema } from 'shared/schemas/jwt';
 
 /**
- * Attempts to create a new user document using atomic insertion.
- * On success, it responds with an JWT access-token and sets a httpOnly
- * refresh-token cookie.
+ * Registers a new user and establishes a session.
+ *
+ * FR-AUTH-REG-001 — Accept first name, last name, email, password (+ confirmation via middleware)
+ * FR-AUTH-REG-002 — Duplicate email rejected at persistence (indexed unique email)
+ * FR-AUTH-REG-005 / FR-AUTH-TOK-001 / FR-AUTH-TOK-002 — Issue access token in body + refresh cookie
+ * NFR-SEC-AUTH-001 — Persist bcrypt hash with cost factor 10 (never plain text)
+ * NFR-SEC-AUTH-003 — Refresh credential as HttpOnly / SameSite=Strict / Path=/ cookie (Secure outside dev)
  */
 const register = async (req: Request<unknown, unknown, RegisterUserInput>, res: Response) => {
     const { firstName, lastName, email, password } = req.body;
 
-    // Create a new user
+    // NFR-SEC-AUTH-001
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser: CreateUserPayload = {
@@ -36,10 +40,10 @@ const register = async (req: Request<unknown, unknown, RegisterUserInput>, res: 
         email,
     };
 
-    // Note: Collection is indexed so duplicate emails will throw a duplicate key error
+    // FR-AUTH-REG-002 — Collection is indexed so duplicate emails throw a duplicate key error
     const insertResponse = await req.context.db.repository.users.create(newUser);
 
-    // Create JWT tokens
+    // FR-AUTH-TOK-001 / FR-AUTH-TOK-002
     const tokenPayload: JwtPayload = {
         firstName,
         lastName,
@@ -49,38 +53,41 @@ const register = async (req: Request<unknown, unknown, RegisterUserInput>, res: 
 
     const { accessToken, refreshToken } = jwtService.createTokens(tokenPayload);
 
-    // Send a refresh-token to the client in a httpOnly cookie
+    // NFR-SEC-AUTH-003 — refresh never in JSON body
     res.cookie(constants.http.cookies.refreshToken, refreshToken, utils.getRefreshCookieOptions());
 
     res.status(HttpStatusCode.OK).json({
         success: true,
         data: accessToken,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 
 /**
- * Validates the login details and sends the user payload and a httpOnly refresh-token cookie to the browser.
+ * Authenticates with email and password and establishes a session.
+ *
+ * FR-AUTH-LOG-001 / FR-AUTH-LOG-003 — Valid credentials → session (TOK-001 / TOK-002)
+ * FR-AUTH-LOG-002 / NFR-SEC-AUTH-011 — Unknown email and wrong password use the same failure type
+ * NFR-SEC-AUTH-001 — Compare against bcrypt hash
+ * NFR-SEC-AUTH-003 — Refresh cookie attributes
  */
 const login = async (req: Request<unknown, unknown, LoginUserInput>, res: Response) => {
     const { email, password } = req.body;
 
-    // Get user by email
     const userDocument = await req.context.db.repository.users.getByEmail(email);
 
-    // Validate if user exists
+    // FR-AUTH-LOG-002 / NFR-SEC-AUTH-011
     if (!userDocument) {
         throw new UnauthorizedException(ErrorMessage.USER_NOT_FOUND);
     }
 
-    // Validate if password is correct
     const isPasswordValid = await bcrypt.compare(password, userDocument.password);
 
+    // FR-AUTH-LOG-002 / NFR-SEC-AUTH-011
     if (!isPasswordValid) {
         throw new UnauthorizedException(ErrorMessage.USER_PASSWORD_WRONG);
     }
 
-    // Create JWT tokens
     const tokenPayload: JwtPayload = {
         firstName: userDocument.firstName,
         lastName: userDocument.lastName,
@@ -90,51 +97,54 @@ const login = async (req: Request<unknown, unknown, LoginUserInput>, res: Respon
 
     const { accessToken, refreshToken } = jwtService.createTokens(tokenPayload);
 
-    // Set refresh token as a httpOnly cookie and send user data to front-end
     res.cookie(constants.http.cookies.refreshToken, refreshToken, utils.getRefreshCookieOptions());
 
     res.status(HttpStatusCode.OK).json({
         success: true,
         data: accessToken,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 
 /**
- * Clears the refresh-token cookie from the browser.
+ * Ends the session by clearing the refresh cookie.
+ *
+ * FR-AUTH-OUT-001 — End session / invalidate refresh credential (clear cookie)
+ * Middleware: FR-AUTH-OUT-003 — Reject when refresh cookie missing (`validateRefreshToken`)
  */
 const logout = async (_req: Request, res: Response) => {
     res.clearCookie(constants.http.cookies.refreshToken, utils.getRefreshCookieOptions(false));
 
     res.status(HttpStatusCode.OK).json({
         success: true,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 
 /**
- * Sends a new access-token to the browser when the refresh-token
- * contained in a httpOnly cookie is valid.
+ * Issues a new access token from a valid refresh cookie.
+ *
+ * FR-AUTH-REF-001 / FR-AUTH-TOK-001 — Valid refresh → new access token
+ * FR-AUTH-REF-003 / FR-AUTH-TOK-004 — Reject malformed refresh identity claims
+ * Middleware: FR-AUTH-REF-002 / FR-AUTH-OUT-003 — Missing cookie (`validateRefreshToken`)
  */
 const renewAccessToken = async (req: Request, res: Response) => {
-    // Validate and decode the refresh-token
-    // Note: When the JWT is invalid "verify" throws an error
+    // Note: When the JWT is invalid "verify" throws (handled as TokenException upstream)
     const decoded = verify(req.cookies.refreshToken, config.refreshTokenSecret);
 
-    // Validate the refresh JWT structure
+    // FR-AUTH-TOK-004 / FR-AUTH-REF-003
     const result = parseSchema(jwtPayloadSchema, decoded);
 
     if (!result.success) {
         throw new TokenException(ErrorMessage.TOKEN_INVALID);
     }
 
-    // Create a new access-token and send it to the browser
     const { accessToken } = jwtService.createTokens(result.data);
 
     res.status(HttpStatusCode.OK).json({
         success: true,
         data: accessToken,
-        meta: { timestamp: Date.now() },
+        meta: { timestamp: new Date().toISOString() },
     });
 };
 

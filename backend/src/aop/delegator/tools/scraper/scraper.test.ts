@@ -3,6 +3,8 @@
  *
  * Targets are mocked so tests observe only `onTargetFinish` payloads — screened
  * `results`, `summary`, and configuration error listings — not Playwright or registry internals.
+ *
+ * Cancel path realizes FR-JOBS-STP-003 / NFR-REL-JOBS-002 (AbortSignal cooperative stop).
  */
 import constants from './constants';
 
@@ -89,6 +91,7 @@ async function runScraper(tool: ScraperTool): Promise<ExecutionScraperToolTarget
 
     await scraper.execute({
         tool,
+        signal: new AbortController().signal,
         onTargetFinish: target => {
             // Callback is typed as the cross-tool union; scraper runs only produce scraper targets.
             finished.push(target as ExecutionScraperToolTarget);
@@ -288,6 +291,31 @@ describe('Scraper', () => {
             const finished = await runScraper(buildTool());
 
             expect(finished).toHaveLength(0);
+        });
+
+        /** FR-JOBS-STP-003 — honor aborted signal before starting a target. */
+        it('finishes with CANCELLED when the signal is already aborted', async () => {
+            const controller = new AbortController();
+            controller.abort();
+
+            const finished: ExecutionScraperToolTarget[] = [];
+            const scraper = new Scraper();
+
+            await scraper.execute({
+                tool: buildTool(),
+                signal: controller.signal,
+                onTargetFinish: target => {
+                    finished.push(target as ExecutionScraperToolTarget);
+                },
+            });
+
+            expect(mockJobsChRun).not.toHaveBeenCalled();
+            expect(finished).toHaveLength(1);
+            expect(finished[0].results[0].listing).toMatchObject({
+                ok: false,
+                error: { code: constants.error.cancelled.code },
+            });
+            expect(finished[0].summary).toEqual(constants.summary);
         });
 
         it('uses tool-level defaults so a valid target still produces screened results', async () => {

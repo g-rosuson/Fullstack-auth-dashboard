@@ -2,7 +2,7 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 
 import { validateJobSchedule } from './schemas-validators';
-import { jobScheduleSchema, jobSchema } from 'shared/schemas/jobs';
+import { jobScheduleSchema, jobScheduleStatusSchema } from 'shared/schemas/jobs';
 import { emailToolSchema, emailToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-email';
 import { scraperToolSchema, scraperToolTargetSchema } from 'shared/schemas/jobs/tools/schemas-tools-scraper';
 
@@ -41,7 +41,7 @@ const createJobToolSchema = z
 const createJobInputSchema = z
     .object({
         schedule: jobScheduleSchema.nullable(),
-        tools: z.array(createJobToolSchema),
+        tools: z.array(createJobToolSchema).min(1),
         name: z.string(),
     })
     .superRefine(validateJobSchedule)
@@ -102,33 +102,11 @@ const updateJobToolSchema = z
 const updateJobInputSchema = z
     .object({
         schedule: jobScheduleSchema.nullable(),
-        tools: z.array(updateJobToolSchema),
+        tools: z.array(updateJobToolSchema).min(1),
         name: z.string(),
-        runJob: z.boolean(),
     })
     .superRefine(validateJobSchedule)
     .openapi('UpdateJobInput');
-
-/**
- * A enriched job schedule schema.
- */
-const enrichedJobScheduleSchema = z
-    .object({
-        ...jobScheduleSchema.shape,
-        nextRun: z.string().datetime({ offset: true }).nullable(),
-        lastRun: z.string().datetime({ offset: true }).nullable(),
-    })
-    .openapi('EnrichedJobSchedule');
-
-/**
- * A enriched job schema.
- */
-const enrichedJobSchema = z
-    .object({
-        ...jobSchema.shape,
-        schedule: enrichedJobScheduleSchema.nullable(),
-    })
-    .openapi('EnrichedJob');
 
 /**
  * An ID route param schema.
@@ -149,13 +127,41 @@ const paginatedRouteParamSchema = z
     })
     .openapi('PaginatedRouteParam');
 
+/**
+ * A change job schedule status payload schema.
+ */
+const changeJobScheduleStatusPayloadSchema = z
+    .object({
+        status: jobScheduleStatusSchema,
+    })
+    .openapi('ChangeJobScheduleStatusPayload');
+
+/**
+ * Response when a stop request is accepted.
+ */
+const stopJobResultSchema = z
+    .object({
+        jobId: z.string(),
+    })
+    .openapi('StopJobResult');
+
+/**
+ * Response when a run request is accepted.
+ */
+const runJobResultSchema = z
+    .object({
+        jobId: z.string(),
+    })
+    .openapi('RunJobResult');
+
 export {
     createJobInputSchema,
     createJobToolSchema,
     updateJobInputSchema,
-    enrichedJobSchema,
-    enrichedJobScheduleSchema,
     updateJobToolSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,
+    changeJobScheduleStatusPayloadSchema,
+    stopJobResultSchema,
+    runJobResultSchema,
 };

@@ -8,10 +8,12 @@ import {
     ExecutionScraperToolTargetResult,
     ExecutionScraperToolTargetScreen,
 } from 'shared/types/jobs/tools/execution/types-execution-scraper-tool';
+import { ScraperToolTarget } from 'shared/types/jobs/tools/types-tools-scraper';
 
 import type {
     ExecuteParams,
     FilterSummary,
+    OnTargetFinish,
     ScraperScreenConfiguration,
     ScraperTarget,
     ScraperTargetConfig,
@@ -27,14 +29,14 @@ import { kebabToCamelCase } from 'utils';
  * 1. For each configured target (concurrently via `Promise.allSettled`):
  *    - Resolve it from the registry (kebab-case → camelCase lookup).
  *    - Merge tool- and target-level `keywords` / `maxPages`; fail fast on invalid config.
- *    - Invoke `target.run(targetConfig)` — each target owns Playwright lifecycle and scraping.
+ *    - Invoke `target.run(targetConfig, signal)` — each target owns Playwright lifecycle and scraping.
  * 2. Run a deterministic **screen** on every listing (`buildScreen`) before persistence:
  *    title/text presence, minimum text length, and keyword match (diacritic-insensitive).
  * 3. Aggregate per-target **summary** counts (`buildSummary`: passed, rejected, reason histogram).
  * 4. Fire `onTargetFinish` once per target with `{ results, summary }` (or error placeholders).
  *
  * Browser launch/teardown lives inside individual targets, not here, so one target's
- * Playwright failure cannot block siblings from finishing.
+ * Playwright failure cannot block siblings from finishing. Cancellation flows via `signal`.
  */
 class Scraper {
     /**
@@ -138,35 +140,55 @@ class Scraper {
     }
 
     /**
+     * Finish a target with a single `ok: false` listing for cancel / config / unknown-target errors.
+     */
+    private finishTargetWithError(
+        targetSettings: ScraperToolTarget,
+        onTargetFinish: OnTargetFinish,
+        error: { code: string; message: string }
+    ): void {
+        onTargetFinish({
+            ...targetSettings,
+            results: [
+                {
+                    listing: {
+                        ok: false,
+                        source: targetSettings.target,
+                        url: null,
+                        error,
+                    },
+                },
+            ],
+            summary: constants.summary,
+        });
+    }
+
+    /**
      * Execute the scraper tool.
      *
      * Runs every `tool.targets` entry concurrently. Each completion calls `onTargetFinish`
      * with screened `results` and a `summary`. Unknown targets and invalid configuration
      * emit a single error listing plus an empty summary (`constants.summary`).
+     * Honors `signal` for cooperative cancellation.
      */
-    async execute({ tool, onTargetFinish }: ExecuteParams): Promise<void> {
+    async execute({ tool, signal, onTargetFinish }: ExecuteParams): Promise<void> {
         try {
             await Promise.allSettled(
                 tool.targets.map(async targetSettings => {
+                    if (signal.aborted) {
+                        this.finishTargetWithError(targetSettings, onTargetFinish, {
+                            code: constants.error.cancelled.code,
+                            message: constants.error.cancelled.message,
+                        });
+                        return;
+                    }
+
                     const target = this.getTargetFromRegistry(targetSettings.target);
 
                     if (!target) {
-                        onTargetFinish({
-                            ...targetSettings,
-                            results: [
-                                {
-                                    listing: {
-                                        ok: false,
-                                        source: targetSettings.target,
-                                        url: null,
-                                        error: {
-                                            code: constants.error.unknownTarget.code,
-                                            message: `${constants.error.unknownTarget.message}: ${targetSettings.target}`,
-                                        },
-                                    },
-                                },
-                            ],
-                            summary: constants.summary,
+                        this.finishTargetWithError(targetSettings, onTargetFinish, {
+                            code: constants.error.unknownTarget.code,
+                            message: `${constants.error.unknownTarget.message}: ${targetSettings.target}`,
                         });
                         return;
                     }
@@ -175,22 +197,9 @@ class Scraper {
                     const maxPages = mappers.mapToMaxPages(targetSettings.maxPages, tool.maxPages);
 
                     if (!keywords || typeof maxPages !== 'number') {
-                        onTargetFinish({
-                            ...targetSettings,
-                            results: [
-                                {
-                                    listing: {
-                                        ok: false,
-                                        source: targetSettings.target,
-                                        url: null,
-                                        error: {
-                                            code: constants.error.invalidConfiguration.code,
-                                            message: constants.error.invalidConfiguration.message,
-                                        },
-                                    },
-                                },
-                            ],
-                            summary: constants.summary,
+                        this.finishTargetWithError(targetSettings, onTargetFinish, {
+                            code: constants.error.invalidConfiguration.code,
+                            message: constants.error.invalidConfiguration.message,
                         });
                         return;
                     }
@@ -204,7 +213,16 @@ class Scraper {
                         retryDelayMs: constants.listing.retryDelayMs,
                     };
 
-                    const listings = await target.run(targetConfig);
+                    const listings = await target.run(targetConfig, signal);
+
+                    if (signal.aborted && listings.length === 0) {
+                        this.finishTargetWithError(targetSettings, onTargetFinish, {
+                            code: constants.error.cancelled.code,
+                            message: constants.error.cancelled.message,
+                        });
+                        return;
+                    }
+
                     const results: ExecutionScraperToolTargetResult[] = [];
                     const configuration = {
                         keywords,

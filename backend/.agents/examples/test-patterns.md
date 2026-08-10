@@ -7,9 +7,9 @@ Canonical examples for backend integration and unit tests.
 ## Integration Test Structure
 
 ```typescript
-// backend/test/integration/auth-integration.test.ts
+// backend/test/integration/auth/auth.integration.test.ts
 
-import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from './harness';
+import { clearCollections, deleteCronJobs, disconnectMongo, getAgent, initServer } from '../harness';
 import { buildRegisterPayload, expectValidAccessToken, expectRefreshTokenCookieContract } from './helpers';
 import constants from 'shared/constants';
 import type { Express } from 'express';
@@ -38,7 +38,7 @@ describe('Integration: auth HTTP', () => {
     });
 
     describe.sequential(`POST ${constants.routes.auth.register}`, () => {
-        it('[AUTH-REG-001][AUTH-TOK-001] returns access token and refresh cookie on success', async () => {
+        it('[FR-AUTH-REG-001] returns access token and refresh cookie on success', async () => {
             const res = await agent.post(constants.routes.auth.register).send(mockRegisterPayload);
 
             expect(res.status).toBe(200);
@@ -47,7 +47,7 @@ describe('Integration: auth HTTP', () => {
             expectRefreshTokenCookieContract(res.headers['set-cookie']);
         });
 
-        it('[AUTH-REG-002] returns conflict when email already registered', async () => {
+        it('[FR-AUTH-REG-002] returns conflict when email already registered', async () => {
             const payload = buildRegisterPayload('conflict@example.com');
 
             const first = await agent.post(constants.routes.auth.register).send(payload);
@@ -65,7 +65,7 @@ Rules:
 - `beforeAll`: start server once per `describe` block.
 - `beforeEach`: clear collections + cron jobs.
 - `afterAll`: clear + disconnect.
-- Tag test names with requirement IDs: `[AUTH-REG-001]`.
+- Tag spec-backed tests with exactly one FR/NFR/requirement ID (e.g. `[FR-AUTH-REG-001]`). Do not combine IDs; one case per `it`.
 - Assert HTTP contract only (status, `body.success`, shape). Not internal state.
 - Use `describe.sequential` when test cases share DB state across `it` blocks.
 
@@ -100,7 +100,6 @@ Run: `npm run test:integration` inside `backend/`. Requires Docker MongoDB runni
 
 ```typescript
 // backend/src/lib/validation/validation.test.ts
-import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { parseSchema } from './index';
 
@@ -117,6 +116,38 @@ describe('parseSchema', () => {
         const result = parseSchema(schema, { name: 123 });
         expect(result.success).toBe(false);
         if (!result.success) expect(result.issues.length).toBeGreaterThan(0);
+    });
+});
+```
+
+Vitest globals (`describe`, `it`, `expect`) are enabled — no need to import them.
+
+---
+
+## Shared Property Names Across Schema, Input, and Expectation
+
+Reuse the same variables for keys and values so schema, payload, and assertion stay aligned:
+
+```typescript
+it('should validate user data', () => {
+    const nameProperty = 'name';
+    const emailProperty = 'email';
+    const nameValue = 'John';
+    const emailValue = 'john@example.com';
+
+    const schema = z.object({
+        [nameProperty]: z.string(),
+        [emailProperty]: z.string().email(),
+    });
+
+    const result = parseSchema(schema, {
+        [nameProperty]: nameValue,
+        [emailProperty]: emailValue,
+    });
+
+    expect(result).toEqual({
+        success: true,
+        data: { [nameProperty]: nameValue, [emailProperty]: emailValue },
     });
 });
 ```

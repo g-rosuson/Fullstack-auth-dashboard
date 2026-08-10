@@ -1,31 +1,30 @@
 const mockLoggerError = vi.hoisted(() => vi.fn());
 
+import { ErrorCode } from 'aop/exceptions/shared/enums';
+
 import { createJob } from '../jobs-controller';
 
+import constants from 'shared/constants';
+
+import { ErrorMessage } from 'shared/enums/error-messages';
 import { HttpStatusCode } from 'shared/enums/http-status-codes';
 
 import type { CreateJobInput } from '../types';
 import type { Request, Response } from 'express';
 
+/**
+ * Verification: unit proofs for create-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see docs/specs/architecture/http/jobs/create.md
+ */
+
 const mockCreate = vi.fn();
 const mockSchedule = vi.fn();
-const mockGetNextAndPreviousRun = vi.fn();
+const mockDelete = vi.fn();
 const mockRegister = vi.fn();
+const mockRemoveJob = vi.fn();
 const mockDelegate = vi.fn();
-const mockStartTransaction = vi.fn();
-const mockCommitTransaction = vi.fn();
-const mockAbortTransaction = vi.fn();
-const mockEndSession = vi.fn();
 const mockResponseStatus = vi.fn();
 const mockResponseJson = vi.fn();
-
-const mockSession = {
-    startTransaction: mockStartTransaction,
-    commitTransaction: mockCommitTransaction,
-    abortTransaction: mockAbortTransaction,
-    endSession: mockEndSession,
-};
-const mockStartSession = vi.fn(() => mockSession);
 
 const mockResponse = {
     status: mockResponseStatus,
@@ -34,15 +33,14 @@ const mockResponse = {
 
 const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
 const scheduledStartDate = new Date('2026-03-11T08:30:00.000Z').toISOString();
-const enrichedNextRun = new Date('2026-03-12T08:30:00.000Z');
 
 /**
  * Builds a request body for the create job function.
- * @returns The request body
  */
 const buildRequestBody = (): CreateJobInput => ({
     name: 'Daily engineering jobs',
     schedule: {
+        status: constants.status.schedule.idle,
         type: 'daily' as const,
         startDate: scheduledStartDate,
         endDate: null,
@@ -65,8 +63,6 @@ const buildRequestBody = (): CreateJobInput => ({
 
 /**
  * Builds a request for the create job function.
- * @param body The request body
- * @returns The request
  */
 const buildRequest = (body: CreateJobInput): Request =>
     ({
@@ -74,9 +70,6 @@ const buildRequest = (body: CreateJobInput): Request =>
         context: {
             user: { id: 'user-id-1' },
             db: {
-                transaction: {
-                    startSession: mockStartSession,
-                },
                 repository: {
                     jobs: {
                         create: mockCreate,
@@ -85,10 +78,11 @@ const buildRequest = (body: CreateJobInput): Request =>
             },
             scheduler: {
                 schedule: mockSchedule,
-                getNextAndPreviousRun: mockGetNextAndPreviousRun,
+                delete: mockDelete,
             },
             delegator: {
                 register: mockRegister,
+                removeJob: mockRemoveJob,
                 delegate: mockDelegate,
             },
         },
@@ -137,10 +131,6 @@ describe('jobs-controller createJob', () => {
         vi.useFakeTimers();
         vi.setSystemTime(now);
         mockResponseStatus.mockReturnValue(mockResponse);
-        mockGetNextAndPreviousRun.mockReturnValue({
-            nextRun: enrichedNextRun,
-            previousRun: null,
-        });
     });
 
     afterEach(() => {
@@ -148,161 +138,256 @@ describe('jobs-controller createJob', () => {
         vi.restoreAllMocks();
     });
 
-    it('creates a scheduled job, responds with enriched schedule, and registers it', async () => {
-        const requestBody = buildRequestBody();
-        const request = buildRequest(requestBody);
-        const createdJob = buildCreatedJob(requestBody);
+    describe('[HTTP-JOBS-CRT-001]', () => {
+        it('creates an unscheduled job and delegates it immediately', async () => {
+            const requestBody: CreateJobInput = { ...buildRequestBody(), schedule: null };
+            const request = buildRequest(requestBody);
+            const createdJob = buildCreatedJob(requestBody, null);
 
-        mockCreate.mockResolvedValue(createdJob);
+            mockCreate.mockResolvedValue(createdJob);
 
-        await createJob(request, mockResponse);
+            await createJob(request, mockResponse);
 
-        expect(mockStartSession).toHaveBeenCalledOnce();
-        expect(mockStartTransaction).toHaveBeenCalledOnce();
-        expect(mockCreate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                userId: 'user-id-1',
-                name: requestBody.name,
-                schedule: requestBody.schedule,
-                tools: expectMappedCreateTools(),
-                createdAt: now,
-                updatedAt: null,
-            }),
-            mockSession
-        );
-        expect(mockCommitTransaction).toHaveBeenCalledOnce();
-        expect(mockSchedule).toHaveBeenCalledWith({
-            jobId: createdJob.id,
-            name: createdJob.name,
-            type: createdJob.schedule?.type,
-            startDate: createdJob.schedule?.startDate,
-            endDate: createdJob.schedule?.endDate,
-        });
-        expect(mockGetNextAndPreviousRun).toHaveBeenCalledWith(createdJob.id);
-        expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
-        expect(mockResponseJson).toHaveBeenCalledWith(
-            expect.objectContaining({
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    name: requestBody.name,
+                    schedule: null,
+                })
+            );
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
+            expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
                 data: expect.objectContaining({
                     id: createdJob.id,
-                    userId: createdJob.userId,
-                    name: createdJob.name,
-                    schedule: expect.objectContaining({
-                        type: 'daily',
-                        startDate: scheduledStartDate,
-                        endDate: null,
-                        nextRun: enrichedNextRun.toISOString(),
-                        lastRun: null,
-                    }),
-                }),
-            })
-        );
-        expect(mockRegister).toHaveBeenCalledWith({
-            jobId: createdJob.id,
-            userId: 'user-id-1',
-            name: createdJob.name,
-            tools: createdJob.tools,
-            scheduleType: createdJob.schedule?.type,
-        });
-        expect(mockDelegate).not.toHaveBeenCalled();
-        expect(mockAbortTransaction).not.toHaveBeenCalled();
-        expect(mockEndSession).toHaveBeenCalledOnce();
-    });
-
-    it('creates an unscheduled job and delegates it immediately', async () => {
-        const requestBody: CreateJobInput = { ...buildRequestBody(), schedule: null };
-        const request = buildRequest(requestBody);
-        const createdJob = buildCreatedJob(requestBody, null);
-
-        mockCreate.mockResolvedValue(createdJob);
-
-        await createJob(request, mockResponse);
-
-        expect(mockCommitTransaction).toHaveBeenCalledOnce();
-        expect(mockSchedule).not.toHaveBeenCalled();
-        expect(mockGetNextAndPreviousRun).not.toHaveBeenCalled();
-        expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
-        expect(mockResponseJson).toHaveBeenCalledWith(
-            expect.objectContaining({
-                success: true,
-                data: expect.objectContaining({
-                    id: createdJob.id,
+                    userId: 'user-id-1',
                     schedule: null,
                 }),
-            })
-        );
-        expect(mockRegister).not.toHaveBeenCalled();
-        expect(mockDelegate).toHaveBeenCalledWith({
-            jobId: createdJob.id,
-            userId: 'user-id-1',
-            name: createdJob.name,
-            tools: createdJob.tools,
-            scheduleType: null,
+                meta: {
+                    timestamp: now,
+                },
+            });
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelegate).toHaveBeenCalledWith({
+                jobId: createdJob.id,
+                userId: 'user-id-1',
+                tools: createdJob.tools,
+                scheduleType: null,
+            });
         });
-        expect(mockAbortTransaction).not.toHaveBeenCalled();
-        expect(mockEndSession).toHaveBeenCalledOnce();
     });
 
-    it('aborts and rethrows when repository create fails before commit', async () => {
-        const requestBody = buildRequestBody();
-        const request = buildRequest(requestBody);
-        const dbError = new Error('database create failed');
+    describe('[HTTP-JOBS-CRT-002]', () => {
+        it('creates a scheduled job, responds with the persisted schedule, and registers it', async () => {
+            const requestBody = buildRequestBody();
+            const request = buildRequest(requestBody);
+            const createdJob = buildCreatedJob(requestBody);
 
-        mockCreate.mockRejectedValue(dbError);
+            mockCreate.mockResolvedValue(createdJob);
 
-        await expect(createJob(request, mockResponse)).rejects.toThrow(dbError);
+            await createJob(request, mockResponse);
 
-        expect(mockCommitTransaction).not.toHaveBeenCalled();
-        expect(mockAbortTransaction).toHaveBeenCalledOnce();
-        expect(mockSchedule).not.toHaveBeenCalled();
-        expect(mockRegister).not.toHaveBeenCalled();
-        expect(mockDelegate).not.toHaveBeenCalled();
-        expect(mockResponseStatus).not.toHaveBeenCalled();
-        expect(mockLoggerError).toHaveBeenCalledWith('Failed to create job', { error: dbError });
-        expect(mockEndSession).toHaveBeenCalledOnce();
-    });
-
-    it('rethrows and does not abort when scheduling fails after commit', async () => {
-        const requestBody = buildRequestBody();
-        const request = buildRequest(requestBody);
-        const createdJob = buildCreatedJob(requestBody);
-        const schedulingError = new Error('scheduler failed');
-
-        mockCreate.mockResolvedValue(createdJob);
-        mockSchedule.mockImplementation(() => {
-            throw schedulingError;
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    name: requestBody.name,
+                    schedule: requestBody.schedule,
+                    tools: expectMappedCreateTools(),
+                    createdAt: now,
+                    updatedAt: null,
+                })
+            );
+            expect(mockSchedule).toHaveBeenCalledWith({
+                jobId: createdJob.id,
+                userId: 'user-id-1',
+                type: createdJob.schedule?.type,
+                startDate: createdJob.schedule?.startDate,
+                endDate: createdJob.schedule?.endDate,
+            });
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: expect.objectContaining({
+                    id: createdJob.id,
+                    userId: 'user-id-1',
+                    schedule: expect.objectContaining({
+                        status: constants.status.schedule.idle,
+                    }),
+                }),
+                meta: {
+                    timestamp: now,
+                },
+            });
+            expect(mockRegister).toHaveBeenCalledWith({
+                jobId: createdJob.id,
+                userId: 'user-id-1',
+                tools: createdJob.tools,
+                scheduleType: createdJob.schedule?.type,
+            });
+            expect(mockDelegate).not.toHaveBeenCalled();
         });
 
-        await expect(createJob(request, mockResponse)).rejects.toThrow(schedulingError);
+        it('rethrows when repository create fails and does not schedule or run', async () => {
+            const requestBody = buildRequestBody();
+            const request = buildRequest(requestBody);
+            const dbError = new Error('database create failed');
 
-        expect(mockCommitTransaction).toHaveBeenCalledOnce();
-        expect(mockAbortTransaction).not.toHaveBeenCalled();
-        expect(mockRegister).not.toHaveBeenCalled();
-        expect(mockDelegate).not.toHaveBeenCalled();
-        expect(mockResponseStatus).not.toHaveBeenCalled();
-        expect(mockLoggerError).toHaveBeenCalledWith('Failed to create job', { error: schedulingError });
-        expect(mockEndSession).toHaveBeenCalledOnce();
+            mockCreate.mockRejectedValue(dbError);
+
+            await expect(createJob(request, mockResponse)).rejects.toThrow(dbError);
+
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelegate).not.toHaveBeenCalled();
+            expect(mockResponseStatus).not.toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalled();
+        });
     });
 
-    it('rethrows and keeps committed transaction when register fails after response', async () => {
-        const requestBody = buildRequestBody();
-        const request = buildRequest(requestBody);
-        const createdJob = buildCreatedJob(requestBody);
-        const registerError = new Error('delegator register failed');
+    describe('[HTTP-JOBS-CRT-003]', () => {
+        it('creates a job with stopped schedule, attaches runtime stopped, and registers it', async () => {
+            const baseBody = buildRequestBody();
+            const requestBody: CreateJobInput = {
+                ...baseBody,
+                schedule: {
+                    ...baseBody.schedule!,
+                    status: constants.status.schedule.stopped,
+                },
+            };
+            const request = buildRequest(requestBody);
+            const createdJob = buildCreatedJob(requestBody);
 
-        mockCreate.mockResolvedValue(createdJob);
-        mockRegister.mockImplementation(() => {
-            throw registerError;
+            mockCreate.mockResolvedValue(createdJob);
+
+            await createJob(request, mockResponse);
+
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    name: requestBody.name,
+                    schedule: requestBody.schedule,
+                })
+            );
+            expect(mockSchedule).toHaveBeenCalledWith({
+                jobId: createdJob.id,
+                userId: 'user-id-1',
+                type: createdJob.schedule?.type,
+                startDate: createdJob.schedule?.startDate,
+                endDate: createdJob.schedule?.endDate,
+                isStopped: true,
+            });
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: expect.objectContaining({
+                    id: createdJob.id,
+                    userId: 'user-id-1',
+                    schedule: expect.objectContaining({
+                        status: constants.status.schedule.stopped,
+                    }),
+                }),
+                meta: {
+                    timestamp: now,
+                },
+            });
+            expect(mockRegister).toHaveBeenCalledWith({
+                jobId: createdJob.id,
+                userId: 'user-id-1',
+                tools: createdJob.tools,
+                scheduleType: createdJob.schedule?.type,
+            });
+            expect(mockDelegate).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('[HTTP-JOBS-CRT-004]', () => {
+        it('keeps the saved job and returns a schedule warning when scheduling fails after save', async () => {
+            const requestBody = buildRequestBody();
+            const request = buildRequest(requestBody);
+            const createdJob = buildCreatedJob(requestBody);
+            const schedulingError = new Error('scheduler failed');
+
+            mockCreate.mockResolvedValue(createdJob);
+            mockSchedule.mockImplementation(() => {
+                throw schedulingError;
+            });
+
+            await createJob(request, mockResponse);
+
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    schedule: requestBody.schedule,
+                })
+            );
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelegate).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith(createdJob.id);
+            expect(mockRemoveJob).toHaveBeenCalledWith(createdJob.id);
+            expect(mockLoggerError).toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: expect.objectContaining({
+                    id: createdJob.id,
+                    userId: 'user-id-1',
+                    schedule: requestBody.schedule,
+                }),
+                meta: {
+                    timestamp: now,
+                    warnings: [
+                        {
+                            code: ErrorCode.JOBS_FAILED_TO_SCHEDULE_JOB,
+                            message: ErrorMessage.JOBS_FAILED_TO_SCHEDULE_JOB,
+                        },
+                    ],
+                },
+            });
         });
 
-        await expect(createJob(request, mockResponse)).rejects.toThrow(registerError);
+        it('keeps the saved job and returns a delegate warning when immediate run fails after save', async () => {
+            const requestBody: CreateJobInput = { ...buildRequestBody(), schedule: null };
+            const request = buildRequest(requestBody);
+            const createdJob = buildCreatedJob(requestBody, null);
+            const delegateError = new Error('delegator failed');
 
-        expect(mockCommitTransaction).toHaveBeenCalledOnce();
-        expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
-        expect(mockResponseJson).toHaveBeenCalledOnce();
-        expect(mockAbortTransaction).not.toHaveBeenCalled();
-        expect(mockDelegate).not.toHaveBeenCalled();
-        expect(mockLoggerError).toHaveBeenCalledWith('Failed to create job', { error: registerError });
-        expect(mockEndSession).toHaveBeenCalledOnce();
+            mockCreate.mockResolvedValue(createdJob);
+            mockDelegate.mockImplementation(() => {
+                throw delegateError;
+            });
+
+            await createJob(request, mockResponse);
+
+            expect(mockCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    userId: 'user-id-1',
+                    schedule: null,
+                })
+            );
+            expect(mockSchedule).not.toHaveBeenCalled();
+            expect(mockRegister).not.toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith(createdJob.id);
+            expect(mockRemoveJob).toHaveBeenCalledWith(createdJob.id);
+            expect(mockLoggerError).toHaveBeenCalled();
+            expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.CREATED);
+            expect(mockResponseJson).toHaveBeenCalledWith({
+                success: true,
+                data: expect.objectContaining({
+                    id: createdJob.id,
+                    userId: 'user-id-1',
+                    schedule: null,
+                }),
+                meta: {
+                    timestamp: now,
+                    warnings: [
+                        {
+                            code: ErrorCode.JOBS_FAILED_TO_DELEGATE_JOB,
+                            message: ErrorMessage.JOBS_FAILED_TO_DELEGATE_JOB,
+                        },
+                    ],
+                },
+            });
+        });
     });
 });

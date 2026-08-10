@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { BriefcaseBusiness, Home } from 'lucide-react';
 
-import Text from '@/components/ui-app/text/Text';
+import Text from '@/components/ui-app/typography/text/Text';
 
 import {
     Sidebar as ShadcnSidebar,
@@ -47,7 +47,7 @@ const Sidebar = () => {
                                         <SidebarMenuButton asChild isActive={isActive}>
                                             <NavLink to={item.route}>
                                                 <Icon />
-                                                <Text size="s" appearance="foreground">
+                                                <Text size="s" variant="foreground">
                                                     {item.label}
                                                 </Text>
                                             </NavLink>

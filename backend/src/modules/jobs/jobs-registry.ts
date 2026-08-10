@@ -3,13 +3,16 @@ import { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import constants from 'shared/constants';
 
 import {
+    changeJobScheduleStatusPayloadSchema,
     createJobInputSchema,
-    enrichedJobSchema,
     idRouteParamSchema,
     paginatedRouteParamSchema,
+    runJobResultSchema,
+    stopJobResultSchema,
     updateJobInputSchema,
 } from './schemas';
 import { deleteJobResultSchema } from 'shared/schemas/jobs';
+import { jobSchema } from 'shared/schemas/jobs';
 import { jobEventSchema } from 'shared/schemas/jobs/events/schemas-events';
 
 const jobsRegistry = new OpenAPIRegistry();
@@ -22,7 +25,7 @@ jobsRegistry.registerPath({
             description: 'Job created successfully',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -65,7 +68,7 @@ jobsRegistry.registerPath({
             description: 'All jobs',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema.array(),
+                    schema: jobSchema.array(),
                 },
             },
         },
@@ -83,7 +86,7 @@ jobsRegistry.registerPath({
             description: 'Job by id',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -101,7 +104,7 @@ jobsRegistry.registerPath({
             description: 'Job updated successfully',
             content: {
                 'application/json': {
-                    schema: enrichedJobSchema,
+                    schema: jobSchema,
                 },
             },
         },
@@ -116,6 +119,81 @@ jobsRegistry.registerPath({
                 },
             },
         },
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'put',
+    path: constants.routes.jobs.changeScheduleStatus,
+    responses: {
+        200: {
+            description: 'Schedule status changed successfully',
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
+        body: {
+            description: 'Change schedule status payload',
+            content: {
+                'application/json': {
+                    schema: changeJobScheduleStatusPayloadSchema,
+                },
+            },
+        },
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'post',
+    path: constants.routes.jobs.retrySchedule,
+    responses: {
+        200: {
+            description: 'Schedule runtime attach retried for the saved job intent',
+            content: {
+                'application/json': {
+                    schema: jobSchema,
+                },
+            },
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'post',
+    path: constants.routes.jobs.stop,
+    responses: {
+        200: {
+            description: 'Cancellation requested for the in-flight job run',
+            content: {
+                'application/json': {
+                    schema: stopJobResultSchema,
+                },
+            },
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
+    },
+});
+
+jobsRegistry.registerPath({
+    method: 'post',
+    path: constants.routes.jobs.run,
+    responses: {
+        200: {
+            description: 'On-demand run requested for the job',
+            content: {
+                'application/json': {
+                    schema: runJobResultSchema,
+                },
+            },
+        },
+    },
+    request: {
+        params: idRouteParamSchema,
     },
 });
 

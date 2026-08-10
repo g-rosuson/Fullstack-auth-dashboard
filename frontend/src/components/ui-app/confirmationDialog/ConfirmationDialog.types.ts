@@ -6,7 +6,7 @@ type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
 
 type ConfirmationDialogProps = {
     open: boolean;
-    onOpenChange: (open: boolean) => void;
+    onOpenChange: () => void;
     title: string;
     description?: string;
     onConfirm: () => Promise<void>;

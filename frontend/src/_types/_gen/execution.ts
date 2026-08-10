@@ -5,11 +5,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ExecutionSchedule } from './executionSchedule';
+import type { ExecutionStatus } from './executionStatus';
 import type { ExecutionTool } from './executionTool';
 
 export interface Execution {
   executionId: string;
   schedule: ExecutionSchedule;
-  /** @minItems 1 */
+  status?: ExecutionStatus;
   tools: ExecutionTool[];
 }

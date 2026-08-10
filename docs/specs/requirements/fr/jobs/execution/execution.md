@@ -1,0 +1,13 @@
+# Execution and live updates
+
+Running jobs and streaming progress. Who may receive stream events is FR-JOBS-OWN-001.
+
+- **FR-JOBS-RUN-001** — The system shall execute a job’s tools when the job is run (on create without a schedule, on demand, or when the schedule fires).
+- **FR-JOBS-RUN-002** — The system shall record executions so the owner can see outcomes for a job.
+- **FR-JOBS-RUN-003** — The system shall allow the owner to manually start running a job’s tools from the jobs list entry.
+- **FR-JOBS-RUN-004** — The system shall reject starting a run while the job is already running.
+- **FR-JOBS-STR-001** — The system shall provide a live stream of job activity (which jobs are running; when targets finish; when a job finishes, fails, or is cancelled per FR-JOBS-STP-001) so the owner can observe updates without a full page reload.
+- **FR-JOBS-STR-002** — On stream connect, the system shall send one aggregated snapshot of the owner’s running jobs (with any in-flight target-finished events) and scheduled jobs (each with runtime schedule status, next run, and last run when applicable), so the client can hydrate running and schedule UI state.
+- **FR-JOBS-STR-003** — Schedule-attachment stream events after connect shall include each attached schedule’s runtime status, next run, and last run when applicable.
+- **FR-JOBS-STR-004** — When scheduling fails or the runtime is no longer running a schedule that the owner still intends to be active, the system shall make that operational outcome observable to the owner (via the live stream and/or the response to the triggering action) so the owner can retry scheduling (FR-JOBS-SCH-007).
+- **FR-JOBS-STR-005** — That operational outcome shall remain observable when the owner later lists or opens the job (not only on the response to the action that failed), until scheduling succeeds or the owner clears or stops the schedule (FR-JOBS-SCH-007, FR-JOBS-SCH-011).

@@ -48,6 +48,7 @@ type OnTargetFinish = (target: ExecutionToolTarget) => void;
  */
 interface ExecuteParams {
     tool: ScraperTool;
+    signal: AbortSignal;
     onTargetFinish: OnTargetFinish;
 }
 
@@ -68,7 +69,7 @@ interface ScraperTargetConfig {
  */
 interface ScraperTarget {
     // eslint-disable-next-line no-unused-vars
-    run(targetConfig: ScraperTargetConfig): Promise<ExecutionScraperToolTargetListing[]>;
+    run(targetConfig: ScraperTargetConfig, signal: AbortSignal): Promise<ExecutionScraperToolTargetListing[]>;
 }
 
 export type {

@@ -12,17 +12,7 @@ Enforce Express module structure, request context usage, middleware wiring, tran
 
 ## Module Structure
 
-Every feature module (`auth`, `jobs`) MUST follow this layout:
-
-```
-modules/<name>/
-├── <name>-controller.ts   Route handlers — read from req, call db/services, respond
-├── <name>-middleware.ts   Request validation and guards (call next() or throw)
-├── <name>-routing.ts      Express Router — wire middleware chain to controller
-├── <name>-registry.ts     OpenAPI path registration (zod-to-openapi)
-├── schemas/               Zod schemas for request/response shapes
-└── types/                 TypeScript types derived from schemas
-```
+Follow `backend/.agents/rules/architecture.mdc` (Module Structure) for the feature-module layout and folder-vs-standalone rule.
 
 ## Controllers
 
@@ -87,6 +77,7 @@ try {
 - Use `sendSSE(res, payload)` from `aop/http/sse`.
 - Remove all event listeners on `req.on('close', ...)`.
 
+TODO: This is defined in documenation/specificationan/architecture/http .... need here to?
 ## Response Shape
 
 ```typescript

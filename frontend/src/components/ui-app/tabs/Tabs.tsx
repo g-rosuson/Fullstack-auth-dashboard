@@ -1,4 +1,4 @@
-import Text from '../text/Text';
+import Text from '@/components/ui-app/typography/text/Text';
 
 import type { TabsProps } from './types';
 
@@ -10,7 +10,7 @@ const Tabs = ({ tabs, tabContents }: TabsProps) => {
             <TabsList variant="line">
                 {tabs.map(tab => (
                     <TabsTrigger key={tab.value} value={tab.value}>
-                        <Text size="xs" appearance="foreground">
+                        <Text size="xs" variant="foreground">
                             {tab.label}
                         </Text>
                     </TabsTrigger>

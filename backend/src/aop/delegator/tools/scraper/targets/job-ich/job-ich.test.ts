@@ -116,7 +116,7 @@ async function runTarget(page: Page, overrides?: Partial<ScraperTargetConfig>) {
         close: vi.fn().mockResolvedValue(undefined),
     } as never);
 
-    return jobIchTarget.run(buildTargetConfig(overrides));
+    return jobIchTarget.run(buildTargetConfig(overrides), new AbortController().signal);
 }
 
 describe('buildSearchUrl', () => {

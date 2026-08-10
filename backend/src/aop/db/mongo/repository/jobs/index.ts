@@ -9,10 +9,10 @@ import config from '../../config';
 import { ErrorMessage } from 'shared/enums/error-messages';
 
 import type { CreateJobPayload, UpdateJobPayload } from './types';
-import type { JobDocument } from 'shared/types/jobs';
+import type { Job, JobDocument } from 'shared/types/jobs';
 import type { ExecutionPayload } from 'shared/types/jobs/tools/execution/types-execution';
 
-import { deleteJobResultSchema, jobDocumentSchema, jobSchema } from 'shared/schemas/jobs';
+import { deleteJobResultSchema, jobDocumentSchema } from 'shared/schemas/jobs';
 
 /**
  * JobRepository encapsulates persistence logic for job execution records.
@@ -27,6 +27,19 @@ class JobRepository {
     }
 
     /**
+     * Gets a job with the id from the job document.
+     * @param jobDocument The job document to get the job with the id from.
+     * @returns The job with the id from the job document.
+     */
+    private getJobWithNormalizedId(jobDocument: JobDocument): Job {
+        const { _id, ...rest } = jobDocument;
+        return {
+            id: _id.toString(),
+            ...rest,
+        };
+    }
+
+    /**
      * Persists a new job execution record.
      *
      * Note: No schema validation is performed here because insertOne does not return
@@ -37,34 +50,27 @@ class JobRepository {
      * @param session Optional Mongo session for transactional contexts
      * @returns The created job document
      */
-    async create(payload: CreateJobPayload, session?: ClientSession) {
-        const { userId, ...rest } = payload;
-
-        const insertResult = await this.db.collection<JobDocument>(this.collectionName).insertOne(
-            {
-                _id: new ObjectId(),
-                ...rest,
-                userId,
-            },
-            { session }
-        );
-
-        if (!insertResult.acknowledged) {
-            throw new DatabaseOperationFailedException(ErrorMessage.DATABASE_OPERATION_FAILED_ERROR);
-        }
-
-        const createdJob = {
-            id: insertResult.insertedId.toString(),
+    async create(payload: CreateJobPayload, session?: ClientSession): Promise<Job> {
+        const jobDocument: JobDocument = {
+            _id: new ObjectId(),
             ...payload,
         };
 
-        const schemaResult = parseSchema(jobSchema, createdJob);
+        const createdJobDocument = await this.db
+            .collection<JobDocument>(this.collectionName)
+            .insertOne(jobDocument, { session });
+
+        if (!createdJobDocument.acknowledged) {
+            throw new DatabaseOperationFailedException(ErrorMessage.DATABASE_OPERATION_FAILED_ERROR);
+        }
+
+        const schemaResult = parseSchema(jobDocumentSchema, jobDocument);
 
         if (!schemaResult.success) {
             throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
         }
 
-        return schemaResult.data;
+        return this.getJobWithNormalizedId(schemaResult.data);
     }
 
     /**
@@ -76,7 +82,7 @@ class JobRepository {
      * @throws SchemaValidationException if schema validation fails
      * @returns Promise resolving to MongoDB's UpdateResult
      */
-    async update(payload: UpdateJobPayload, session?: ClientSession) {
+    async update(payload: UpdateJobPayload, session?: ClientSession): Promise<Job> {
         const { id, userId, name, schedule, tools, updatedAt } = payload;
 
         const updateResult = await this.db.collection<JobDocument>(this.collectionName).findOneAndUpdate(
@@ -92,20 +98,13 @@ class JobRepository {
             throw new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE);
         }
 
-        const { _id, ...rest } = updateResult;
-
-        const updatedJob = {
-            id: _id.toString(),
-            ...rest,
-        };
-
-        const schemaResult = parseSchema(jobSchema, updatedJob);
+        const schemaResult = parseSchema(jobDocumentSchema, updateResult);
 
         if (!schemaResult.success) {
             throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
         }
 
-        return schemaResult.data;
+        return this.getJobWithNormalizedId(schemaResult.data);
     }
 
     /**
@@ -116,7 +115,7 @@ class JobRepository {
      * @throws SchemaValidationException if schema validation fails
      * @returns The updated job document
      */
-    async addExecution(payload: ExecutionPayload, session?: ClientSession) {
+    async addExecution(payload: ExecutionPayload, session?: ClientSession): Promise<Job> {
         const { jobId, ...executions } = payload;
 
         const executionResult = await this.db.collection<JobDocument>(this.collectionName).findOneAndUpdate(
@@ -138,7 +137,7 @@ class JobRepository {
             throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
         }
 
-        return schemaResult.data;
+        return this.getJobWithNormalizedId(schemaResult.data);
     }
 
     /**
@@ -150,7 +149,7 @@ class JobRepository {
      * @returns Promise resolving to MongoDB's DeleteResult
      * @throws ResourceNotFoundException if job not found or user doesn't own it
      */
-    async delete(id: string, userId: string, session?: ClientSession) {
+    async delete(id: string, userId: string, session?: ClientSession): Promise<{ id: string }> {
         const deleteResult = await this.db
             .collection<JobDocument>(this.collectionName)
             .deleteOne({ _id: new ObjectId(id), userId }, { ...(session ? { session } : {}) });
@@ -180,7 +179,7 @@ class JobRepository {
      * @returns Promise resolving to the job document if found
      * @throws ResourceNotFoundException if job not found or user doesn't own it
      */
-    async getById(id: string, userId: string) {
+    async getById(id: string, userId: string): Promise<Job> {
         const jobDocument = await this.db
             .collection<JobDocument>(this.collectionName)
             .findOne({ _id: new ObjectId(id), userId });
@@ -190,20 +189,13 @@ class JobRepository {
         }
 
         // Normalize the job document
-        const { _id, ...rest } = jobDocument;
-
-        const job = {
-            id: _id.toString(),
-            ...rest,
-        };
-
-        const schemaResult = parseSchema(jobSchema, job);
+        const schemaResult = parseSchema(jobDocumentSchema, jobDocument);
 
         if (!schemaResult.success) {
             throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: schemaResult.issues });
         }
 
-        return schemaResult.data;
+        return this.getJobWithNormalizedId(schemaResult.data);
     }
 
     /**
@@ -214,7 +206,7 @@ class JobRepository {
      * @param offset Number of jobs to skip
      * @returns Promise resolving to array of job documents
      */
-    async getAllByUserId(userId: string, limit: number, offset: number) {
+    async getAllByUserId(userId: string, limit: number, offset: number): Promise<Job[]> {
         const jobDocuments = await this.db
             .collection<JobDocument>(this.collectionName)
             .find({ userId })
@@ -225,20 +217,13 @@ class JobRepository {
         const mappedJobs = [];
 
         for (const jobDocument of jobDocuments) {
-            const { _id, ...rest } = jobDocument;
-
-            const job = {
-                id: _id.toString(),
-                ...rest,
-            };
-
-            const result = parseSchema(jobSchema, job);
+            const result = parseSchema(jobDocumentSchema, jobDocument);
 
             if (!result.success) {
                 throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: result.issues });
             }
 
-            mappedJobs.push(result.data);
+            mappedJobs.push(this.getJobWithNormalizedId(result.data));
         }
 
         return mappedJobs;
@@ -252,7 +237,7 @@ class JobRepository {
      * @param offset Number of jobs to skip
      * @returns Promise resolving to array of job documents
      */
-    async getAll(limit: number, offset: number) {
+    async getAll(limit: number, offset: number): Promise<Job[]> {
         const query = this.db.collection<JobDocument>(this.collectionName).find().skip(offset);
 
         const jobDocuments = limit > 0 ? await query.limit(limit).toArray() : await query.toArray();
@@ -260,20 +245,13 @@ class JobRepository {
         const mappedJobs = [];
 
         for (const jobDocument of jobDocuments) {
-            const { _id, ...rest } = jobDocument;
-
-            const job = {
-                id: _id.toString(),
-                ...rest,
-            };
-
-            const result = parseSchema(jobSchema, job);
+            const result = parseSchema(jobDocumentSchema, jobDocument);
 
             if (!result.success) {
                 throw new SchemaValidationException(ErrorMessage.SCHEMA_VALIDATION_FAILED, { issues: result.issues });
             }
 
-            mappedJobs.push(result.data);
+            mappedJobs.push(this.getJobWithNormalizedId(result.data));
         }
 
         return mappedJobs;

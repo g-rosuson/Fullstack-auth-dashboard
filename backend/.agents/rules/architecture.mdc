@@ -41,9 +41,15 @@ modules/<name>/
 ├── <name>-middleware.ts   Input validation and route guards
 ├── <name>-routing.ts      Express Router wiring
 ├── <name>-registry.ts     OpenAPI path registration (zod-to-openapi)
-├── schemas/               Zod schemas for request/response shapes
-└── types/                 TypeScript types derived from schemas
+├── schemas/               Zod schemas for request/response shapes (folder + index.ts)
+├── types/                 TypeScript types derived from schemas (folder + index.ts)
+├── constants/             Optional — module constants (folder + index.ts)
+├── utils/                 Optional — pure helpers (folder + index.ts)
+├── helpers/               Optional — shared helpers (folder + index.ts)
+└── mappers/               Optional — data mappers (folder + index.ts)
 ```
+
+**Folder vs standalone rule**: Only `schemas`, `types`, `constants`, `utils`, `helpers`, and `mappers` live in folders with `index.ts`. Controllers, middleware, routing, and registry files are standalone `<name>-*.ts` files — do not wrap them in folders.
 
 ## Context Pattern
 

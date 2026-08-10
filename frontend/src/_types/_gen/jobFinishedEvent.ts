@@ -10,10 +10,6 @@ export interface JobFinishedEvent {
   executionId: string;
   finishedAt: string;
   jobId: string;
-  /** @nullable */
-  lastRun: string | null;
-  /** @nullable */
-  nextRun: string | null;
   type: JobFinishedEventType;
   userId: string;
 }

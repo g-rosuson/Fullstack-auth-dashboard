@@ -2,11 +2,21 @@ import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 
+import constants from 'shared/constants';
+
 import { cronJobTypeSchema } from '../cron';
 import { executionSchema } from './tools/execution/schemas-execution';
 import { toolSchema } from './tools/schemas-tools';
 
 extendZodWithOpenApi(z);
+
+/**
+ * Persisted schedule status — mirrors node-cron user intent (`idle` | `stopped`), survives server restart.
+ * Client maps `idle`/`running` to an "Active" label; `running` is runtime-only and not persisted.
+ */
+const jobScheduleStatusSchema = z
+    .enum([constants.status.schedule.idle, constants.status.schedule.stopped])
+    .openapi('JobScheduleStatus');
 
 /**
  * A job schedule schema.
@@ -19,6 +29,7 @@ const jobScheduleSchema = z
         // - Guarantees timezone is explicitly defined (no implicit local time)
         startDate: z.string().datetime({ offset: true }),
         endDate: z.string().datetime({ offset: true }).nullable(),
+        status: jobScheduleStatusSchema,
     })
     .openapi('JobSchedule');
 
@@ -55,4 +66,4 @@ const deleteJobResultSchema = z
     })
     .openapi('DeleteJobResult');
 
-export { jobScheduleSchema, jobDocumentSchema, jobSchema, deleteJobResultSchema };
+export { jobScheduleSchema, jobScheduleStatusSchema, jobDocumentSchema, jobSchema, deleteJobResultSchema };

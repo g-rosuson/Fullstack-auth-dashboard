@@ -9,16 +9,16 @@ export class EmitterContext {
     emit;
     on;
     off;
-    allEmittedJobTargetEvents;
+    getEmittedJobTargetEventsForUser;
 
     /**
      * Creates a new EmitterContext instance with bound methods.
      * @param emitter Emitter singleton instance
      */
     constructor(emitter: Emitter) {
-        this.emit = emitter.emit;
-        this.on = emitter.on;
-        this.off = emitter.off;
-        this.allEmittedJobTargetEvents = emitter.allEmittedJobTargetEvents;
+        this.emit = emitter.emit.bind(emitter);
+        this.on = emitter.on.bind(emitter);
+        this.off = emitter.off.bind(emitter);
+        this.getEmittedJobTargetEventsForUser = emitter.getEmittedJobTargetEventsForUser.bind(emitter);
     }
 }

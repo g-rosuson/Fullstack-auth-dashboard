@@ -2,7 +2,6 @@ import { Server } from 'http';
 
 import { MongoClientManager } from 'aop/db/mongo/client';
 import { logger } from 'aop/logging';
-import { Scheduler } from 'aop/scheduler';
 
 /**
  * Configuration options for shutdown behavior.
@@ -20,9 +19,8 @@ interface ShutdownOptions {
  * This singleton class handles SIGTERM and SIGINT signals to ensure
  * the application shuts down cleanly by:
  * 1. Stopping new HTTP requests from being accepted
- * 2. Stopping all scheduled cron jobs
- * 3. Closing database connections
- * 4. Exiting the process with appropriate exit code
+ * 2. Closing database connections
+ * 3. Exiting the process with appropriate exit code
  *
  * Features:
  * - Singleton pattern ensures consistent shutdown behavior
@@ -72,9 +70,8 @@ export class ShutdownManager {
      *
      * Shutdown sequence:
      * 1. Stop accepting new HTTP requests
-     * 2. Stop all scheduled cron jobs
-     * 3. Close database connections
-     * 4. Exit process with specified code
+     * 2. Close database connections
+     * 3. Exit process with specified code
      *
      * @param options Configuration for shutdown behavior
      */
@@ -103,12 +100,7 @@ export class ShutdownManager {
                 logger.info('HTTP server stopped successfully');
             }
 
-            // Step 2: Stop all scheduled cron jobs
-            logger.info('Stopping scheduled cron jobs');
-            await this.stopCronJobs();
-            logger.info('Cron jobs stopped successfully');
-
-            // Step 3: Close database connections
+            // Step 2: Close database connections
             logger.info('Closing database connections');
             await this.closeDatabaseConnections();
             logger.info('Database connections closed successfully');
@@ -164,28 +156,6 @@ export class ShutdownManager {
                 }
             });
         });
-    }
-
-    /**
-     * Stops all scheduled cron jobs.
-     * Iterates through all active jobs and stops them.
-     */
-    private async stopCronJobs(): Promise<void> {
-        try {
-            const scheduler = Scheduler.getInstance();
-            const allJobs = scheduler.allJobs;
-
-            for (const job of allJobs) {
-                try {
-                    scheduler.stop(job.jobId);
-                    logger.info(`Stopped cron job: ${job.cronTask?.name || job.jobId}`);
-                } catch (error) {
-                    logger.warn(`Failed to stop cron job ${job.jobId}`, { error: error as Error });
-                }
-            }
-        } catch (error) {
-            logger.warn('Error stopping cron jobs', { error: error as Error });
-        }
     }
 
     /**

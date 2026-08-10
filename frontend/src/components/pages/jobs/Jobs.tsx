@@ -1,144 +1,237 @@
-import { useEffect, useState } from 'react';
-import { PlusIcon } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
-import JobCard from './components/jobCard/JobCard';
-import JobDetailSheet from './components/jobDetailSheet/JobDetailSheet';
-import JobFormSheet from './components/jobSheet/JobSheet';
+import JobFormSheet from './components/jobFormSheet/JobFormSheet';
+import JobsList from './components/jobsList/JobsList';
+import JobsSkeleton from './components/jobsList/JobsSkeleton';
 import Placeholder from './components/placeholder/Placeholder';
-import Button from '@/components/ui-app/button/Button';
-import ConfirmationDialog from '@/components/ui-app/confirmationDialog/ConfirmationDialog';
-import Heading from '@/components/ui-app/heading/Heading';
+import Heading from '@/components/ui-app/typography/heading/Heading';
 
 import mappers from './mappers';
 
-import type { JobsState } from './types/Jobs.types';
+import type { JobsView } from './types';
 import type {
+    AggregatedJobsEvent,
+    AggregatedRunningJob,
     CreateJobInput,
-    EnrichedJob,
+    Job,
+    JobCancelledEvent,
     JobFailedEvent,
     JobFinishedEvent,
     JobTargetFinishedEvent,
+    ScheduledJobEvent,
+    ScheduledJobsEvent,
     UpdateJobInput,
 } from '@/_types/_gen';
 import type { StreamSubscription } from '@/api/service/client/types';
 
 import api from '@/api';
-import { Spinner } from '@/components/ui/spinner';
+
+interface State {
+    jobs: Job[];
+
+    runtime: {
+        jobIdToRunningJob: Record<string, AggregatedRunningJob>;
+        jobIdToScheduledJob: Record<string, ScheduledJobEvent>;
+    };
+
+    jobIdToEdit: string;
+
+    isFormOpen: boolean;
+    isSubmitting: boolean;
+    isFetchingJobs: boolean;
+    isStreamHydrated: boolean;
+}
 
 const Jobs = () => {
     // State
-    const [state, setState] = useState<JobsState>({
-        detailSheet: {
-            isOpen: false,
-            job: null,
-        },
-        confirmationDialog: {
-            isOpen: false,
-            jobId: null,
-        },
-        formSheet: {
-            isOpen: false,
-            job: null,
-        },
+    const [state, setState] = useState<State>({
         jobs: [],
-        runningJobs: [],
-        isLoading: true,
+
+        runtime: {
+            jobIdToRunningJob: {},
+            jobIdToScheduledJob: {},
+        },
+
+        jobIdToEdit: '',
+
+        isFormOpen: false,
+        isSubmitting: false,
+        isFetchingJobs: true,
+        isStreamHydrated: false,
     });
 
     /**
-     * Toggles the confirmation dialog.
+     * Opens the form for create (no job) or edit (with job). Closes when already open and called without a job.
      */
-    const toggleConfirmationDialog = (jobId: string | null = null) => {
+    const toggleJobFormSheet = (jobId?: string) => {
+        setState(prev => {
+            if (jobId) {
+                return { ...prev, isFormOpen: true, jobIdToEdit: jobId };
+            }
+
+            return { ...prev, isFormOpen: !prev.isFormOpen, jobIdToEdit: '' };
+        });
+    };
+
+    /**
+     * Removes a deleted job from page state.
+     */
+    const onJobDeleted = (jobId: string) => {
         setState(prev => ({
             ...prev,
-            confirmationDialog: { isOpen: !prev.confirmationDialog.isOpen, jobId },
+            jobs: prev.jobs.filter(job => job.id !== jobId),
         }));
     };
 
     /**
-     * Toggles the job detail sheet.
+     * Handles the aggregated jobs event and updates the state.
+     * @param data - The aggregated jobs event.
      */
-    const toggleJobDetailSheet = (job: EnrichedJob | null = null) => {
-        setState(prev => ({ ...prev, detailSheet: { isOpen: !prev.detailSheet.isOpen, job } }));
-    };
+    const onJobsAggregatedEvent = useCallback((data: AggregatedJobsEvent) => {
+        setState(prev => {
+            const jobIdToRunningJob = Object.fromEntries(data.runningJobs.map(job => [job.jobId, job]));
+            const jobIdToScheduledJob = Object.fromEntries(data.scheduledJobs.map(job => [job.jobId, job]));
+
+            // Replay target events into Job.executions
+            const jobs = prev.jobs.map(job => {
+                const running = jobIdToRunningJob?.[job.id];
+                if (!running?.emittedEvents.length) {
+                    return job;
+                }
+
+                const executions = running.emittedEvents.reduce(
+                    (acc, event) => mappers.mapToExecutions(acc, event),
+                    job.executions
+                );
+                return { ...job, executions };
+            });
+
+            return {
+                ...prev,
+                jobs,
+                runtime: { jobIdToRunningJob, jobIdToScheduledJob },
+                isStreamHydrated: true,
+            };
+        });
+    }, []);
 
     /**
-     * Toggles the form sheet.
-     */
-    const toggleJobFormSheet = (job: EnrichedJob | null = null) => {
-        setState(prev => ({ ...prev, formSheet: { isOpen: !prev.formSheet.isOpen, job } }));
-    };
-
-    /**
-     * Updates the jobs list in state with the running jobs.
+     * Updates the runtime overlay with the running jobs.
      */
     const onRunningJobsEvent = (runningJobs: string[]) => {
         setState(prev => ({
             ...prev,
-            runningJobs,
+            runtime: {
+                ...prev.runtime,
+                jobIdToRunningJob: Object.fromEntries(
+                    runningJobs.map(jobId => [
+                        jobId,
+                        prev.runtime.jobIdToRunningJob[jobId] ?? { jobId, emittedEvents: [] },
+                    ])
+                ),
+            },
         }));
     };
 
     /**
-     * Updates the jobs list in state with the failed job.
+     * Handles the job failed event and updates the state.
      */
     const onJobFailedEvent = (event: JobFailedEvent) => {
+        setState(prev => {
+            const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
+            delete jobIdToRunningJob[event.jobId];
+
+            return {
+                ...prev,
+                runtime: {
+                    ...prev.runtime,
+                    jobIdToRunningJob,
+                },
+            };
+        });
+    };
+
+    /**
+     * Updates the jobs list in state with the cancelled job.
+     */
+    const onJobCancelledEvent = (event: JobCancelledEvent) => {
+        setState(prev => {
+            const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
+            delete jobIdToRunningJob[event.jobId];
+
+            return {
+                ...prev,
+                runtime: { ...prev.runtime, jobIdToRunningJob },
+            };
+        });
+    };
+
+    /**
+     * Applies the scheduled-jobs snapshot: for each job in the event, sets the matching
+     * entry in `runtime.jobIdToScheduledJob` (idle / stopped, nextRun, lastRun).
+     *
+     * Emitted on stream connect and whenever a job is scheduled, activated, or stopped.
+     */
+    const onScheduledJobsEvent = (event: ScheduledJobsEvent) => {
         setState(prev => ({
             ...prev,
-            runningJobs: prev.runningJobs.filter(jobId => jobId !== event.jobId),
+            runtime: {
+                ...prev.runtime,
+                jobIdToScheduledJob: Object.fromEntries(event.scheduledJobs.map(job => [job.jobId, job])),
+            },
         }));
     };
 
     /**
-     * Handles the `job-finished` stream event: marks the job idle and records when the run ended.
+     * Handles the `job-finished` stream event: clears the running overlay entry and records
+     * when the run ended on the matching in-memory execution.
      *
      * The server emits one `executionId` per run (the same id as on `job-target-finished`). Live state
      * may already hold a matching `Execution` built from those events; this sets `schedule.finishedAt`
      * to the server timestamp so the UI matches persisted data without refetching.
-     *
-     * @param event - Payload from the stream: `jobId`, `executionId`, and `finishedAt` (ISO datetime).
      */
     const onJobFinishedEvent = (event: JobFinishedEvent) => {
-        setState(prev => ({
-            ...prev,
-            runningJobs: prev.runningJobs.filter(jobId => jobId !== event.jobId),
-            jobs: prev.jobs.map(job => {
-                // Only the job that finished is updated; keep referential equality for the rest.
-                if (job.id !== event.jobId) {
-                    return job;
-                }
+        setState(prev => {
+            const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
+            delete jobIdToRunningJob[event.jobId];
 
-                const { executions } = job;
-                const nextSchedule = job.schedule
-                    ? {
-                          ...job.schedule,
-                          lastRun: event.lastRun,
-                          nextRun: event.nextRun,
-                      }
-                    : null;
+            return {
+                ...prev,
+                runtime: {
+                    ...prev.runtime,
+                    jobIdToRunningJob,
+                },
+                jobs: prev.jobs.map(job => {
+                    // Only the job that finished is updated; keep referential equality for the rest.
+                    if (job.id !== event.jobId) {
+                        return job;
+                    }
 
-                // No in-memory executions (e.g. missed target events), return job as is
-                if (!executions?.length) {
-                    return { ...job, schedule: nextSchedule };
-                }
+                    const { executions } = job;
 
-                // Find the execution object for this run, return job as is, if not found
-                const execIdx = executions.findIndex(e => e.executionId === event.executionId);
-                if (execIdx === -1) {
-                    return { ...job, schedule: nextSchedule };
-                }
+                    // No in-memory executions (e.g. missed target events), return job as is
+                    if (!executions?.length) {
+                        return job;
+                    }
 
-                // Immutable update: new executions array and new schedule object on the matched execution.
-                const nextExecutions = [...executions];
-                const prevExec = nextExecutions[execIdx];
-                nextExecutions[execIdx] = {
-                    ...prevExec,
-                    schedule: { ...prevExec.schedule, finishedAt: event.finishedAt },
-                };
+                    // Find the execution object for this run, return job as is, if not found
+                    const execIdx = executions.findIndex(e => e.executionId === event.executionId);
+                    if (execIdx === -1) {
+                        return job;
+                    }
 
-                return { ...job, executions: nextExecutions, schedule: nextSchedule };
-            }),
-        }));
+                    // Immutable update: new executions array on the matched execution.
+                    const nextExecutions = [...executions];
+                    const prevExec = nextExecutions[execIdx];
+                    nextExecutions[execIdx] = {
+                        ...prevExec,
+                        schedule: { ...prevExec.schedule, finishedAt: event.finishedAt },
+                    };
+
+                    return { ...job, executions: nextExecutions };
+                }),
+            };
+        });
     };
 
     /**
@@ -154,35 +247,14 @@ const Jobs = () => {
     };
 
     /**
-     * Deletes the selected job, removes it from state, and closes the confirmation dialog.
-     */
-    const deleteJob = async () => {
-        try {
-            const { jobId } = state.confirmationDialog;
-
-            if (!jobId) {
-                return;
-            }
-
-            await api.service.resources.jobs.deleteById(jobId);
-
-            setState(prev => ({
-                ...prev,
-                jobs: prev.jobs.filter(job => job.id !== jobId),
-                confirmationDialog: { isOpen: false, jobId: null },
-            }));
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    /**
      * Updates the selected job in state with the new data, replaces the old job with
      * the new one in the jobs list, and closes the form sheet.
      */
     const onUpdateJob = async (payload: UpdateJobInput) => {
         try {
-            const { job } = state.formSheet;
+            setState(prev => ({ ...prev, isSubmitting: true }));
+
+            const job = state.jobs.find(job => job.id === state.jobIdToEdit);
 
             if (!job) return;
 
@@ -191,10 +263,13 @@ const Jobs = () => {
             setState(prev => ({
                 ...prev,
                 jobs: prev.jobs.map(jobItem => (jobItem.id === response.data.id ? response.data : jobItem)),
-                formSheet: { isOpen: false, job: null },
+                jobIdToEdit: '',
+                isFormOpen: false,
             }));
         } catch (error) {
             console.log(error);
+        } finally {
+            setState(prev => ({ ...prev, isSubmitting: false }));
         }
     };
 
@@ -204,15 +279,20 @@ const Jobs = () => {
      */
     const onCreateJob = async (payload: CreateJobInput) => {
         try {
+            setState(prev => ({ ...prev, isSubmitting: true }));
+
             const response = await api.service.resources.jobs.create(payload);
 
             setState(prev => ({
                 ...prev,
                 jobs: [...prev.jobs, response.data],
-                formSheet: { isOpen: false, job: null },
+                jobIdToEdit: '',
+                isFormOpen: false,
             }));
         } catch (error) {
             console.log(error);
+        } finally {
+            setState(prev => ({ ...prev, isSubmitting: false }));
         }
     };
 
@@ -231,36 +311,36 @@ const Jobs = () => {
 
         const fetchAllJobs = async () => {
             try {
-                const response = await api.service.resources.jobs.getAll();
                 if (cancelled) return;
+                const response = await api.service.resources.jobs.getAll();
 
                 setState(prevState => ({
                     ...prevState,
                     jobs: response.data,
-                    isLoading: false,
+                    isFetchingJobs: false,
                 }));
 
-                const sub = api.service.resources.jobs.streamAll({
+                subscription = api.service.resources.jobs.streamAll({
                     on: {
-                        'running-jobs': ({ runningJobs }) => onRunningJobsEvent(runningJobs),
+                        'jobs-aggregated': onJobsAggregatedEvent,
+                        'jobs-running': ({ runningJobs }) => onRunningJobsEvent(runningJobs),
                         'job-finished': jobFinishedEvent => onJobFinishedEvent(jobFinishedEvent),
                         'job-target-finished': jobTargetFinishedEvent => onTargetFinishedEvent(jobTargetFinishedEvent),
                         'job-failed': jobFailedEvent => onJobFailedEvent(jobFailedEvent),
+                        'job-cancelled': jobCancelledEvent => onJobCancelledEvent(jobCancelledEvent),
+                        'jobs-scheduled': scheduledJobsEvent => onScheduledJobsEvent(scheduledJobsEvent),
                     },
-                    // TODO: Show notification to the user when streaming errors occur
                     onError: err => console.error('Stream error:', err),
                 });
 
                 // Cleanup may have run between the await and now; close the
                 // subscription we just opened so we don't leak it.
                 if (cancelled) {
-                    sub.close();
+                    subscription.close();
                     return;
                 }
-
-                subscription = sub;
             } catch (error) {
-                console.log(error);
+                console.error(error);
             }
         };
 
@@ -270,84 +350,52 @@ const Jobs = () => {
             cancelled = true;
             subscription?.close();
         };
-    }, []);
+    }, [onJobsAggregatedEvent]);
 
-    /**
-     * Determines the content to render based on the state.
-     */
+    // Determine view
+    let view: JobsView = 'list';
+    if (state.isFetchingJobs) {
+        view = 'loading';
+    } else if (state.jobs.length === 0) {
+        view = 'empty';
+    }
+
+    // Determine content
     let content = null;
 
-    if (state.isLoading) {
-        content = (
-            <div className="flex items-center justify-center grow-1">
-                <Spinner />
-            </div>
-        );
+    if (view === 'loading') {
+        content = <JobsSkeleton />;
+    } else if (view === 'empty') {
+        content = <Placeholder openFormSheet={() => toggleJobFormSheet()} />;
     } else {
-        const hasJobs = state.jobs.length > 0;
-
-        if (!hasJobs) {
-            content = <Placeholder openFormSheet={() => toggleJobFormSheet()} />;
-        } else {
-            content = (
-                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {state.jobs.map(job => (
-                        <JobCard
-                            key={job.id}
-                            job={job}
-                            isRunning={state.runningJobs.includes(job.id)}
-                            onOpen={() => toggleJobDetailSheet(job)}
-                            onEdit={() => toggleJobFormSheet(job)}
-                            onDelete={toggleConfirmationDialog}
-                        />
-                    ))}
-
-                    <div className="fixed bottom-4 right-4">
-                        <Button
-                            icon={<PlusIcon />}
-                            size="icon-lg"
-                            disabled={state.isLoading}
-                            ariaLabel="Create job"
-                            onClick={() => toggleJobFormSheet()}
-                        />
-                    </div>
-                </section>
-            );
-        }
+        content = (
+            <JobsList
+                jobs={state.jobs}
+                jobIdToRunningJob={state.runtime.jobIdToRunningJob}
+                jobIdToScheduledJob={state.runtime.jobIdToScheduledJob}
+                isStreamHydrated={state.isStreamHydrated}
+                onEditJob={toggleJobFormSheet}
+                onJobDeleted={onJobDeleted}
+            />
+        );
     }
 
     return (
         <section className="h-full flex flex-col">
-            <Heading size="l" level={1} className="mb-4">
+            <Heading size="l" level={2} weight="bold">
                 Jobs
             </Heading>
 
             {content}
 
-            <JobDetailSheet
-                job={state.detailSheet.job}
-                isRunning={state.runningJobs.includes(state.detailSheet.job?.id ?? '')}
-                isOpen={state.detailSheet.isOpen}
-                onOpenChange={() => toggleJobDetailSheet()}
-            />
-
             <JobFormSheet
-                job={state.formSheet.job}
-                isRunning={state.runningJobs.includes(state.formSheet.job?.id ?? '')}
-                isOpen={state.formSheet.isOpen}
+                job={state.jobs.find(job => job.id === state.jobIdToEdit) || null}
+                isRunning={!!state.runtime.jobIdToRunningJob[state.jobIdToEdit]}
+                isOpen={state.isFormOpen}
+                isSubmitting={state.isSubmitting}
                 onOpenChange={() => toggleJobFormSheet()}
                 onCreateJob={onCreateJob}
                 onUpdateJob={onUpdateJob}
-            />
-
-            <ConfirmationDialog
-                open={state.confirmationDialog.isOpen}
-                onOpenChange={() => toggleConfirmationDialog()}
-                title="Delete job"
-                description="Please confirm that you want to delete the job."
-                onConfirm={deleteJob}
-                confirmLabel="Delete"
-                confirmVariant="destructive"
             />
         </section>
     );

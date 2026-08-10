@@ -1,8 +1,11 @@
 import { z } from 'zod';
 
-import { CronJobType } from 'shared/types/cron';
-
-import { executionToolSchema, executionToolTargetSchema } from 'shared/schemas/jobs/tools/execution/schemas-execution';
+import {
+    executionScheduleSchema,
+    executionStatusSchema,
+    executionToolSchema,
+    executionToolTargetSchema,
+} from 'shared/schemas/jobs/tools/execution/schemas-execution';
 
 /**
  * An union type of all execution tool targets.
@@ -17,20 +20,23 @@ type ExecutionTool = z.infer<typeof executionToolSchema>;
 /**
  * An execution schedule.
  */
-type ExecutionSchedule = {
-    type: CronJobType;
-    delegatedAt: string;
-    finishedAt: string | null;
-};
+type ExecutionSchedule = z.infer<typeof executionScheduleSchema>;
+
+/**
+ * Execution outcome status written by the Delegator.
+ */
+type ExecutionStatus = z.infer<typeof executionStatusSchema>;
 
 /**
  * A execution payload.
+ * `status` is always set on write; persisted documents may omit it (legacy).
  */
 interface ExecutionPayload {
     executionId: string;
     jobId: string;
     schedule: ExecutionSchedule;
     tools: ExecutionTool[];
+    status: ExecutionStatus;
 }
 
-export type { ExecutionToolTarget, ExecutionPayload, ExecutionTool, ExecutionSchedule };
+export type { ExecutionToolTarget, ExecutionPayload, ExecutionTool, ExecutionSchedule, ExecutionStatus };

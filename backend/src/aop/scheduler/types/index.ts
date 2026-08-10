@@ -1,6 +1,7 @@
 import { ScheduledTask } from 'node-cron';
 
 import { CronJobType } from 'shared/types/cron';
+import { JobScheduleStatus } from 'shared/types/jobs';
 
 interface FormatCronExpressionPayload {
     startDate: Date;
@@ -9,14 +10,18 @@ interface FormatCronExpressionPayload {
 
 interface SchedulePayload {
     jobId: string;
-    name: string;
+    userId: string;
     type: CronJobType;
     startDate: string;
     endDate: string | null;
+    isStopped?: boolean;
 }
 
 interface CronJob {
     jobId: string;
+    userId: string;
+    type: CronJobType;
+    status: JobScheduleStatus;
     cronExpression: string | undefined;
     startDate: Date;
     endDate: Date | null;

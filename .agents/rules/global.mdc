@@ -12,11 +12,21 @@ Enforce universal conventions for the fullstack-authentication monorepo (Express
 
 - The repo uses `npm` as the package manager. DO NOT use `pnpm`, `yarn`, or `bun`.
 - Root-level scripts: `npm run format`, `npm run start:dev`, `npm run start:prod`.
-- Commit messages MUST follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:`). Enforced by commitlint + husky.
+- Git naming (enforced for commits by commitlint + husky):
+
+```text
+commit:  type(scope): subject
+branch:  scope/action-description
+```
+
+  - Types: `feat`, `fix`, `refactor`, `chore`, `test`, `docs`
+  - Scopes: `backend`, `frontend`, `global` (commits); branches may also use `docs`, `test`, `chore`, or a type prefix (`feat/extend-jobs-functionality`)
+  - Subject / description: kebab-case or imperative phrase, under 72 chars for the commit subject
 - All TypeScript. DO NOT add `.js` source files.
+- Use single quotes (Prettier `singleQuote: true`).
 - DO NOT disable ESLint rules inline unless the rule legitimately does not apply. When disabling, add a comment explaining why.
 - DO NOT commit `.env` files. Environment variables are injected via Docker `env_file` or `.env.dev`/`.env.integration.test`.
-- Prettier is configured at the root. Run `npm run format` before committing.
+- Prettier is configured at the root. Run `npm run format` before committing. After creating or modifying files, run the package linter (`npm run lint-fix` in `backend/` or `frontend/`) so imports are sorted and formatting is fixed.
 
 # Required Commands
 
@@ -36,7 +46,7 @@ npm run reset:prod      # Reset prod Docker volumes
 
 # Checklist
 
-- [ ] Conventional Commit message format used
+- [ ] Conventional Commit message with required scope (`backend` | `frontend` | `global`)
 - [ ] No `.env` files staged
 - [ ] `npm run format` has been run
 - [ ] No unresolved TypeScript errors (`tsc --noEmit`)

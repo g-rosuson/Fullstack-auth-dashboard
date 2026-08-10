@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach } from 'vitest';
 
-import type { SheetProps } from './Sheet.types';
+import type { SheetProps } from './Sheet';
 import type { ReactNode } from 'react';
 
 import Sheet from './Sheet';
@@ -22,7 +22,8 @@ const renderSheet = (props: Partial<SheetProps> & { children?: ReactNode } = {})
             onFormSubmit={props.onFormSubmit}
             onPrimaryButtonClick={props.onPrimaryButtonClick}
             isSubmitting={props.isSubmitting}
-            primaryButtonLabel={props.primaryButtonLabel}>
+            primaryButtonLabel={props.primaryButtonLabel}
+            ariaDescribedby={props.ariaDescribedby || ''}>
             {props.children ?? <h2>Sheet content</h2>}
         </Sheet>
     );
@@ -151,7 +152,8 @@ describe('Sheet component: submitting state', () => {
                 enableForm
                 primaryButtonLabel="Save"
                 isSubmitting
-                onFormSubmit={onFormSubmit}>
+                onFormSubmit={onFormSubmit}
+                ariaDescribedby="sheet-content">
                 <h2>Sheet content</h2>
             </Sheet>
         );
@@ -166,7 +168,8 @@ describe('Sheet component: submitting state', () => {
                 enableForm
                 primaryButtonLabel="Save"
                 isSubmitting={false}
-                onFormSubmit={onFormSubmit}>
+                onFormSubmit={onFormSubmit}
+                ariaDescribedby="sheet-content">
                 <h2>Sheet content</h2>
             </Sheet>
         );

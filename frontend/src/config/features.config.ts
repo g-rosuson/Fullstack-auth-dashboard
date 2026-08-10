@@ -1,5 +1,5 @@
 const features = {
-    registrationEnabled: false,
+    registrationEnabled: true,
 };
 
 export default features;

@@ -7,8 +7,10 @@ import constants from 'shared/constants';
 import type { Request, Response } from 'express';
 
 /**
- * Mocks for the request and response objects.
+ * Verification: unit proofs for stream-jobs HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see docs/specs/architecture/http/jobs/stream.md
  */
+
 const mockResponseWrite = vi.fn();
 const mockResponseFlushHeaders = vi.fn();
 const mockResponseSetHeader = vi.fn();
@@ -19,19 +21,34 @@ const mockResponse = {
 } as unknown as Response;
 const mockRequestOn = vi.fn();
 
+const mockTargetFinishedEvent = {
+    jobId: 'job-id-1',
+    userId: 'user-id-1',
+    type: constants.events.jobs.jobTargetFinished,
+};
+
+const mockScheduledJobEvent = {
+    jobId: 'job-id-1',
+    status: constants.status.schedule.idle,
+    nextRun: '2026-04-20T08:30:00.000Z',
+    lastRun: '2026-04-19T08:30:00.000Z',
+};
+
+const mockGetRunningJobsForUser = vi.fn(() => [{ jobId: 'job-id-1' }]);
+const mockGetEmittedJobTargetEventsForUser = vi.fn(() => [mockTargetFinishedEvent]);
+const mockGetCronJobEventsForUser = vi.fn(() => [mockScheduledJobEvent]);
+
 const mockRequest = {
     context: {
         user: { id: 'user-id-1' },
         delegator: {
-            runningJobs: new Map([
-                ['job-id-1', { userId: 'user-id-1' }],
-                ['job-id-2', { userId: 'user-id-2' }],
-            ]),
+            getRunningJobsForUser: mockGetRunningJobsForUser,
+        },
+        scheduler: {
+            getCronJobEventsForUser: mockGetCronJobEventsForUser,
         },
         emitter: {
-            allEmittedJobTargetEvents: [
-                { jobId: 'job-id-1', userId: 'user-id-1', type: constants.events.jobs.targetFinished },
-            ],
+            getEmittedJobTargetEventsForUser: mockGetEmittedJobTargetEventsForUser,
             on: vi.fn(),
             off: vi.fn(),
         },
@@ -39,12 +56,7 @@ const mockRequest = {
     on: mockRequestOn,
 } as unknown as Request;
 
-describe('jobs-controller', () => {
-    /**
-     * Parses the mock write function to return the events.
-     * @param mockWrite The mock write function to parse
-     * @returns The parsed events
-     */
+describe('jobs-controller streamJobs', () => {
     const parseSSE = (mockWrite: Mock) => {
         const raw = mockWrite.mock.calls.map(c => c[0]).join('');
 
@@ -61,58 +73,20 @@ describe('jobs-controller', () => {
             });
     };
 
-    describe('streamJobs', () => {
-        beforeEach(() => {
-            vi.clearAllMocks();
-            streamJobs(mockRequest, mockResponse);
-        });
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGetRunningJobsForUser.mockReturnValue([{ jobId: 'job-id-1' }]);
+        mockGetEmittedJobTargetEventsForUser.mockReturnValue([mockTargetFinishedEvent]);
+        mockGetCronJobEventsForUser.mockReturnValue([mockScheduledJobEvent]);
+        streamJobs(mockRequest, mockResponse);
+    });
 
+    describe('[HTTP-JOBS-STR-001]', () => {
         it('should handle header setup correctly', () => {
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
             expect(mockResponseFlushHeaders).toHaveBeenCalled();
-        });
-
-        it('should emit events in correct order for correct user', () => {
-            const events = parseSSE(mockResponseWrite);
-
-            expect(events).toEqual([
-                {
-                    event: constants.events.jobs.runningJobs,
-                    data: {
-                        runningJobs: ['job-id-1'],
-                        type: constants.events.jobs.runningJobs,
-                    },
-                },
-                {
-                    event: constants.events.jobs.targetFinished,
-                    data: {
-                        jobId: 'job-id-1',
-                        userId: 'user-id-1',
-                        type: constants.events.jobs.targetFinished,
-                    },
-                },
-            ]);
-        });
-
-        it('should attach listeners for events', () => {
-            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
-                constants.events.jobs.runningJobs,
-                expect.any(Function)
-            );
-            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
-                constants.events.jobs.targetFinished,
-                expect.any(Function)
-            );
-            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
-                constants.events.jobs.jobFinished,
-                expect.any(Function)
-            );
-            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
-                constants.events.jobs.jobFailed,
-                expect.any(Function)
-            );
         });
 
         it('should detach listeners when the connection is closed', () => {
@@ -121,11 +95,15 @@ describe('jobs-controller', () => {
             closeHandler?.();
 
             expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
-                constants.events.jobs.runningJobs,
+                constants.events.jobs.jobsRunning,
                 expect.any(Function)
             );
             expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
-                constants.events.jobs.targetFinished,
+                constants.events.jobs.jobsScheduled,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.jobTargetFinished,
                 expect.any(Function)
             );
             expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
@@ -136,20 +114,170 @@ describe('jobs-controller', () => {
                 constants.events.jobs.jobFailed,
                 expect.any(Function)
             );
+            expect(mockRequest.context.emitter.off).toHaveBeenCalledWith(
+                constants.events.jobs.jobCancelled,
+                expect.any(Function)
+            );
+        });
+    });
+
+    describe('[HTTP-JOBS-STR-002]', () => {
+        it('should emit one jobs-aggregated snapshot for the correct user', () => {
+            expect(mockGetRunningJobsForUser).toHaveBeenCalledWith('user-id-1');
+            expect(mockGetEmittedJobTargetEventsForUser).toHaveBeenCalledWith('user-id-1');
+            expect(mockGetCronJobEventsForUser).toHaveBeenCalledWith('user-id-1');
+
+            const events = parseSSE(mockResponseWrite);
+
+            expect(events).toEqual([
+                {
+                    event: constants.events.jobs.jobsAggregated,
+                    data: {
+                        runningJobs: [
+                            {
+                                jobId: 'job-id-1',
+                                emittedEvents: [mockTargetFinishedEvent],
+                            },
+                        ],
+                        scheduledJobs: [mockScheduledJobEvent],
+                        userId: 'user-id-1',
+                        type: constants.events.jobs.jobsAggregated,
+                    },
+                },
+            ]);
         });
 
-        it('should stream a live targetFinished event to the client', () => {
+        describe('when a buffered target event belongs to a job that is no longer running', () => {
+            const replayRequestOn = vi.fn();
+            const replayRequest = {
+                context: {
+                    user: { id: 'user-id-1' },
+                    delegator: {
+                        getRunningJobsForUser: vi.fn(() => []),
+                    },
+                    scheduler: {
+                        getCronJobEventsForUser: vi.fn(() => []),
+                    },
+                    emitter: {
+                        getEmittedJobTargetEventsForUser: vi.fn(() => [
+                            {
+                                jobId: 'job-id-stale',
+                                userId: 'user-id-1',
+                                type: constants.events.jobs.jobTargetFinished,
+                            },
+                        ]),
+                        on: vi.fn(),
+                        off: vi.fn(),
+                    },
+                },
+                on: replayRequestOn,
+            } as unknown as Request;
+
+            beforeEach(() => {
+                vi.clearAllMocks();
+                streamJobs(replayRequest, mockResponse);
+            });
+
+            it('should omit that target-finished event from the aggregated snapshot', () => {
+                const events = parseSSE(mockResponseWrite);
+
+                expect(events).toEqual([
+                    {
+                        event: constants.events.jobs.jobsAggregated,
+                        data: {
+                            runningJobs: [],
+                            scheduledJobs: [],
+                            userId: 'user-id-1',
+                            type: constants.events.jobs.jobsAggregated,
+                        },
+                    },
+                ]);
+            });
+        });
+    });
+
+    describe('[HTTP-JOBS-STR-003]', () => {
+        it('should stream a live scheduled-jobs event with nextRun and lastRun', () => {
             const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
-            const handler = onCalls.find(([event]) => event === constants.events.jobs.targetFinished)?.[1];
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobsScheduled)?.[1];
 
             mockResponseWrite.mockClear();
 
-            const liveEvent = { jobId: 'job-id-1', userId: 'user-id-1', type: constants.events.jobs.targetFinished };
+            const liveEvent = {
+                scheduledJobs: [mockScheduledJobEvent],
+                userId: 'user-id-1',
+                type: constants.events.jobs.jobsScheduled,
+            };
             handler(liveEvent);
 
             expect(parseSSE(mockResponseWrite)).toEqual([
                 {
-                    event: constants.events.jobs.targetFinished,
+                    event: constants.events.jobs.jobsScheduled,
+                    data: liveEvent,
+                },
+            ]);
+        });
+
+        it('should not stream a live scheduled-jobs event for another user', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobsScheduled)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            handler({
+                scheduledJobs: [mockScheduledJobEvent],
+                userId: 'user-id-99',
+                type: constants.events.jobs.jobsScheduled,
+            });
+
+            expect(parseSSE(mockResponseWrite)).toEqual([]);
+        });
+    });
+
+    describe('[HTTP-JOBS-STR-004]', () => {
+        it('should attach listeners for events', () => {
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobsRunning,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobsScheduled,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobTargetFinished,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobFinished,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobFailed,
+                expect.any(Function)
+            );
+            expect(mockRequest.context.emitter.on).toHaveBeenCalledWith(
+                constants.events.jobs.jobCancelled,
+                expect.any(Function)
+            );
+        });
+
+        it('should stream a live targetFinished event to the client', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobTargetFinished)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            const liveEvent = {
+                jobId: 'job-id-1',
+                userId: 'user-id-1',
+                type: constants.events.jobs.jobTargetFinished,
+            };
+            handler(liveEvent);
+
+            expect(parseSSE(mockResponseWrite)).toEqual([
+                {
+                    event: constants.events.jobs.jobTargetFinished,
                     data: liveEvent,
                 },
             ]);
@@ -157,14 +285,14 @@ describe('jobs-controller', () => {
 
         it('should not stream a live targetFinished event for another user', () => {
             const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
-            const handler = onCalls.find(([event]) => event === constants.events.jobs.targetFinished)?.[1];
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobTargetFinished)?.[1];
 
             mockResponseWrite.mockClear();
 
             handler({
                 jobId: 'job-id-1',
                 userId: 'user-id-99',
-                type: constants.events.jobs.targetFinished,
+                type: constants.events.jobs.jobTargetFinished,
             });
 
             expect(parseSSE(mockResponseWrite)).toEqual([]);
@@ -212,20 +340,20 @@ describe('jobs-controller', () => {
 
         it('should stream a live runningJobs event to the client', () => {
             const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
-            const handler = onCalls.find(([event]) => event === constants.events.jobs.runningJobs)?.[1];
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobsRunning)?.[1];
 
             mockResponseWrite.mockClear();
 
             const liveEvent = {
                 runningJobs: ['job-id-1'],
                 userId: 'user-id-1',
-                type: constants.events.jobs.runningJobs,
+                type: constants.events.jobs.jobsRunning,
             };
             handler(liveEvent);
 
             expect(parseSSE(mockResponseWrite)).toEqual([
                 {
-                    event: constants.events.jobs.runningJobs,
+                    event: constants.events.jobs.jobsRunning,
                     data: liveEvent,
                 },
             ]);
@@ -233,14 +361,14 @@ describe('jobs-controller', () => {
 
         it('should not stream a live runningJobs event for another user', () => {
             const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
-            const handler = onCalls.find(([event]) => event === constants.events.jobs.runningJobs)?.[1];
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobsRunning)?.[1];
 
             mockResponseWrite.mockClear();
 
             handler({
                 runningJobs: ['job-other'],
                 userId: 'user-id-99',
-                type: constants.events.jobs.runningJobs,
+                type: constants.events.jobs.jobsRunning,
             });
 
             expect(parseSSE(mockResponseWrite)).toEqual([]);
@@ -286,47 +414,44 @@ describe('jobs-controller', () => {
             expect(parseSSE(mockResponseWrite)).toEqual([]);
         });
 
-        describe('when a buffered target event belongs to a job that is no longer running', () => {
-            const replayRequestOn = vi.fn();
-            const replayRequest = {
-                context: {
-                    user: { id: 'user-id-1' },
-                    delegator: {
-                        runningJobs: new Map<string, { userId: string }>(),
-                    },
-                    emitter: {
-                        allEmittedJobTargetEvents: [
-                            {
-                                jobId: 'job-id-stale',
-                                userId: 'user-id-1',
-                                type: constants.events.jobs.targetFinished,
-                            },
-                        ],
-                        on: vi.fn(),
-                        off: vi.fn(),
-                    },
+        it('should stream a live jobCancelled event to the client', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobCancelled)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            const liveEvent = {
+                jobId: 'job-id-1',
+                userId: 'user-id-1',
+                executionId: 'exec-cancel',
+                cancelledAt: '2026-03-10T12:00:00.000Z',
+                type: constants.events.jobs.jobCancelled,
+            };
+            handler(liveEvent);
+
+            expect(parseSSE(mockResponseWrite)).toEqual([
+                {
+                    event: constants.events.jobs.jobCancelled,
+                    data: liveEvent,
                 },
-                on: replayRequestOn,
-            } as unknown as Request;
+            ]);
+        });
 
-            beforeEach(() => {
-                vi.clearAllMocks();
-                streamJobs(replayRequest, mockResponse);
+        it('should not stream a live jobCancelled event for another user', () => {
+            const onCalls = (mockRequest.context.emitter.on as Mock).mock.calls;
+            const handler = onCalls.find(([event]) => event === constants.events.jobs.jobCancelled)?.[1];
+
+            mockResponseWrite.mockClear();
+
+            handler({
+                jobId: 'job-id-1',
+                userId: 'user-id-99',
+                executionId: 'exec-cancel',
+                cancelledAt: '2026-03-10T12:00:00.000Z',
+                type: constants.events.jobs.jobCancelled,
             });
 
-            it('should not replay that target-finished event', () => {
-                const events = parseSSE(mockResponseWrite);
-
-                expect(events).toEqual([
-                    {
-                        event: constants.events.jobs.runningJobs,
-                        data: {
-                            runningJobs: [],
-                            type: constants.events.jobs.runningJobs,
-                        },
-                    },
-                ]);
-            });
+            expect(parseSSE(mockResponseWrite)).toEqual([]);
         });
     });
 });

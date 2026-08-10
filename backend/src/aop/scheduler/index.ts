@@ -1,8 +1,11 @@
 import cron from 'node-cron';
 
 import { Delegator } from 'aop/delegator';
+import { Emitter } from 'aop/emitter';
 import { InternalException } from 'aop/exceptions';
 import { logger } from 'aop/logging';
+
+import constants from 'shared/constants';
 
 import {
     CronJob,
@@ -12,16 +15,18 @@ import {
     SchedulePayload,
 } from './types';
 
+import type { ScheduledJobEvent } from 'shared/types/jobs/events/types-jobs-events';
+
 import parser from 'cron-parser';
+import { cronJobTypeSchema } from 'shared/schemas/cron';
 
 /**
  * Singleton scheduler service that manages cron jobs using node-cron.
  * Provides a API for cron job lifecycle management.
- * @todo Add tests
  */
 export class Scheduler {
     private static instance: Scheduler;
-    public cronJobs: Map<string, CronJob> = new Map();
+    private cronJobs: Map<string, CronJob> = new Map();
 
     private constructor() {}
 
@@ -195,54 +200,67 @@ export class Scheduler {
     }
 
     /**
+     * Emits all cron jobs for a user.
+     * @param userId - The user id to emit the cron jobs for
+     */
+    private emitCronJobsForUser(userId: string): void {
+        const emitter = Emitter.getInstance();
+        emitter.emit({
+            scheduledJobs: this.getCronJobEventsForUser(userId),
+            userId: userId,
+            type: constants.events.jobs.jobsScheduled,
+        });
+    }
+
+    /**
      * Schedules a new cron job or updates an existing one. If a job with the
      * same ID already exists, it will be destroyed and replaced. Use this
      * method to create, restart, and update cron jobs.
      *
-     * Note: We assume that the controller has validated that the start date is in the future
+     * @note We assume that the controller has validated that the start date is in the future
+     * and when provided, that the end date is after the start date.
+     * @note "once" tasks don't have an endDate are not scheduled with node-cron
      *
-     * The job will:
-     * - Schedule to start at startDate in the future
-     * - Schedule to stop at endDate if defined
-     * - Run indefinitely if endDate is not defined
+     * TODO: `setTimeout` / `setInterval` delays are stored as a 32-bit signed integer, so the
+     * TODO: maximum delay is `2^31 - 1` ms (~24.85 days). This method arms start and end with a single
+     * TODO:  `setTimeout(msToStart)` / `setTimeout(msToEnd)`. If `startDate` or `endDate` is farther
+     * TODO: than that from `now`, the delay overflows/clamps and the callback can fire much earlier
+     * TODO: than intended (while later recurring ticks from `node-cron` remain fine). Mitigations:
+     * TODO: reject far-future start/end in create/update validation; or replace long one-shot timers
+     * TODO: with chained shorter timeouts / a poll until `now >= startDate` / `now >= endDate`.
      *
      * @param payload - The cron job payload
      */
     public schedule(payload: SchedulePayload): void {
+        const delegator = Delegator.getInstance();
+
         const jobId = payload.jobId;
-        const startDate = new Date(payload.startDate); // startDate = nextRun or a startDate in the future validated by the controller
+
+        const startDate = new Date(payload.startDate);
         const endDate = payload.endDate ? new Date(payload.endDate) : null;
         const now = new Date();
 
-        // Delete an existing job and task if it exists
-        const cronJob = this.cronJobs.get(jobId);
+        const type = payload.type;
+        const isOfTypeOnce = type === cronJobTypeSchema.enum.once;
 
-        if (cronJob) {
-            // Delete the job from map and clear any pending timeouts
-            this.delete(jobId);
-        }
+        const isStopped = payload.isStopped === true;
 
-        // Get an instance of the delegator
-        const delegator = Delegator.getInstance();
-
-        // For 'once' jobs, we don't need a cronTask or cronExpression
-        const isOfTypeOnce = payload.type === 'once';
         let cronTask: ReturnType<typeof cron.createTask> | undefined;
         let cronExpression: string | undefined;
 
-        if (payload.type !== 'once') {
-            // Format the cron expression and create task only for recurring jobs
-            cronExpression = this.formatCronExpression({ startDate, type: payload.type });
+        this.teardown(jobId);
+
+        if (type !== 'once') {
+            cronExpression = this.formatCronExpression({ startDate, type });
 
             if (!cronExpression) {
-                throw new InternalException(`Cron expression is undefined for job: ${payload.jobId}`);
+                throw new InternalException(`Cron expression is undefined for job: ${jobId}`);
             }
 
-            // Validate the cron expression
             const isValid = cron.validate(cronExpression);
 
             if (!isValid) {
-                throw new InternalException(`Invalid cron expression: ${cronExpression}`);
+                throw new InternalException(`Invalid cron expression: ${cronExpression} for job: ${jobId}`);
             }
 
             cronTask = cron.createTask(cronExpression, () => {
@@ -252,127 +270,129 @@ export class Scheduler {
 
         const newCronJob: CronJob = {
             jobId,
+            userId: payload.userId,
             cronExpression,
             startDate,
             endDate,
+            type,
             cronTask,
+            status: isStopped ? constants.status.schedule.stopped : constants.status.schedule.idle,
             metadata: {
                 startTimeoutId: undefined,
                 stopTimeoutId: undefined,
             },
         };
 
-        // Calculate the time to start the job
-        const msToStart = startDate.getTime() - now.getTime();
+        if (!isStopped) {
+            const msToStart = startDate.getTime() - now.getTime();
+            newCronJob.metadata.startTimeoutId = setTimeout(() => {
+                if (isOfTypeOnce) {
+                    delegator.delegateScheduledJob(jobId);
+                    this.delete(jobId);
+                } else {
+                    // 1. When the startDate was in the future when this callback was created, we delegate the job,
+                    // and then start the task to run at the next interval. Because if we would only start the task,
+                    // node-cron would schedule it to run in the next interval, because we're a tick late here
+                    const startWasInTheFuture = msToStart > 0;
+                    if (startWasInTheFuture) {
+                        delegator.delegateScheduledJob(jobId);
+                    }
 
-        newCronJob.metadata.startTimeoutId = setTimeout(() => {
-            if (isOfTypeOnce) {
-                // For 'once' jobs, execute immediately via delegator
-                delegator.delegateScheduledJob(jobId);
-                logger.info(`Executed once job: ${payload.name} immediately at scheduled time`);
-                this.delete(jobId);
-            } else {
-                // NOTE: If we only start the cron task here, the current minute has already passed,
-                // so node-cron would schedule the first run for the *next* matching interval
-                // (e.g. tomorrow), skipping the intended first execution.
-                delegator.delegateScheduledJob(jobId);
+                    // 2. When the startDate is in the past, we only .start() the task,
+                    // so it runs in the next interval
+                    cronTask!.start();
+                }
 
-                cronTask!.start();
+                logger.info(`Executed job: ${jobId} of type: ${type}`);
+            }, msToStart);
 
-                logger.info(
-                    `Started cron-job: ${payload.name} with expression: ${cronExpression} (type: ${payload.type})`
-                );
+            if (endDate) {
+                const msToEnd = endDate.getTime() - now.getTime();
+
+                newCronJob.metadata.stopTimeoutId = setTimeout(() => {
+                    cronTask!.stop();
+                    newCronJob.status = constants.status.schedule.stopped;
+                    this.emitCronJobsForUser(payload.userId);
+                    logger.info(`Stopped job: ${jobId} of type: ${type}`);
+                }, msToEnd);
             }
-        }, msToStart);
-
-        logger.info(
-            isOfTypeOnce
-                ? `Scheduled a job of type "once" to execute at ${startDate.toISOString()}: ${payload.name}`
-                : `Scheduled cron-job to start at ${startDate.toISOString()}: ${payload.name} with expression: ${cronExpression}`
-        );
-
-        // Calculate the time to stop the cron job (skip for 'once' jobs)
-        if (endDate && !isOfTypeOnce) {
-            const msToEnd = endDate.getTime() - now.getTime();
-
-            newCronJob.metadata.stopTimeoutId = setTimeout(() => {
-                cronTask!.stop();
-
-                logger.info(`Stopped cron-job with name: "${payload.name}" and id: "${jobId}" (end time reached)`);
-            }, msToEnd);
-
-            logger.info(
-                `Scheduled cron-job to stop at ${endDate.toISOString()}: ${payload.name} with expression: ${cronExpression}`
-            );
         }
 
         this.cronJobs.set(jobId, newCronJob);
+        this.emitCronJobsForUser(payload.userId);
     }
 
     /**
-     * Deletes a cron job and removes it from memory. And clears any pending
-     * start/stop timeouts and destroys the underlying cron task.
+     * Clears timeouts, destroys the cron task, and removes the job from memory.
+     * Does not emit — callers that need SSE notify after teardown (or after a
+     * subsequent schedule) must do so themselves.
+     *
+     * @returns The removed job, or `undefined` if it was not in the map
+     */
+    private teardown(jobId: string): CronJob | undefined {
+        const cronJob = this.cronJobs.get(jobId);
+        if (!cronJob) {
+            return undefined;
+        }
+
+        clearTimeout(cronJob.metadata.startTimeoutId);
+        clearTimeout(cronJob.metadata.stopTimeoutId);
+
+        if (cronJob.cronTask) {
+            cronJob.cronTask.destroy();
+        }
+
+        this.cronJobs.delete(jobId);
+        return cronJob;
+    }
+
+    /**
+     * Removes a cron job from the scheduler and emits the updated scheduled-jobs
+     * snapshot for that user. Idempotent when the job is already absent.
      *
      * @param jobId - The cron job id to delete
-     * @todo – there are cases where we invoke this method to delete a job that is not scheduled.
-     * Therefore it's not good to log an error, look into how to handle this better.
      */
     public delete(jobId: string): void {
-        const cronJobById = this.cronJobs.get(jobId);
+        const cronJob = this.teardown(jobId);
 
-        if (!cronJobById) {
-            logger.error(`Cannot find cron-job with id: "${jobId}" to delete`, {});
-        } else {
-            clearTimeout(cronJobById.metadata.startTimeoutId);
-            clearTimeout(cronJobById.metadata.stopTimeoutId);
-
-            if (cronJobById.cronTask) {
-                cronJobById.cronTask.destroy();
-            }
-
-            this.cronJobs.delete(jobId);
-            logger.info(`Deleted cron-job with id "${jobId}"`);
+        if (!cronJob) {
+            // Note: If .schedule() throws due to invalid cron expression, createJob/updateJob
+            // controllers will catch and call this method with a jobId that is not in the map.
+            // But since we want to be able to idempotently delete a job, we only log an error
+            // and continue.
+            logger.error(`Could not find and delete cron-job with id: "${jobId}"`, {});
+            return;
         }
+
+        this.emitCronJobsForUser(cronJob.userId);
+        logger.info(`Deleted cron-job with id: "${jobId}"`);
     }
 
     /**
-     * Stops a running cron job but keeps it in memory for potential reactivation.
-     * Clears any pending start/stop timeouts and stops task execution.
-     * The job can be restarted later by calling schedule() again.
-     *
-     * @param jobId - The cron job id to stop
+     * Returns a shallow snapshot of all in-memory cron jobs (test / teardown use).
      */
-    public stop(jobId: string): void {
-        const cronJobById = this.cronJobs.get(jobId);
-
-        if (!cronJobById) {
-            logger.error(`Cannot find cron-job with id: "${jobId}" to stop`, {});
-        } else {
-            clearTimeout(cronJobById.metadata.stopTimeoutId);
-            clearTimeout(cronJobById.metadata.startTimeoutId);
-
-            cronJobById.metadata.stopTimeoutId = undefined;
-            cronJobById.metadata.startTimeoutId = undefined;
-
-            if (cronJobById.cronTask) {
-                cronJobById.cronTask.stop();
-            }
-
-            logger.info(`Stopped cron-job with id: "${jobId}"`);
-        }
-    }
-
-    /**
-     * Returns a read-only array of all scheduled cron jobs currently in memory.
-     * Each entry contains the job ID, task and metadata.
-     * The returned array is frozen to prevent unintended mutations at runtime.
-     *
-     * @returns An array of cron job objects with their id and metadata.
-     */
-    get allJobs(): ReadonlyArray<CronJob & { id: string }> {
-        return Array.from(this.cronJobs.entries()).map(([id, job]) => ({
-            id,
+    public getAllJobs(): ReadonlyArray<CronJob> {
+        return Array.from(this.cronJobs.values()).map(job => ({
             ...job,
+            metadata: { ...job.metadata },
         }));
+    }
+
+    /**
+     * Returns the cron job events for a user.
+     * @param userId - The user id to get the cron job events for
+     * @returns The cron job events for the user
+     */
+    public getCronJobEventsForUser(userId: string): ScheduledJobEvent[] {
+        const userCronJobs = Array.from(this.cronJobs.values()).filter(job => job.userId === userId);
+        return userCronJobs.map(job => {
+            const { nextRun, previousRun } = this.getNextAndPreviousRun(job.jobId);
+            return {
+                jobId: job.jobId,
+                status: job.status,
+                nextRun: nextRun?.toISOString() || null,
+                lastRun: previousRun?.toISOString() || null,
+            };
+        });
     }
 }

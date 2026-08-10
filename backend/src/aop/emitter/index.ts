@@ -19,11 +19,7 @@ class Emitter {
     private emitter = new EventEmitter();
     private emittedJobTargetEvents: JobTargetFinishedEvent[] = [];
 
-    private constructor() {
-        this.emit = this.emit.bind(this);
-        this.on = this.on.bind(this);
-        this.off = this.off.bind(this);
-    }
+    private constructor() {}
 
     /**
      * Returns the singleton instance of Emitter.
@@ -56,7 +52,7 @@ class Emitter {
 
         const data = result.data;
 
-        if (data.type === constants.events.jobs.targetFinished) {
+        if (data.type === constants.events.jobs.jobTargetFinished) {
             this.emittedJobTargetEvents.push(data);
         }
 
@@ -95,12 +91,13 @@ class Emitter {
     }
 
     /**
-     * Returns all target events.
+     * Returns emitted target-finished events for the given user.
      *
-     * @returns All target events
+     * @param userId Owner user id
+     * @returns Target-finished events for that user
      */
-    get allEmittedJobTargetEvents(): ReadonlyArray<JobTargetFinishedEvent> {
-        return [...this.emittedJobTargetEvents];
+    public getEmittedJobTargetEventsForUser(userId: string): ReadonlyArray<JobTargetFinishedEvent> {
+        return this.emittedJobTargetEvents.filter(event => event.userId === userId);
     }
 }
 

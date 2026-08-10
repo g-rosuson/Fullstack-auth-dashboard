@@ -73,7 +73,7 @@ export const initializeDatabase = async () => {
             if (isStartDateInTheFuture) {
                 schedulerInstance.schedule({
                     jobId: job.id,
-                    name: job.name,
+                    userId: job.userId,
                     type: job.schedule.type,
                     startDate: job.schedule.startDate,
                     endDate: job.schedule.endDate,
@@ -82,7 +82,6 @@ export const initializeDatabase = async () => {
                 delegatorInstance.register({
                     userId: job.userId,
                     jobId: job.id,
-                    name: job.name,
                     tools: job.tools,
                     scheduleType: job.schedule.type,
                 });
@@ -101,7 +100,7 @@ export const initializeDatabase = async () => {
                 if (nextRun) {
                     schedulerInstance.schedule({
                         jobId: job.id,
-                        name: job.name,
+                        userId: job.userId,
                         type: job.schedule.type,
                         startDate: nextRun.toISOString(),
                         endDate: job.schedule.endDate,
@@ -110,7 +109,6 @@ export const initializeDatabase = async () => {
                     delegatorInstance.register({
                         userId: job.userId,
                         jobId: job.id,
-                        name: job.name,
                         tools: job.tools,
                         scheduleType: job.schedule.type,
                     });

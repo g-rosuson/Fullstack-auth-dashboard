@@ -10,7 +10,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const DropdownMenu = ({ dropdownItems, trigger }: DropdownMenuProps) => {
+// TODO: Look into: dark-mode, dropdown menu item using destructive variant is to dark
+const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
     // Determine the trigger
     let dropdownMenuTrigger = <EllipsisIcon size={18} />;
 
@@ -35,7 +36,7 @@ const DropdownMenu = ({ dropdownItems, trigger }: DropdownMenuProps) => {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
-                {dropdownItems.map(item => {
+                {dropdownMenuItems.map(item => {
                     const addSeparator = item.variant === 'destructive';
 
                     return (

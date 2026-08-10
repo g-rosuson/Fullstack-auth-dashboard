@@ -16,7 +16,7 @@ const Avatar = ({ email, actions }: Props) => {
         </ShadcnAvatar>
     );
 
-    return <DropdownMenu dropdownItems={actions} trigger={trigger} />;
+    return <DropdownMenu dropdownMenuItems={actions} trigger={trigger} />;
 };
 
 export default Avatar;

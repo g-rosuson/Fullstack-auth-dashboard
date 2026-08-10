@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * A menu item for the dropdown menu.
  */
-interface MenuItem {
+interface DropdownMenuItem {
     label: string;
     onClick: () => void;
     icon?: React.ReactElement;
@@ -14,8 +14,8 @@ interface MenuItem {
  * The props for the DropdownMenu component.
  */
 interface DropdownMenuProps {
-    dropdownItems: MenuItem[];
+    dropdownMenuItems: DropdownMenuItem[];
     trigger?: React.ReactElement;
 }
 
-export type { DropdownMenuProps };
+export type { DropdownMenuProps, DropdownMenuItem };

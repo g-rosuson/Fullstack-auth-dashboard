@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { VisuallyHidden } from 'radix-ui';
 
+import Spinner from '@/components/ui-app/spinner/Spinner';
+
 import type { ConfirmationDialogProps } from './ConfirmationDialog.types';
 
 import { Button } from '@/components/ui/button';
@@ -13,7 +15,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Spinner } from '@/components/ui/spinner';
 
 const ConfirmationDialog = ({
     open,
@@ -27,14 +28,15 @@ const ConfirmationDialog = ({
     const [isConfirming, setIsConfirming] = useState(false);
 
     /**
-     * Awaits the onConfirm callback and closes the dialog on success.
+     * Awaits the onConfirm callback and closes the dialog when it settles.
      */
     const handleConfirm = async () => {
         try {
             setIsConfirming(true);
             await onConfirm();
+            onOpenChange();
         } catch {
-            // Set local UI state here.
+            onOpenChange();
         } finally {
             setIsConfirming(false);
         }

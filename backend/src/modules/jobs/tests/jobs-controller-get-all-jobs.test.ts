@@ -5,10 +5,15 @@ import { HttpStatusCode } from 'shared/enums/http-status-codes';
 import type { Request, Response } from 'express';
 
 /**
+ * Verification: unit proofs for list-jobs HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see docs/specs/architecture/http/jobs/read.md
+ * @see docs/specs/architecture/http/jobs/ownership.md
+ */
+
+/**
  * Mocks for the get all jobs function.
  */
 const mockGetAllByUserId = vi.fn();
-const mockGetNextAndPreviousRun = vi.fn();
 const mockResponseStatus = vi.fn();
 const mockResponseJson = vi.fn();
 
@@ -34,19 +39,16 @@ const buildRequest = (query: Record<string, string> = {}) =>
                     },
                 },
             },
-            scheduler: {
-                getNextAndPreviousRun: mockGetNextAndPreviousRun,
-            },
         },
     }) as unknown as Request;
 
-describe('jobs-controller', () => {
+describe('jobs-controller getAllJobs', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockResponseStatus.mockReturnValue(mockResponse);
     });
 
-    describe('getAllJobs', () => {
+    describe('[HTTP-JOBS-LST-001]', () => {
         it('should fetch paginated jobs using parsed limit and offset query params', async () => {
             const mockRequest = buildRequest({
                 limit: '10',
@@ -62,7 +64,6 @@ describe('jobs-controller', () => {
             await getAllJobs(mockRequest, mockResponse);
 
             expect(mockGetAllByUserId).toHaveBeenCalledWith('user-id-1', 10, 20);
-            expect(mockGetNextAndPreviousRun).not.toHaveBeenCalled();
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
@@ -70,6 +71,9 @@ describe('jobs-controller', () => {
                 limit: 10,
                 offset: 20,
                 count: 2,
+                meta: {
+                    timestamp: expect.any(String),
+                },
             });
         });
 
@@ -82,7 +86,6 @@ describe('jobs-controller', () => {
             await getAllJobs(mockRequest, mockResponse);
 
             expect(mockGetAllByUserId).toHaveBeenCalledWith('user-id-1', 0, 0);
-            expect(mockGetNextAndPreviousRun).not.toHaveBeenCalled();
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
@@ -90,13 +93,14 @@ describe('jobs-controller', () => {
                 limit: 0,
                 offset: 0,
                 count: 1,
+                meta: {
+                    timestamp: expect.any(String),
+                },
             });
         });
 
-        it('should enrich scheduled jobs with nextRun and lastRun from scheduler context', async () => {
+        it('should return persisted schedule', async () => {
             const mockRequest = buildRequest();
-            const nextRun = new Date('2026-04-20T08:30:00.000Z');
-            const previousRun = new Date('2026-04-19T08:30:00.000Z');
             const jobs = [
                 {
                     id: 'job-id-1',
@@ -105,6 +109,7 @@ describe('jobs-controller', () => {
                         type: 'daily',
                         startDate: '2026-04-18T08:30:00.000Z',
                         endDate: null,
+                        status: 'idle',
                     },
                 },
                 {
@@ -115,29 +120,29 @@ describe('jobs-controller', () => {
             ];
 
             mockGetAllByUserId.mockResolvedValue(jobs);
-            mockGetNextAndPreviousRun.mockReturnValue({ nextRun, previousRun });
 
             await getAllJobs(mockRequest, mockResponse);
 
-            expect(mockGetNextAndPreviousRun).toHaveBeenCalledTimes(1);
-            expect(mockGetNextAndPreviousRun).toHaveBeenCalledWith('job-id-1');
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
-                data: [
-                    {
-                        ...jobs[0],
-                        schedule: {
-                            ...jobs[0].schedule,
-                            nextRun: nextRun.toISOString(),
-                            lastRun: previousRun.toISOString(),
-                        },
-                    },
-                    jobs[1],
-                ],
+                data: jobs,
                 limit: 0,
                 offset: 0,
                 count: 2,
+                meta: {
+                    timestamp: expect.any(String),
+                },
             });
+        });
+
+        it('scopes the list fetch to the requesting user', async () => {
+            const mockRequest = buildRequest({ limit: '5', offset: '1' });
+            mockGetAllByUserId.mockResolvedValue([]);
+
+            await getAllJobs(mockRequest, mockResponse);
+
+            expect(mockGetAllByUserId).toHaveBeenCalledTimes(1);
+            expect(mockGetAllByUserId).toHaveBeenCalledWith('user-id-1', 5, 1);
         });
     });
 });

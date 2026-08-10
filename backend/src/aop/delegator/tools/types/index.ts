@@ -39,10 +39,12 @@ type OnTargetFinish = (target: ExecutionToolTarget) => void;
 /* eslint-disable no-unused-vars */
 type ExecuteFunction<T extends ToolType> = ({
     tool,
+    signal,
     onTargetFinish,
 }: {
     tool: ToolMap[T];
+    signal: AbortSignal;
     onTargetFinish: OnTargetFinish;
 }) => Promise<void>;
 
-export type { OnTargetFinish, ToolMap, ToolRegistry, ToolType };
+export type { ExecuteFunction, OnTargetFinish, ToolMap, ToolRegistry, ToolType };

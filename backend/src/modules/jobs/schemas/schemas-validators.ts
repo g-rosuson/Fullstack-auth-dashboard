@@ -19,24 +19,38 @@ const validateJobSchedule = (
 ) => {
     const startDate = payload.schedule?.startDate ? new Date(payload.schedule.startDate) : null;
     const endDate = payload.schedule?.endDate ? new Date(payload.schedule.endDate) : null;
+
+    // FR-JOBS-SCH-001 — When a schedule is set or changed, start time shall be in the future
     if (startDate && startDate < new Date()) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: ErrorMessage.JOBS_START_DATE_IN_FUTURE,
+            message: ErrorMessage.JOBS_START_DATE_MUST_BE_IN_THE_FUTURE,
             path: ['schedule', 'startDate'],
             fatal: true,
         });
     }
 
+    // FR-JOBS-SCH-002 — When an end time is set, it shall be after the start time
     if (endDate && startDate && startDate > endDate) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: ErrorMessage.JOBS_START_DATE_COME_BEFORE_END_DATE,
+            message: ErrorMessage.JOBS_START_DATE_MUST_COME_BEFORE_END_DATE,
             path: ['schedule', 'startDate'],
             fatal: true,
         });
     }
 
+    // FR-JOBS-SCH-006 — Recurring schedule shall not be activated when end is now or past
+    if (endDate && endDate < new Date()) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: ErrorMessage.JOBS_END_DATE_MUST_BE_IN_THE_FUTURE,
+            path: ['schedule', 'endDate'],
+            fatal: true,
+        });
+    }
+
+    // FR-JOBS-ONCE-001 — A once schedule shall not have an end time
     if (payload.schedule?.type === 'once' && endDate) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,

@@ -10,5 +10,5 @@ export type RunningJobsEventType = typeof RunningJobsEventType[keyof typeof Runn
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const RunningJobsEventType = {
-  'running-jobs': 'running-jobs',
+  'jobs-running': 'jobs-running',
 } as const;

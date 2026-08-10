@@ -11,25 +11,16 @@ import type { IdRouteParam } from '../types';
 import type { Request, Response } from 'express';
 
 /**
- * Mocks for the delete job function.
+ * Verification: unit proofs for delete-job HTTP scenarios (cite HTTP IDs; FRs via HTTP Traces).
+ * @see docs/specs/architecture/http/jobs/delete.md
+ * @see docs/specs/architecture/http/jobs/ownership.md
  */
+
 const mockDelete = vi.fn();
 const mockSchedulerDelete = vi.fn();
 const mockDelegatorRemoveJob = vi.fn();
-const mockStartTransaction = vi.fn();
-const mockCommitTransaction = vi.fn();
-const mockAbortTransaction = vi.fn();
-const mockEndSession = vi.fn();
 const mockResponseStatus = vi.fn();
 const mockResponseJson = vi.fn();
-
-const mockSession = {
-    startTransaction: mockStartTransaction,
-    commitTransaction: mockCommitTransaction,
-    abortTransaction: mockAbortTransaction,
-    endSession: mockEndSession,
-};
-const mockStartSession = vi.fn(() => mockSession);
 
 vi.mock('aop/logging', () => ({
     logger: {
@@ -47,12 +38,20 @@ const mockResponse = {
 const mockJobId = 'job-id-1';
 const mockUserId = 'user-id-1';
 const mockOtherUserId = 'user-id-2';
+const now = new Date('2026-03-10T12:00:00.000Z').toISOString();
+
+/**
+ * Builds a getRunningJobsForUser mock from in-memory running entries (filters by owner).
+ */
+const buildGetRunningJobsForUser =
+    (runningJobs: Array<{ jobId: string; userId: string }> = []) =>
+    (userId: string) =>
+        runningJobs.filter(job => job.userId === userId).map(({ jobId }) => ({ jobId }));
 
 /**
  * Builds a request for the delete job function.
- * @returns The request
  */
-const buildRequest = (runningJobs: Map<string, { userId: string }> = new Map()) =>
+const buildRequest = (runningJobs: Array<{ jobId: string; userId: string }> = []) =>
     ({
         params: {
             id: mockJobId,
@@ -65,31 +64,32 @@ const buildRequest = (runningJobs: Map<string, { userId: string }> = new Map()) 
                         delete: mockDelete,
                     },
                 },
-                transaction: {
-                    startSession: mockStartSession,
-                },
             },
             scheduler: {
                 delete: mockSchedulerDelete,
             },
             delegator: {
                 removeJob: mockDelegatorRemoveJob,
-                runningJobs,
+                getRunningJobsForUser: buildGetRunningJobsForUser(runningJobs),
             },
         },
     }) as unknown as Request<IdRouteParam>;
 
-describe('jobs-controller', () => {
+describe('jobs-controller deleteJob', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.useFakeTimers();
+        vi.setSystemTime(now);
         mockResponseStatus.mockReturnValue(mockResponse);
-        mockCommitTransaction.mockResolvedValue(undefined);
-        mockAbortTransaction.mockResolvedValue(undefined);
-        mockEndSession.mockResolvedValue(undefined);
     });
 
-    describe('deleteJob', () => {
-        it('should delete a job, tear down in-memory state after commit, and respond with the deleted payload', async () => {
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+    });
+
+    describe('[HTTP-JOBS-DEL-001]', () => {
+        it('should delete a job, tear down in-memory state, and respond with the deleted payload', async () => {
             const mockRequest = buildRequest();
             const deleteResult = {
                 id: mockJobId,
@@ -99,18 +99,16 @@ describe('jobs-controller', () => {
 
             await deleteJob(mockRequest, mockResponse);
 
-            expect(mockStartSession).toHaveBeenCalled();
-            expect(mockStartTransaction).toHaveBeenCalled();
-            expect(mockDelete).toHaveBeenCalledWith(mockJobId, mockUserId, mockSession);
-            expect(mockCommitTransaction).toHaveBeenCalled();
+            expect(mockDelete).toHaveBeenCalledWith(mockJobId, mockUserId);
             expect(mockSchedulerDelete).toHaveBeenCalledWith(mockJobId);
             expect(mockDelegatorRemoveJob).toHaveBeenCalledWith(mockJobId);
-            expect(mockAbortTransaction).not.toHaveBeenCalled();
-            expect(mockEndSession).toHaveBeenCalled();
             expect(mockResponseStatus).toHaveBeenCalledWith(HttpStatusCode.OK);
             expect(mockResponseJson).toHaveBeenCalledWith({
                 success: true,
                 data: { id: mockJobId },
+                meta: {
+                    timestamp: now,
+                },
             });
         });
 
@@ -121,35 +119,36 @@ describe('jobs-controller', () => {
 
             await expect(deleteJob(mockRequest, mockResponse)).rejects.toThrow('not found');
 
-            expect(mockCommitTransaction).not.toHaveBeenCalled();
             expect(mockSchedulerDelete).not.toHaveBeenCalled();
             expect(mockDelegatorRemoveJob).not.toHaveBeenCalled();
-            expect(mockAbortTransaction).toHaveBeenCalled();
-            expect(mockEndSession).toHaveBeenCalled();
+            expect(mockLoggerError).toHaveBeenCalled();
         });
+    });
 
+    describe('[HTTP-JOBS-DEL-002]', () => {
         it('should reject delete when the job is running for the current user', async () => {
-            const mockRequest = buildRequest(new Map([[mockJobId, { userId: mockUserId }]]));
+            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockUserId }]);
 
             await expect(deleteJob(mockRequest, mockResponse)).rejects.toThrow(BusinessLogicException);
             await expect(deleteJob(mockRequest, mockResponse)).rejects.toMatchObject({
                 message: ErrorMessage.JOBS_CANNOT_BE_DELETED_WHILE_RUNNING,
             });
 
-            expect(mockStartSession).not.toHaveBeenCalled();
             expect(mockDelete).not.toHaveBeenCalled();
             expect(mockSchedulerDelete).not.toHaveBeenCalled();
             expect(mockDelegatorRemoveJob).not.toHaveBeenCalled();
         });
+    });
 
+    describe('[HTTP-JOBS-OWN-001]', () => {
         it('should reach the database delete when another user job is running in memory', async () => {
-            const mockRequest = buildRequest(new Map([[mockJobId, { userId: mockOtherUserId }]]));
+            const mockRequest = buildRequest([{ jobId: mockJobId, userId: mockOtherUserId }]);
 
             mockDelete.mockRejectedValue(new ResourceNotFoundException(ErrorMessage.JOBS_NOT_FOUND_IN_DATABASE));
 
             await expect(deleteJob(mockRequest, mockResponse)).rejects.toThrow(ResourceNotFoundException);
 
-            expect(mockDelete).toHaveBeenCalledWith(mockJobId, mockUserId, mockSession);
+            expect(mockDelete).toHaveBeenCalledWith(mockJobId, mockUserId);
             expect(mockSchedulerDelete).not.toHaveBeenCalled();
             expect(mockDelegatorRemoveJob).not.toHaveBeenCalled();
         });
