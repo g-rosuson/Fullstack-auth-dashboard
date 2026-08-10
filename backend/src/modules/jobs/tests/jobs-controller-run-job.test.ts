@@ -131,6 +131,9 @@ describe('jobs-controller runJob', () => {
                 scheduleType: 'daily',
             });
         });
+
+        // TODO: [FR-JOBS-ONCE-003] — run succeeds when once startDate is past
+        // TODO: [FR-JOBS-SCH-012] — run succeeds when recurring endDate is past
     });
 
     describe('[HTTP-JOBS-RUN-002]', () => {

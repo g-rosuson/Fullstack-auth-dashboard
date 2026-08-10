@@ -137,10 +137,14 @@ const createJob = async (req: Request<unknown, unknown, CreateJobInput>, res: Re
  * FR-JOBS-UPD-002 — Allow clearing the schedule
  * FR-JOBS-UPD-003 — Reject while the job is running
  * FR-JOBS-UPD-004 — Stopped schedule → attach runtime stopped; no run until activated (FR-JOBS-SSC-002)
+ * FR-JOBS-UPD-005 — Update does not start a run (on demand / schedule fire only)
  * FR-JOBS-SCH-007 / FR-JOBS-SCH-011 / FR-JOBS-STR-004 — Post-save schedule/run failure → keep job, unattached, warn
  * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped update; other-user ≡ not found
  * Middleware: FR-JOBS-TLR-001…006, FR-JOBS-SCH-001…003/006, FR-JOBS-ONCE-001/002
  */
+// TODO: When a start date is in the past, we cannot update any job fields since the middleware validates the schedule.
+// TODO: We should allow updating name and tools, since there are scenarios where users want to update these fields after the schedule started.
+// TODO: Furthermore, I think it's fine to allow this also when the end date is in the past, validate assumptions.
 const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, res: Response) => {
     try {
         const userId = req.context.user.id;
@@ -254,6 +258,7 @@ const updateJob = async (req: Request<IdRouteParam, unknown, UpdateJobInput>, re
  * FR-JOBS-RUN-001 / FR-JOBS-RUN-003 — Execute tools when the owner starts a run
  * FR-JOBS-RUN-004 — Reject while already running
  * FR-JOBS-ONCE-003 — Allowed when a once schedule can no longer activate
+ * FR-JOBS-SCH-012 — Allowed when a recurring schedule end is now or past
  * FR-JOBS-OWN-001 / FR-JOBS-OWN-002 — Owner-scoped; other-user ≡ not found
  *
  * Tools start after the response. Clients observe via SSE `running-jobs` / finished events.
