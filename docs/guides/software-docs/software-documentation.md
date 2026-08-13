@@ -21,10 +21,10 @@ The goal is to make every requirement clear, measurable, and testable.
 ## 2. Agile Artifacts
 **Answers:** *What work needs to be completed next?*
 
-Agile artifacts break the SRS into manageable pieces of work.
+Agile artifacts break the SRS into manageable pieces of work. Docs: [`docs/tickets/`](../../tickets/).
 
 - **User Stories** describe functionality from the user's perspective.
-- **Acceptance Criteria** define the exact conditions that must be met for the work to be considered complete.
+- **Definition of done** (acceptance for the work slice) defines when the ticket is complete.
 
 These are planning and execution tools—not replacements for the SRS.
 
