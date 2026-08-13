@@ -1,6 +1,7 @@
+import ToastIcon from './toastIcon/ToastIcon';
+
 import type { ToasterProps, ToastType } from './Toast.types';
 
-import ToastIcon from './ToastIcon';
 import {
     Toast,
     toast as toastManager,
