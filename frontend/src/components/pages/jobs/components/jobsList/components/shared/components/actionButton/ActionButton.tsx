@@ -109,10 +109,10 @@ const ActionButton = ({
 
     const actionToVariantMap = {
         stop: 'destructive',
-        pause: 'primary',
-        activate: 'warning',
+        pause: 'warning',
+        activate: 'success',
         run: 'primary',
-        retry: 'destructive',
+        retry: 'primary',
     } as const satisfies Record<ActionType, 'primary' | 'destructive' | 'warning' | 'success'>;
 
     const actionToLabelMap = {
