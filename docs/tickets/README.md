@@ -2,6 +2,7 @@
 
 Work slices that break the SRS into implementable units. Not a status board — no open/done fields. Completion lives in git / PRs.
 
+How to author tickets: [`.agents/skills/writing-tickets/SKILL.md`](../../.agents/skills/writing-tickets/SKILL.md).  
 For FR / HTTP / CLIENT IDs, prose, and where a behavior belongs in the SRS stack, follow [`.agents/skills/writing-docs/SKILL.md`](../../.agents/skills/writing-docs/SKILL.md).
 
 ## Layout
@@ -64,3 +65,4 @@ As a …, I want … so that ….
 ## Domains
 
 - [ui](./ui/)
+- [jobs](./jobs/)
