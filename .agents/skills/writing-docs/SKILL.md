@@ -22,15 +22,16 @@ Keep product docs concise, precise, and readable — correct layer, stable IDs, 
 # Doc stack
 
 ```text
-FR / NFR  →  Architecture acceptance (HTTP, Client)  →  Implementation  →  Tests
+FR / NFR  →  Tickets (docs/tickets)  →  Architecture acceptance (HTTP, Client)  →  Implementation  →  Tests
 ```
 
 - **FR / NFR** — `docs/specs/requirements/` — what / how well
+- **Tickets** — `docs/tickets/` — work slices (story + DoD); not status tracking
 - **HTTP** — `docs/specs/architecture/http/` — API scenarios
 - **Client** — `docs/specs/architecture/client/` — UI scenarios
 - **Guides** — `docs/guides/software-docs/` — how the stack works
 
-Change control: **FR/NFR first → acceptance → tests and implementation.**
+Change control: **FR/NFR first → acceptance → tests and implementation.** Tickets organize work; they do not replace FRs.
 
 Canonical detail: layer READMEs under those paths; traceability in `docs/guides/software-docs/software-requirements-specification.md`.
 
