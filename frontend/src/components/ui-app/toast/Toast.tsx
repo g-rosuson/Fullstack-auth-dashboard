@@ -1,6 +1,6 @@
 import ToastIcon from './toastIcon/ToastIcon';
 
-import type { ToasterProps, ToastType } from './Toast.types';
+import type { ToastAddOptions, ToasterProps, ToastUpdateOptions } from './Toast.types';
 
 import {
     Toast,
@@ -51,11 +51,10 @@ function Toaster({ children }: ToasterProps) {
 }
 
 const toast = {
-    add: (options: Parameters<typeof toastManager.add>[0] & { type?: ToastType }) => toastManager.add(options),
+    add: (options: ToastAddOptions) => toastManager.add(options),
     close: toastManager.close.bind(toastManager),
-    update: toastManager.update.bind(toastManager),
+    update: (id: string, options: ToastUpdateOptions) => toastManager.update(id, options),
     promise: toastManager.promise.bind(toastManager),
 };
 
 export { toast, Toaster };
-export type { ToastType };

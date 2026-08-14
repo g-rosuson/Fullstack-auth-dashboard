@@ -2,11 +2,11 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { ToastType } from './Toast.types';
+import type { ToastAddOptions } from './Toast.types';
 
 import { toast, Toaster } from './Toast';
 
-const addToast = (options: Parameters<typeof toast.add>[0] & { type?: ToastType }) => {
+const addToast = (options: ToastAddOptions) => {
     act(() => {
         toast.add({ timeout: 0, ...options });
     });
