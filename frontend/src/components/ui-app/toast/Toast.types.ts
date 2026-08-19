@@ -1,7 +1,6 @@
+import type { ToastType } from './constants';
 import type { ToastManagerAddOptions, ToastManagerUpdateOptions } from '@base-ui/react/toast';
 import type { ReactNode } from 'react';
-
-type ToastType = 'success' | 'info' | 'warning' | 'error' | 'loading';
 
 type WithToastType<T> = Omit<T, 'type'> & { type?: ToastType };
 

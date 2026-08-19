@@ -2,6 +2,7 @@ import ToastIcon from './toastIcon/ToastIcon';
 
 import type { ToastAddOptions, ToasterProps, ToastUpdateOptions } from './Toast.types';
 
+import constants from './constants';
 import {
     Toast,
     toast as toastManager,
@@ -57,4 +58,4 @@ const toast = {
     promise: toastManager.promise.bind(toastManager),
 };
 
-export { toast, Toaster };
+export { toast, Toaster, constants };
