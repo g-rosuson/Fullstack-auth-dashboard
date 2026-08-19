@@ -19,6 +19,13 @@ const constants = {
             inactive: 'Inactive',
             missing: 'Missing',
         } as const satisfies Record<keyof typeof statusKey, string>,
+        toast: {
+            jobFailed: 'Job failed',
+            jobCancelled: 'Job cancelled',
+            jobFinished: 'Job finished',
+            targetFinished: 'Target finished',
+            fallback: 'n/a',
+        } as const,
     },
 } as const;
 
