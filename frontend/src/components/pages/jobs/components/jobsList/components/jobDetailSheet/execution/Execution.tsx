@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 
 import ToolPanel from './toolPanel/ToolPanel';
-import Tabs from '@/components/ui-app/tabs/Tabs';
 import Heading from '@/components/ui-app/heading/Heading';
+import Tabs from '@/components/ui-app/tabs/Tabs';
 import Text from '@/components/ui-app/text/Text';
 
 import type { CollapsibleExecutionProps } from './types/Execution.types';

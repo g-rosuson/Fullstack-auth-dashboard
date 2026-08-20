@@ -1,7 +1,7 @@
 import Card from '@/components/ui-app/card/Card';
 import Flex from '@/components/ui-app/flex/Flex';
-import Skeleton from '@/components/ui-app/skeleton/Skeleton';
 import Heading from '@/components/ui-app/heading/Heading';
+import Skeleton from '@/components/ui-app/skeleton/Skeleton';
 
 const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {
     // Determine heading content
