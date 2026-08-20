@@ -1,6 +1,6 @@
-import Flex from '@/components/ui-app/layout/flex/Flex';
-import Heading from '@/components/ui-app/typography/heading/Heading';
-import Text from '@/components/ui-app/typography/text/Text';
+import Flex from '@/components/ui-app/flex/Flex';
+import Heading from '@/components/ui-app/heading/Heading';
+import Text from '@/components/ui-app/text/Text';
 
 import type { Schedule } from '@/components/pages/jobs/components/jobsList/types';
 

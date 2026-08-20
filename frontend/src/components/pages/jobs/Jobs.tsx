@@ -4,8 +4,8 @@ import JobFormSheet from './components/jobFormSheet/JobFormSheet';
 import JobsList from './components/jobsList/JobsList';
 import JobsSkeleton from './components/jobsList/JobsSkeleton';
 import Placeholder from './components/placeholder/Placeholder';
+import Heading from '@/components/ui-app/heading/Heading';
 import { constants as toastConstants, toast } from '@/components/ui-app/toast/Toast';
-import Heading from '@/components/ui-app/typography/heading/Heading';
 
 import mappers from './mappers';
 

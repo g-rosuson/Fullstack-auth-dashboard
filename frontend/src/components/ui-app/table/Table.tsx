@@ -1,8 +1,8 @@
 import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
-import Heading from '@/components/ui-app/typography/heading/Heading';
-import Text from '@/components/ui-app/typography/text/Text';
+import Heading from '@/components/ui-app/heading/Heading';
+import Text from '@/components/ui-app/text/Text';
 
 import type { DataTableProps } from './Table.types';
 

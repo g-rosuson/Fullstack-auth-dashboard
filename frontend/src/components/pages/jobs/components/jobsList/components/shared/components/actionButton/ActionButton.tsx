@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { Pause, Play, RotateCcw, Square } from 'lucide-react';
 import { Slot } from 'radix-ui';
 
-import Text from '@/components/ui-app/typography/text/Text';
+import Text from '@/components/ui-app/text/Text';
 
 import mappers from '@/components/pages/jobs/components/jobsList/mappers';
 

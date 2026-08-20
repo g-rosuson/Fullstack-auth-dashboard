@@ -5,7 +5,7 @@ import PasswordValidator from './passwordValidator/PasswordValidator';
 import Button from '@/components/ui-app/button/Button';
 import Card from '@/components/ui-app/card/Card';
 import Field from '@/components/ui-app/field/Field';
-import Text from '@/components/ui-app/typography/text/Text';
+import Text from '@/components/ui-app/text/Text';
 
 import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 

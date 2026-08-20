@@ -3,6 +3,7 @@ import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
 import Avatar from '@/components/ui-app/avatar/Avatar';
 import Button from '@/components/ui-app/button/Button';
+import Flex from '@/components/ui-app/flex/Flex';
 
 import api from '@/api';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -93,26 +94,28 @@ const TopBar = () => {
     const themeButtonAriaLabel = `Toggle theme to ${nextThemeForAriaLabel} mode`;
 
     return (
-        <header className="sticky top-0 flex w-full items-center justify-between border-b border-border bg-surface p-4">
-            <div>
-                <Button
-                    variant="outline"
-                    icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-                    ariaLabel="Toggle sidebar"
-                    onClick={toggleSidebar}
-                />
-            </div>
+        <header className="sticky top-0 w-full border-b border-border bg-surface p-4">
+            <Flex justify="between" align="center">
+                <div>
+                    <Button
+                        variant="outline"
+                        icon={isSidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+                        ariaLabel="Toggle sidebar"
+                        onClick={toggleSidebar}
+                    />
+                </div>
 
-            <div className="flex items-center gap-2">
-                <Button
-                    variant="outline"
-                    icon={<ThemeIcon />}
-                    ariaLabel={themeButtonAriaLabel}
-                    onClick={utils.time.throttle(onThemeChange, 1000)}
-                />
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        icon={<ThemeIcon />}
+                        ariaLabel={themeButtonAriaLabel}
+                        onClick={utils.time.throttle(onThemeChange, 1000)}
+                    />
 
-                <Avatar email={email || ''} actions={userMenuActions} />
-            </div>
+                    <Avatar email={email || ''} actions={userMenuActions} />
+                </div>
+            </Flex>
         </header>
     );
 };

@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
-const iconClassName = "shrink-0 [&_svg:not([class*='size-'])]:size-4";
+const iconClassName = "shrink-0 [&_svg:not([class*='size-'])]:size-5";
 
 const toastIcons: Record<ToastType, { icon: ReactNode; className?: string }> = {
     success: {

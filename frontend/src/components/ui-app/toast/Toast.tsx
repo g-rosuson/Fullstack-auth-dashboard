@@ -1,4 +1,5 @@
 import ToastIcon from './toastIcon/ToastIcon';
+import Flex from '@/components/ui-app/flex/Flex';
 
 import type { ToastAddOptions, ToasterProps, ToastUpdateOptions } from './Toast.types';
 
@@ -6,7 +7,6 @@ import constants from './constants';
 import {
     Toast,
     toast as toastManager,
-    ToastAction,
     ToastClose,
     ToastContent,
     ToastDescription,
@@ -21,15 +21,22 @@ function ToastList() {
     const { toasts } = useToastManager();
 
     return toasts.map(toastItem => (
-        <Toast key={toastItem.id} toast={toastItem}>
+        <Toast key={toastItem.id} toast={toastItem} className="border border-border rounded-lg bg-surface cursor-grab">
             <ToastContent>
-                <ToastIcon type={toastItem.type} />
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <ToastTitle />
-                    <ToastDescription />
-                </div>
-                {toastItem.actionProps ? <ToastAction /> : null}
-                <ToastClose />
+                <Flex gap="m">
+                    <ToastIcon type={toastItem.type} />
+
+                    <Flex direction="column" gap="s">
+                        <Flex direction="column" gap="m">
+                            <Flex direction="column" gap="s">
+                                <ToastTitle />
+                                <ToastDescription />
+                            </Flex>
+                        </Flex>
+                    </Flex>
+
+                    <ToastClose />
+                </Flex>
             </ToastContent>
         </Toast>
     ));

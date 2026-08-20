@@ -4,8 +4,8 @@ import Schedule from '@/components/pages/jobs/components/jobsList/components/sha
 import Status from '@/components/pages/jobs/components/jobsList/components/shared/components/status/Status';
 import Card from '@/components/ui-app/card/Card';
 import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
-import Flex from '@/components/ui-app/layout/flex/Flex';
-import Heading from '@/components/ui-app/typography/heading/Heading';
+import Flex from '@/components/ui-app/flex/Flex';
+import Heading from '@/components/ui-app/heading/Heading';
 
 import type { JobCardProps } from './JobCard.types';
 
