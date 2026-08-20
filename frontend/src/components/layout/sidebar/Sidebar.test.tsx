@@ -40,9 +40,8 @@ describe('Sidebar component', () => {
     it('renders the sidebar and navigation items', () => {
         renderSidebar('/');
 
-        expect(screen.getByTestId('sidebar')).toBeInTheDocument();
-        expect(screen.getByText('Home')).toBeInTheDocument();
-        expect(screen.getByText('Jobs')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Jobs' })).toBeInTheDocument();
     });
 
     it('marks route link as active when route matches', () => {

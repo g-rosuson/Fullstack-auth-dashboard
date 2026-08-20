@@ -1,68 +1,25 @@
-import { NavLink, useLocation } from 'react-router-dom';
 import { BriefcaseBusiness, Home } from 'lucide-react';
 
-import Text from '@/components/ui-app/typography/text/Text';
+import AppSidebar from '@/components/ui-app/sidebar/Sidebar';
 
-import {
-    Sidebar as ShadcnSidebar,
-    SidebarContent,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarRail,
-} from '@/components/ui/sidebar';
 import config from '@/config';
 
 const Sidebar = () => {
-    const { pathname } = useLocation();
-
     // Determine side-bar items
     const sidebarNavItems = [
         {
             label: 'Home',
             icon: Home,
-            route: config.routes.root,
+            to: config.routes.root,
         },
         {
             label: 'Jobs',
             icon: BriefcaseBusiness,
-            route: config.routes.jobs,
+            to: config.routes.jobs,
         },
     ];
 
-    return (
-        <ShadcnSidebar data-testid="sidebar" collapsible="offcanvas">
-            <SidebarContent>
-                <SidebarGroup>
-                    <SidebarGroupContent>
-                        <SidebarMenu className="gap-2 p-2">
-                            {sidebarNavItems.map(item => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.route;
-
-                                return (
-                                    <SidebarMenuItem key={item.label}>
-                                        <SidebarMenuButton asChild isActive={isActive}>
-                                            <NavLink to={item.route}>
-                                                <Icon />
-                                                <Text size="s" variant="foreground">
-                                                    {item.label}
-                                                </Text>
-                                            </NavLink>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                );
-                            })}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-            </SidebarContent>
-
-            <SidebarRail />
-        </ShadcnSidebar>
-    );
+    return <AppSidebar items={sidebarNavItems} />;
 };
 
 export default Sidebar;
