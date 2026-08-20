@@ -6,8 +6,8 @@ import type { VariantProps } from 'class-variance-authority';
 
 import { Button } from '@/components/ui/button';
 // TODO: Do this in wrapper, right?
-import { headingVariants } from '@/components/ui-app/typography/shared/variants/heading.variants';
-import { textVariants } from '@/components/ui-app/typography/shared/variants/text.variants';
+import { headingVariants } from '@/components/ui-app/shared/variants/heading.variants';
+import { textVariants } from '@/components/ui-app/shared/variants/text.variants';
 import { cn } from '@/lib/utils';
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {

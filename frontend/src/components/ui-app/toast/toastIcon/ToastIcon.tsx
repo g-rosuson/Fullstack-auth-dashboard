@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
-const iconClassName = "shrink-0 [&_svg:not([class*='size-'])]:size-4";
+const iconClassName = "shrink-0 [&_svg:not([class*='size-'])]:size-5";
 
 const toastIcons: Record<ToastType, { icon: ReactNode; className?: string }> = {
     success: {
@@ -36,11 +36,13 @@ const toastIcons: Record<ToastType, { icon: ReactNode; className?: string }> = {
  * Status icon for a toast type. Default (undefined / unknown) renders nothing.
  */
 const ToastIcon = ({ type }: ToastIconProps) => {
-    if (!type || !(type in toastIcons)) {
+    const isToastType = (type: string): type is ToastType => type in toastIcons;
+
+    if (!type || !isToastType(type)) {
         return null;
     }
 
-    const { icon, className } = toastIcons[type as ToastType];
+    const { icon, className } = toastIcons[type];
 
     return (
         <span data-slot="toast-icon" className={cn(iconClassName, className)}>

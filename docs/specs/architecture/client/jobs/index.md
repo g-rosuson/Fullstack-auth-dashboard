@@ -11,6 +11,7 @@ Unauthenticated access to `/jobs`: [CLIENT-AUTH-ACL-001](../auth/access-control.
 - List hydrates running and schedule state from the jobs stream without a full page reload
 - Card chrome: [list-entry.md](./list-entry.md)
 - Job sheet (tools + schedule fields): [sheet.md](./sheet.md)
+- Toasts for mutations and interrupting stream outcomes: [notifications.md](./notifications.md)
 
 ## Files
 
@@ -21,3 +22,4 @@ Unauthenticated access to `/jobs`: [CLIENT-AUTH-ACL-001](../auth/access-control.
 - [uniqueness.md](./uniqueness.md) — `CLIENT-JOBS-UNQ-*`
 - [sheet.md](./sheet.md) — `CLIENT-JOBS-TLR-*`, `CLIENT-JOBS-SCH-*` (form)
 - [list-entry.md](./list-entry.md) — `CLIENT-JOBS-ENT-*`, `CLIENT-JOBS-RUN-*`, `CLIENT-JOBS-STR-*`, `CLIENT-JOBS-STP-*`, `CLIENT-JOBS-SSC-*`, `CLIENT-JOBS-SCH-005`
+- [notifications.md](./notifications.md) — `CLIENT-JOBS-NTF-*`

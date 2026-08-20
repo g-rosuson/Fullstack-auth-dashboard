@@ -4,11 +4,11 @@ import Execution from './execution/Execution';
 import ActionButton from '@/components/pages/jobs/components/jobsList/components/shared/components/actionButton/ActionButton';
 import Schedule from '@/components/pages/jobs/components/jobsList/components/shared/components/schedule/Schedule';
 import Status from '@/components/pages/jobs/components/jobsList/components/shared/components/status/Status';
+import DialogTitle from '@/components/ui-app/dialogTitle/DialogTitle';
 import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
-import Flex from '@/components/ui-app/layout/flex/Flex';
+import Flex from '@/components/ui-app/flex/Flex';
 import Sheet from '@/components/ui-app/sheet/Sheet';
-import DialogTitle from '@/components/ui-app/typography/dialogTitle/DialogTitle';
-import Text from '@/components/ui-app/typography/text/Text';
+import Text from '@/components/ui-app/text/Text';
 
 import type { JobDetailSheetProps } from './types';
 

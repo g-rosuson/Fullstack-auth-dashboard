@@ -1,11 +1,12 @@
 import ToastIcon from './toastIcon/ToastIcon';
+import Flex from '@/components/ui-app/flex/Flex';
 
-import type { ToasterProps, ToastType } from './Toast.types';
+import type { ToastAddOptions, ToasterProps, ToastUpdateOptions } from './Toast.types';
 
+import constants from './constants';
 import {
     Toast,
     toast as toastManager,
-    ToastAction,
     ToastClose,
     ToastContent,
     ToastDescription,
@@ -20,15 +21,22 @@ function ToastList() {
     const { toasts } = useToastManager();
 
     return toasts.map(toastItem => (
-        <Toast key={toastItem.id} toast={toastItem}>
+        <Toast key={toastItem.id} toast={toastItem} className="border border-border rounded-lg bg-surface cursor-grab">
             <ToastContent>
-                <ToastIcon type={toastItem.type} />
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <ToastTitle />
-                    <ToastDescription />
-                </div>
-                {toastItem.actionProps ? <ToastAction /> : null}
-                <ToastClose />
+                <Flex gap="m">
+                    <ToastIcon type={toastItem.type} />
+
+                    <Flex direction="column" gap="s">
+                        <Flex direction="column" gap="m">
+                            <Flex direction="column" gap="s">
+                                <ToastTitle />
+                                <ToastDescription />
+                            </Flex>
+                        </Flex>
+                    </Flex>
+
+                    <ToastClose />
+                </Flex>
             </ToastContent>
         </Toast>
     ));
@@ -51,11 +59,10 @@ function Toaster({ children }: ToasterProps) {
 }
 
 const toast = {
-    add: (options: Parameters<typeof toastManager.add>[0] & { type?: ToastType }) => toastManager.add(options),
+    add: (options: ToastAddOptions) => toastManager.add(options),
     close: toastManager.close.bind(toastManager),
-    update: toastManager.update.bind(toastManager),
+    update: (id: string, options: ToastUpdateOptions) => toastManager.update(id, options),
     promise: toastManager.promise.bind(toastManager),
 };
 
-export { toast, Toaster };
-export type { ToastType };
+export { toast, Toaster, constants };

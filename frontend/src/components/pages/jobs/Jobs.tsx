@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import JobFormSheet from './components/jobFormSheet/JobFormSheet';
 import JobsList from './components/jobsList/JobsList';
 import JobsSkeleton from './components/jobsList/JobsSkeleton';
 import Placeholder from './components/placeholder/Placeholder';
-import Heading from '@/components/ui-app/typography/heading/Heading';
+import Heading from '@/components/ui-app/heading/Heading';
+import { constants as toastConstants, toast } from '@/components/ui-app/toast/Toast';
 
 import mappers from './mappers';
 
@@ -24,6 +25,7 @@ import type {
 } from '@/_types/_gen';
 import type { StreamSubscription } from '@/api/service/client/types';
 
+import constants from './constants';
 import api from '@/api';
 
 interface State {
@@ -59,6 +61,16 @@ const Jobs = () => {
         isFetchingJobs: true,
         isStreamHydrated: false,
     });
+
+    // Stream handlers are subscribed once on mount, so they cannot reliably close over `state.jobs`.
+    // Toasts still need the current job information, so we keep the latest list in a ref.
+    const jobsRef = useRef(state.jobs);
+    jobsRef.current = state.jobs;
+
+    /**
+     * Returns the current job for a stream event id, or `undefined` if it is not in the list.
+     */
+    const getJobForToast = useCallback((jobId: string) => jobsRef.current.find(job => job.id === jobId), []);
 
     /**
      * Opens the form for create (no job) or edit (with job). Closes when already open and called without a job.
@@ -118,7 +130,7 @@ const Jobs = () => {
     /**
      * Updates the runtime overlay with the running jobs.
      */
-    const onRunningJobsEvent = (runningJobs: string[]) => {
+    const onRunningJobsEvent = useCallback((runningJobs: string[]) => {
         setState(prev => ({
             ...prev,
             runtime: {
@@ -131,40 +143,56 @@ const Jobs = () => {
                 ),
             },
         }));
-    };
+    }, []);
 
     /**
      * Handles the job failed event and updates the state.
      */
-    const onJobFailedEvent = (event: JobFailedEvent) => {
-        setState(prev => {
-            const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
-            delete jobIdToRunningJob[event.jobId];
+    const onJobFailedEvent = useCallback(
+        (event: JobFailedEvent) => {
+            const title = getJobForToast(event.jobId)?.name || constants.label.toast.fallback;
+            toast.add({ type: toastConstants.type.error, title, description: constants.label.toast.jobFailed });
 
-            return {
-                ...prev,
-                runtime: {
-                    ...prev.runtime,
-                    jobIdToRunningJob,
-                },
-            };
-        });
-    };
+            setState(prev => {
+                const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
+                delete jobIdToRunningJob[event.jobId];
+
+                return {
+                    ...prev,
+                    runtime: {
+                        ...prev.runtime,
+                        jobIdToRunningJob,
+                    },
+                };
+            });
+        },
+        [getJobForToast]
+    );
 
     /**
      * Updates the jobs list in state with the cancelled job.
      */
-    const onJobCancelledEvent = (event: JobCancelledEvent) => {
-        setState(prev => {
-            const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
-            delete jobIdToRunningJob[event.jobId];
+    const onJobCancelledEvent = useCallback(
+        (event: JobCancelledEvent) => {
+            const title = getJobForToast(event.jobId)?.name || constants.label.toast.fallback;
+            toast.add({
+                type: toastConstants.type.warning,
+                title,
+                description: constants.label.toast.jobCancelled,
+            });
 
-            return {
-                ...prev,
-                runtime: { ...prev.runtime, jobIdToRunningJob },
-            };
-        });
-    };
+            setState(prev => {
+                const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
+                delete jobIdToRunningJob[event.jobId];
+
+                return {
+                    ...prev,
+                    runtime: { ...prev.runtime, jobIdToRunningJob },
+                };
+            });
+        },
+        [getJobForToast]
+    );
 
     /**
      * Applies the scheduled-jobs snapshot: for each job in the event, sets the matching
@@ -172,7 +200,7 @@ const Jobs = () => {
      *
      * Emitted on stream connect and whenever a job is scheduled, activated, or stopped.
      */
-    const onScheduledJobsEvent = (event: ScheduledJobsEvent) => {
+    const onScheduledJobsEvent = useCallback((event: ScheduledJobsEvent) => {
         setState(prev => ({
             ...prev,
             runtime: {
@@ -180,7 +208,7 @@ const Jobs = () => {
                 jobIdToScheduledJob: Object.fromEntries(event.scheduledJobs.map(job => [job.jobId, job])),
             },
         }));
-    };
+    }, []);
 
     /**
      * Handles the `job-finished` stream event: clears the running overlay entry and records
@@ -190,61 +218,83 @@ const Jobs = () => {
      * may already hold a matching `Execution` built from those events; this sets `schedule.finishedAt`
      * to the server timestamp so the UI matches persisted data without refetching.
      */
-    const onJobFinishedEvent = (event: JobFinishedEvent) => {
-        setState(prev => {
-            const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
-            delete jobIdToRunningJob[event.jobId];
+    const onJobFinishedEvent = useCallback(
+        (event: JobFinishedEvent) => {
+            const title = getJobForToast(event.jobId)?.name || constants.label.toast.fallback;
+            toast.add({
+                type: toastConstants.type.success,
+                title,
+                description: constants.label.toast.jobFinished,
+            });
 
-            return {
-                ...prev,
-                runtime: {
-                    ...prev.runtime,
-                    jobIdToRunningJob,
-                },
-                jobs: prev.jobs.map(job => {
-                    // Only the job that finished is updated; keep referential equality for the rest.
-                    if (job.id !== event.jobId) {
-                        return job;
-                    }
+            setState(prev => {
+                const jobIdToRunningJob = { ...prev.runtime.jobIdToRunningJob };
+                delete jobIdToRunningJob[event.jobId];
 
-                    const { executions } = job;
+                return {
+                    ...prev,
+                    runtime: {
+                        ...prev.runtime,
+                        jobIdToRunningJob,
+                    },
+                    jobs: prev.jobs.map(job => {
+                        // Only the job that finished is updated; keep referential equality for the rest.
+                        if (job.id !== event.jobId) {
+                            return job;
+                        }
 
-                    // No in-memory executions (e.g. missed target events), return job as is
-                    if (!executions?.length) {
-                        return job;
-                    }
+                        const { executions } = job;
 
-                    // Find the execution object for this run, return job as is, if not found
-                    const execIdx = executions.findIndex(e => e.executionId === event.executionId);
-                    if (execIdx === -1) {
-                        return job;
-                    }
+                        // No in-memory executions (e.g. missed target events), return job as is
+                        if (!executions?.length) {
+                            return job;
+                        }
 
-                    // Immutable update: new executions array on the matched execution.
-                    const nextExecutions = [...executions];
-                    const prevExec = nextExecutions[execIdx];
-                    nextExecutions[execIdx] = {
-                        ...prevExec,
-                        schedule: { ...prevExec.schedule, finishedAt: event.finishedAt },
-                    };
+                        // Find the execution object for this run, return job as is, if not found
+                        const execIdx = executions.findIndex(e => e.executionId === event.executionId);
+                        if (execIdx === -1) {
+                            return job;
+                        }
 
-                    return { ...job, executions: nextExecutions };
-                }),
-            };
-        });
-    };
+                        // Immutable update: new executions array on the matched execution.
+                        const nextExecutions = [...executions];
+                        const prevExec = nextExecutions[execIdx];
+                        nextExecutions[execIdx] = {
+                            ...prevExec,
+                            schedule: { ...prevExec.schedule, finishedAt: event.finishedAt },
+                        };
+
+                        return { ...job, executions: nextExecutions };
+                    }),
+                };
+            });
+        },
+        [getJobForToast]
+    );
 
     /**
      * Updates the jobs list in state with the finished target.
      */
-    const onTargetFinishedEvent = (event: JobTargetFinishedEvent) => {
-        setState(prev => ({
-            ...prev,
-            jobs: prev.jobs.map(job =>
-                job.id === event.jobId ? { ...job, executions: mappers.mapToExecutions(job.executions, event) } : job
-            ),
-        }));
-    };
+    const onTargetFinishedEvent = useCallback(
+        (event: JobTargetFinishedEvent) => {
+            const title = getJobForToast(event.jobId)?.name || constants.label.toast.fallback;
+            toast.add({
+                type: toastConstants.type.info,
+                title,
+                description: constants.label.toast.targetFinished,
+            });
+
+            setState(prev => ({
+                ...prev,
+                jobs: prev.jobs.map(job =>
+                    job.id === event.jobId
+                        ? { ...job, executions: mappers.mapToExecutions(job.executions, event) }
+                        : job
+                ),
+            }));
+        },
+        [getJobForToast]
+    );
 
     /**
      * Updates the selected job in state with the new data, replaces the old job with
@@ -350,7 +400,15 @@ const Jobs = () => {
             cancelled = true;
             subscription?.close();
         };
-    }, [onJobsAggregatedEvent]);
+    }, [
+        onJobsAggregatedEvent,
+        onRunningJobsEvent,
+        onJobFinishedEvent,
+        onTargetFinishedEvent,
+        onJobFailedEvent,
+        onJobCancelledEvent,
+        onScheduledJobsEvent,
+    ]);
 
     // Determine view
     let view: JobsView = 'list';

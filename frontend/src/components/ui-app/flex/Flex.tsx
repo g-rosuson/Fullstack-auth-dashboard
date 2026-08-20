@@ -28,7 +28,6 @@ const flexVariants = cva('flex', {
             div: 'div',
             section: 'section',
         },
-        // TODO: sync gap keys with shared size variants: xs, s, m, l etc
         gap: {
             xs: 'gap-1',
             s: 'gap-1.5',

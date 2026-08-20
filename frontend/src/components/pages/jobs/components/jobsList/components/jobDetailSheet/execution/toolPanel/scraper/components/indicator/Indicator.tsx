@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import Popover from '@/components/ui-app/popover/Popover';
-import Text from '@/components/ui-app/typography/text/Text';
+import Text from '@/components/ui-app/text/Text';
 
 import type { IndicatorProps } from './Indicator.types';
 
