@@ -6,6 +6,12 @@ import { Toaster } from '@/components/ui-app/toast/Toast';
 
 import './stylesheets/global.css';
 
+// TODO: Design system:
+// TODO: Shared general styles for surface elements like card, toaster and top-bar are not centralized and set individually in each component.
+// TODO: How do we sync spacing/padding for all elements?
+// TODO: - Use tailwind --spacing-* namespace
+// TODO: - Sidebar has wrong padding
+
 // TODO: How do we handle variant ('success' | 'destructive' | 'warning' | 'primary' | 'muted' etc) mapping/typing?
 
 // TODO: Look into autoCapitalize prop for title/heading components
@@ -16,8 +22,6 @@ import './stylesheets/global.css';
 
 // TODO: Implement a strategy to handle content shift in modals and sheets
 // TODO: - Always pop out instead of fade?
-
-// TODO: Replace generic spinners with custom ones where it makes sense
 
 // TODO: Go over test strategy, are we relying to much on test-id's?
 // TODO: - Avoid userEvent.click (not recommended)?

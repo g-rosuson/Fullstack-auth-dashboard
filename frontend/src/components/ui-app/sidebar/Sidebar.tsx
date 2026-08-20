@@ -17,12 +17,12 @@ import {
 } from '@/components/ui/sidebar';
 
 const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
+    // TODO: Fix padding
     const { pathname } = useLocation();
 
     return (
         <SidebarPrimitive collapsible={collapsible}>
             <SidebarContent>
-                {/* TODO: root padding is gap-2, but we use gap-4 as base padding, we need to centralize this ...  */}
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
