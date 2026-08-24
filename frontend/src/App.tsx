@@ -6,9 +6,6 @@ import { Toaster } from '@/components/ui-app/toast/Toast';
 
 import './stylesheets/global.css';
 
-// TODO: Design system:
-// TODO: - Sidebar has wrong padding
-
 // TODO: How do we handle variant ('success' | 'destructive' | 'warning' | 'primary' | 'muted' etc) mapping/typing?
 
 // TODO: Look into autoCapitalize prop for title/heading components

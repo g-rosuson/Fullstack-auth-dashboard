@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/sidebar';
 
 const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
-    // TODO: Fix padding
     const { pathname } = useLocation();
 
     return (
