@@ -36,7 +36,7 @@ const JobDetailSheet = ({
         <Flex direction="column" gap="sm" align="center" justify="center">
             <BadgeInfo size={24} />
 
-            <DialogTitle size="md" className="mb-0">
+            <DialogTitle size="md">
                 {constants.label.placeholder.executions.title}
             </DialogTitle>
 
@@ -67,7 +67,7 @@ const JobDetailSheet = ({
                     <Flex direction="column" gap="md">
                         <Flex justify="between">
                             <div>
-                                <DialogTitle size="lg" className="mb-xs">
+                                <DialogTitle size="lg" spacing="xs">
                                     {jobName}
                                 </DialogTitle>
 

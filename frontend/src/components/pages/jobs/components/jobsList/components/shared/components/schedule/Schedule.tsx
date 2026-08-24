@@ -21,7 +21,7 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
             <Flex direction="column" gap="sm">
                 {schedule.type && (
                     <div>
-                        <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
+                        <Heading size={size} level={3} weight="bold" variant="muted">
                             {constants.title.type}
                         </Heading>
 
@@ -32,7 +32,7 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                 )}
 
                 <div>
-                    <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
+                    <Heading size={size} level={3} weight="bold" variant="muted">
                         {constants.title.startDate}
                     </Heading>
 
@@ -42,7 +42,7 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                 </div>
 
                 <div>
-                    <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
+                    <Heading size={size} level={3} weight="bold" variant="muted">
                         {constants.title.endDate}
                     </Heading>
 
@@ -54,7 +54,7 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
 
             <Flex direction="column" gap="sm">
                 <div>
-                    <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
+                    <Heading size={size} level={3} weight="bold" variant="muted">
                         {constants.title.nextRun}
                     </Heading>
 
@@ -64,7 +64,7 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                 </div>
 
                 <div>
-                    <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
+                    <Heading size={size} level={3} weight="bold" variant="muted">
                         {constants.title.lastRun}
                     </Heading>
 

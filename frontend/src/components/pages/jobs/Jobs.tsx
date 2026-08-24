@@ -440,7 +440,7 @@ const Jobs = () => {
 
     return (
         <section className="h-full flex flex-col">
-            <Heading size="lg" level={1} weight="bold">
+            <Heading size="lg" spacing="md" level={1} weight="bold">
                 Jobs
             </Heading>
 

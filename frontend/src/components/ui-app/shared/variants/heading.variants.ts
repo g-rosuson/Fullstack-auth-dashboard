@@ -1,15 +1,18 @@
 import { cva, VariantProps } from 'class-variance-authority';
 
+import { typographySpacing } from './typography.spacing';
+
 type HeadingVariants = VariantProps<typeof headingVariants>;
 
-const headingVariants = cva('mb-sm text-xl', {
+const headingVariants = cva('', {
     variants: {
         size: {
-            lg: 'mb-md text-xl',
-            md: 'mb-sm text-base',
-            sm: 'mb-xs text-sm',
-            xs: 'mb-xs text-xs',
+            lg: 'text-xl',
+            md: 'text-base',
+            sm: 'text-sm',
+            xs: 'text-xs',
         },
+        spacing: typographySpacing,
         weight: {
             bold: 'font-bold',
             medium: 'font-medium',
@@ -24,6 +27,7 @@ const headingVariants = cva('mb-sm text-xl', {
     },
     defaultVariants: {
         size: 'md',
+        spacing: 'xs',
         variant: 'foreground',
         weight: 'bold',
     },

@@ -26,7 +26,7 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
     const information = (
         <section className="flex flex-col gap-sm border rounded-md p-md">
             <div>
-                <Heading level={3} size="xs">
+                <Heading level={3} size="xs" spacing="xs">
                     {constants.label.title.identifier}
                 </Heading>
 
@@ -34,14 +34,14 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
             </div>
 
             <div>
-                <Heading level={3} size="xs">
+                <Heading level={3} size="xs" spacing="xs">
                     {constants.label.title.delegatedAt}
                 </Heading>
                 <Text size="xs">{new Date(execution.schedule.delegatedAt).toLocaleString()}</Text>
             </div>
 
             <div>
-                <Heading level={3} size="xs">
+                <Heading level={3} size="xs" spacing="xs">
                     {constants.label.title.finishedAt}
                 </Heading>
 
@@ -50,7 +50,7 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
 
             {execution.schedule.cancelledAt && (
                 <div>
-                    <Heading level={3} size="xs">
+                    <Heading level={3} size="xs" spacing="xs">
                         {constants.label.title.cancelledAt}
                     </Heading>
                     <Text size="xs">{new Date(execution.schedule.cancelledAt).toLocaleString()}</Text>
@@ -94,7 +94,7 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
             <CollapsibleContent className="p-md">
                 <section className="mb-md">{information}</section>
 
-                <Heading size="sm" level={2}>
+                <Heading size="sm" spacing="xs" level={2}>
                     {constants.label.title.tools}{' '}
                     <span className="text-sm font-normal">({execution.tools.length})</span>
                 </Heading>
