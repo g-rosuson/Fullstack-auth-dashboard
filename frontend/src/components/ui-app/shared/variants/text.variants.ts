@@ -1,8 +1,10 @@
 import { cva, VariantProps } from 'class-variance-authority';
 
+import { typographySpacing } from './typography.spacing';
+
 type TextVariants = VariantProps<typeof textVariants>;
 
-const textVariants = cva('text-base', {
+const textVariants = cva('', {
     variants: {
         size: {
             lg: 'text-lg',
@@ -10,6 +12,7 @@ const textVariants = cva('text-base', {
             sm: 'text-sm',
             xs: 'text-xs',
         },
+        spacing: typographySpacing,
         weight: {
             bold: 'font-bold',
             medium: 'font-medium',
@@ -33,6 +36,7 @@ const textVariants = cva('text-base', {
     },
     defaultVariants: {
         size: 'md',
+        spacing: 'none',
         variant: 'foreground',
         weight: 'medium',
         align: 'left',

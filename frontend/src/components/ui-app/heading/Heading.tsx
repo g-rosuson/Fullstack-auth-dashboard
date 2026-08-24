@@ -6,12 +6,12 @@ import { cn } from '@/lib/utils';
 
 const Heading = ({
     size,
+    spacing,
     level,
     variant,
     weight,
     children,
     className,
-    removeMargin = false,
     truncate = false,
 }: HeadingProps) => {
     const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
@@ -19,10 +19,9 @@ const Heading = ({
     return (
         <Tag
             className={cn(
-                headingVariants({ size, variant, weight }),
+                headingVariants({ size, spacing, variant, weight }),
                 className,
                 'w-full',
-                removeMargin && 'mb-0',
                 truncate && 'truncate'
             )}>
             {children}

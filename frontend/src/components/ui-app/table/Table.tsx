@@ -29,7 +29,7 @@ function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValu
                                     return (
                                         <TableHead key={header.id}>
                                             {header.isPlaceholder ? null : (
-                                                <Heading size="xs" level={3} removeMargin>
+                                                <Heading size="xs" level={3}>
                                                     {flexRender(header.column.columnDef.header, header.getContext())}
                                                 </Heading>
                                             )}

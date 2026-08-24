@@ -30,7 +30,7 @@ const JobCard = ({
                 <Flex direction="column" gap="md">
                     <Flex justify="between">
                         <div>
-                            <Heading size="sm" level={2}>
+                            <Heading size="sm" spacing="xs" level={2}>
                                 {jobName}
                             </Heading>
 

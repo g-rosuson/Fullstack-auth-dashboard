@@ -208,7 +208,9 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
             onFormSubmit={onFormSubmit}
             enableForm>
             <div>
-                <DialogTitle size="lg">{title}</DialogTitle>
+                <DialogTitle size="lg" spacing="md">
+                    {title}
+                </DialogTitle>
 
                 <Flex direction="column" gap="md" align="stretch">
                     <section>
@@ -224,7 +226,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                     </section>
 
                     <section>
-                        <DialogTitle className="mb-md">{jobFormSheetConstants.label.title.tools}</DialogTitle>
+                        <DialogTitle spacing="sm">{jobFormSheetConstants.label.title.tools}</DialogTitle>
 
                         <div className="flex flex-col gap-md">
                             <Button
@@ -252,7 +254,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                     </section>
 
                     <section>
-                        <DialogTitle>{jobFormSheetConstants.label.title.schedule}</DialogTitle>
+                        <DialogTitle spacing="sm">{jobFormSheetConstants.label.title.schedule}</DialogTitle>
 
                         <div className="flex flex-col gap-md mb-md">
                             <Select
@@ -308,7 +310,9 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                             </div>
                         </div>
 
-                        <DialogTitle size="sm">{jobFormSheetConstants.label.title.status}</DialogTitle>
+                        <DialogTitle size="sm" spacing="sm">
+                            {jobFormSheetConstants.label.title.status}
+                        </DialogTitle>
 
                         <RadioGroup
                             items={scheduleStatusOptions}

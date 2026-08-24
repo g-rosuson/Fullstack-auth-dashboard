@@ -26,20 +26,20 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                     <div className="flex gap-md">
                         <section className="flex flex-1 flex-col gap-sm p-md my-md border rounded-md">
                             <div>
-                                <Heading level={3} size="xs">
+                                <Heading level={3} size="xs" spacing="xs">
                                     {constants.label.title.identifier}
                                 </Heading>
                                 <Text size="xs">{target.targetId}</Text>
                             </div>
                             <div>
-                                <Heading level={3} size="xs">
+                                <Heading level={3} size="xs" spacing="xs">
                                     {constants.label.title.keywords}
                                 </Heading>
                                 <Text size="xs">{target.keywords?.join(', ') || '-'}</Text>
                             </div>
 
                             <div>
-                                <Heading level={3} size="xs">
+                                <Heading level={3} size="xs" spacing="xs">
                                     {constants.label.title.maxPages}
                                 </Heading>
                                 <Text size="xs">{target.maxPages}</Text>
@@ -48,20 +48,20 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
 
                         <section className="flex flex-1 flex-col gap-sm p-md my-md border rounded-md">
                             <div>
-                                <Heading level={3} size="xs">
+                                <Heading level={3} size="xs" spacing="xs">
                                     {constants.label.title.total}
                                 </Heading>
                                 <Text size="xs">{target.summary.total}</Text>
                             </div>
                             <div>
-                                <Heading level={3} size="xs">
+                                <Heading level={3} size="xs" spacing="xs">
                                     {constants.label.title.passed}
                                 </Heading>
                                 <Text size="xs">{target.summary.passed}</Text>
                             </div>
 
                             <div>
-                                <Heading level={3} size="xs">
+                                <Heading level={3} size="xs" spacing="xs">
                                     {constants.label.title.rejected}
                                 </Heading>
                                 <Text size="xs">{target.summary.rejected}</Text>
@@ -70,7 +70,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                     </div>
 
                     <section>
-                        <Heading size="sm" level={2}>
+                        <Heading size="sm" spacing="xs" level={2}>
                             {constants.label.title.results}
                             <span className="text-sm font-normal">({target.results.length})</span>
                         </Heading>
@@ -88,20 +88,20 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
         <div>
             <section className="flex flex-col gap-sm p-md my-md border rounded-md">
                 <div>
-                    <Heading level={3} size="xs">
+                    <Heading level={3} size="xs" spacing="xs">
                         {constants.label.title.identifier}
                     </Heading>
                     <Text size="xs">{tool.toolId}</Text>
                 </div>
                 <div>
-                    <Heading level={3} size="xs">
+                    <Heading level={3} size="xs" spacing="xs">
                         {constants.label.title.keywords}
                     </Heading>
                     <Text size="xs">{tool.keywords?.join(', ') || '-'}</Text>
                 </div>
 
                 <div>
-                    <Heading level={3} size="xs">
+                    <Heading level={3} size="xs" spacing="xs">
                         {constants.label.title.maxPages}
                     </Heading>
                     <Text size="xs">{tool.maxPages}</Text>
@@ -109,7 +109,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
             </section>
 
             <section className="pl-md">
-                <Heading size="sm" level={2}>
+                <Heading size="sm" spacing="xs" level={2}>
                     {constants.label.title.targets} <span className="text-sm font-normal">({tool.targets.length})</span>
                 </Heading>
 
