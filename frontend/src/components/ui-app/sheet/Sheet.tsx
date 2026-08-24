@@ -52,7 +52,7 @@ const Sheet = ({
     const sheetFooter = (
         <div
             data-slot="sheet-footer"
-            className="sticky bottom-0 left-0 right-0 flex flex-col justify-end gap-2 mt-6 -mx-4 border-t bg-muted p-4 sm:flex-row">
+            className="sticky bottom-0 left-0 right-0 flex flex-col justify-end gap-sm mt-lg -mx-md border-t bg-muted p-md sm:flex-row">
             <DialogClose asChild>
                 <Button variant="outline">Close</Button>
             </DialogClose>
@@ -85,7 +85,7 @@ const Sheet = ({
     return (
         <SheetPrimitive open={open} onOpenChange={onOpenChange}>
             <SheetContent
-                className={cn('min-w-[60%] flex flex-col justify-between px-4 pt-4 overflow-scroll', className)}
+                className={cn('min-w-[60%] flex flex-col justify-between px-md pt-md overflow-scroll', className)}
                 side={side}>
                 {content}
                 <DialogDescription className="sr-only">{ariaDescribedby}</DialogDescription>

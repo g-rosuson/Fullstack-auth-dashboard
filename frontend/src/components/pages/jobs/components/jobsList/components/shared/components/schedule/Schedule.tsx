@@ -17,8 +17,8 @@ const constants = {
 
 const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size?: 'xs' | 's' }) => {
     return (
-        <Flex justify="between" align="end" gap="s">
-            <Flex direction="column" gap="s">
+        <Flex justify="between" align="end" gap="sm">
+            <Flex direction="column" gap="sm">
                 {schedule.type && (
                     <Flex direction="column" gap="xs">
                         <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
@@ -52,7 +52,7 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                 </Flex>
             </Flex>
 
-            <Flex direction="column" gap="s">
+            <Flex direction="column" gap="sm">
                 <Flex direction="column" gap="xs">
                     <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
                         {constants.title.nextRun}

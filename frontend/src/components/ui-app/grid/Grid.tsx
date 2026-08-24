@@ -21,14 +21,16 @@ const gridVariants = cva('grid', {
             6: 'grid-cols-6',
         },
         gap: {
-            small: 'gap-2',
-            medium: 'gap-4',
-            large: 'gap-6',
+            xs: 'gap-xs',
+            sm: 'gap-sm',
+            md: 'gap-md',
+            lg: 'gap-lg',
+            xl: 'gap-xl',
         },
     },
     defaultVariants: {
         columns: 3,
-        gap: 'medium',
+        gap: 'md',
     },
 });
 

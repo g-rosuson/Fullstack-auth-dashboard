@@ -2,14 +2,14 @@ import { cva, VariantProps } from 'class-variance-authority';
 
 type HeadingVariants = VariantProps<typeof headingVariants>;
 
-const headingVariants = cva('mb-2 text-xl', {
+const headingVariants = cva('mb-sm text-xl', {
     variants: {
         size: {
-            xl: 'mb-6 text-4xl font-black',
+            xl: 'mb-lg text-4xl font-black',
             l: 'mb-3 text-xl',
-            m: 'mb-2 text-base',
-            s: 'mb-1 text-sm',
-            xs: 'mb-1 text-xs',
+            m: 'mb-sm text-base',
+            s: 'mb-xs text-sm',
+            xs: 'mb-xs text-xs',
         },
         weight: {
             bold: 'font-bold',

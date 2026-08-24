@@ -210,7 +210,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
             <div>
                 <DialogTitle size="l">{title}</DialogTitle>
 
-                <Flex direction="column" gap="m" align="stretch">
+                <Flex direction="column" gap="md" align="stretch">
                     <section>
                         <Field
                             name="name"

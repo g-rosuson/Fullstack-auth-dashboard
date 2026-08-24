@@ -11,7 +11,7 @@ const Select = <V extends string>({ label, options, id, value, placeholder, onCh
     };
 
     return (
-        <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-sm">
             <FieldLabel htmlFor={id}>{label}</FieldLabel>
 
             <NativeSelect

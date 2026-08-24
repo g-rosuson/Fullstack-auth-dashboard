@@ -74,9 +74,9 @@ const KeyWordsField: React.FC<KeyWordsFieldProps> = ({
                 </InputGroup>
             </ShadcnField>
 
-            <div className="flex flex-wrap gap-2 border rounded-md p-2 mt-1" hidden={keywords.length === 0}>
+            <div className="flex flex-wrap gap-sm border rounded-md p-sm mt-xs" hidden={keywords.length === 0}>
                 {keywords.map((keyword, index) => (
-                    <div key={index} className="flex items-center justify-center gap-1 rounded-md bg-primary pl-1.5">
+                    <div key={index} className="flex items-center justify-center gap-xs rounded-md bg-primary pl-1.5">
                         <Text size="xs" variant="foreground">
                             {keyword}
                         </Text>

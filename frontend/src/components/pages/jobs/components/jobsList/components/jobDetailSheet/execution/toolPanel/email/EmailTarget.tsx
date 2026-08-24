@@ -6,7 +6,7 @@ type EmailTargetProps = {
 
 const EmailTarget = ({ target }: EmailTargetProps) => {
     return (
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-sm text-sm text-muted-foreground">
             <span>Email tool results (scaffold)</span>
             <span className="text-xs">Target: {String(target.target)}</span>
         </div>

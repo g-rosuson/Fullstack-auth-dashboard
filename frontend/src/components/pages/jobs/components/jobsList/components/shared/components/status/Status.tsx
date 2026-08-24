@@ -53,7 +53,7 @@ const Status = ({ status, size = 'xs' }: StatusProps) => {
     }
 
     return (
-        <Flex align="center" gap={size} className={`w-fit px-1.5 py-0.5 rounded-full bg-${variant}`}>
+        <Flex align="center" gap={size === 's' ? 'sm' : 'xs'} className={`w-fit px-1.5 py-0.5 rounded-full bg-${variant}`}>
             {indicator}
 
             <Text size={size} variant={variant} weight="medium">

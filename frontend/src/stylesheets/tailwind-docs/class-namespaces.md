@@ -10,12 +10,14 @@ Two things that are easy to mix up:
 
 **`--color-*` fans out.** One color token becomes many classes (`bg-primary`, `text-primary`, `border-primary`, `ring-primary`, …). Other prefixes map to one class family, and the class name is not always the prefix: `--radius-lg` → `rounded-lg`, not `radius-lg`.
 
-**`text-*` is two namespaces.** `text-sm` is font size (`--text-sm`). `text-muted-foreground` is color (`--color-muted-foreground`). 
+**`text-*` is two namespaces.** `text-sm` is font size (`--text-sm`). `text-muted-foreground` is color (`--color-muted-foreground`).
 
 ## Spacing is two knobs
 
-`--spacing` (default `0.25rem`) is the step for numbered classes: `p-1` is one step, `p-4` is four. Change it and `p-1` / `p-4` / `gap-2` all move.
+`--spacing` is the step for numbered classes: `p-1` is one step, `p-4` is four. Change it and `p-1` / `p-4` / `gap-2` all move.
 
-`--spacing-sm` generates named classes: `p-sm`, `m-sm`, `gap-sm`, …
+`--spacing-sm` (and `xs` / `md` / `lg` / `xl`) generates named classes: `p-sm`, `m-sm`, `gap-sm`, …
+
+App layout uses the named scale. See [spacing.md](./spacing.md).
 
 Tokens: `global.css`, `@theme inline`.

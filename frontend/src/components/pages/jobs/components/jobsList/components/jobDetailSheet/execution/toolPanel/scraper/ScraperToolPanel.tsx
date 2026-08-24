@@ -24,7 +24,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
             children: (
                 <div>
                     <div className="flex gap-3">
-                        <section className="flex flex-1 flex-col gap-2 p-3 my-3 border rounded-md">
+                        <section className="flex flex-1 flex-col gap-sm p-3 my-3 border rounded-md">
                             <div>
                                 <Heading level={3} size="xs">
                                     {constants.label.title.identifier}
@@ -46,7 +46,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                             </div>
                         </section>
 
-                        <section className="flex flex-1 flex-col gap-2 p-3 my-3 border rounded-md">
+                        <section className="flex flex-1 flex-col gap-sm p-3 my-3 border rounded-md">
                             <div>
                                 <Heading level={3} size="xs">
                                     {constants.label.title.total}
@@ -86,7 +86,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
 
     return (
         <div>
-            <section className="flex flex-col gap-2 p-3 my-3 border rounded-md">
+            <section className="flex flex-col gap-sm p-3 my-3 border rounded-md">
                 <div>
                     <Heading level={3} size="xs">
                         {constants.label.title.identifier}
@@ -108,7 +108,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                 </div>
             </section>
 
-            <section className="pl-4">
+            <section className="pl-md">
                 <Heading size="s" level={2}>
                     {constants.label.title.targets} <span className="text-sm font-normal">({tool.targets.length})</span>
                 </Heading>

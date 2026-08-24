@@ -94,7 +94,7 @@ const TopBar = () => {
     const themeButtonAriaLabel = `Toggle theme to ${nextThemeForAriaLabel} mode`;
 
     return (
-        <header className="sticky top-0 w-full border-b border-border bg-surface p-4">
+        <header className="sticky top-0 w-full border-b border-border bg-surface p-md">
             <Flex justify="between" align="center">
                 <div>
                     <Button
@@ -105,7 +105,7 @@ const TopBar = () => {
                     />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-sm">
                     <Button
                         variant="outline"
                         icon={<ThemeIcon />}

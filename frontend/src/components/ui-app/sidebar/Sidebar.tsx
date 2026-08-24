@@ -26,7 +26,7 @@ const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            <Flex direction="column" gap="s">
+                            <Flex direction="column" gap="sm">
                                 {items.map(item => {
                                     const Icon = item.icon;
                                     const isActive = pathname === item.to;

@@ -23,12 +23,12 @@ function ToastList() {
     return toasts.map(toastItem => (
         <Toast key={toastItem.id} toast={toastItem} className="border border-border rounded-lg bg-surface cursor-grab">
             <ToastContent>
-                <Flex gap="m">
+                <Flex gap="md">
                     <ToastIcon type={toastItem.type} />
 
-                    <Flex direction="column" gap="s">
-                        <Flex direction="column" gap="m">
-                            <Flex direction="column" gap="s">
+                    <Flex direction="column" gap="sm">
+                        <Flex direction="column" gap="md">
+                            <Flex direction="column" gap="sm">
                                 <ToastTitle />
                                 <ToastDescription />
                             </Flex>

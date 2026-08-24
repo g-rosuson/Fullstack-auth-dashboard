@@ -224,7 +224,7 @@ const Authentication = () => {
     const description = isRegisterActive ? 'Create your account to get started.' : 'Sign in to your account.';
 
     return (
-        <div className="flex min-h-svh items-center justify-center p-4">
+        <div className="flex min-h-svh items-center justify-center p-md">
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle size="l">{heading}</CardTitle>

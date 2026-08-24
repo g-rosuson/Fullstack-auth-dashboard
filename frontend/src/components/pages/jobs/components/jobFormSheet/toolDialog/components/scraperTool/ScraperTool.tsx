@@ -236,7 +236,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
             />
 
             {tool.targets.map((target, index) => (
-                <article key={index} className="flex flex-col gap-3 border rounded-lg p-3 ml-2">
+                <article key={index} className="flex flex-col gap-3 border rounded-lg p-3 ml-sm">
                     <div className="flex items-center justify-between">
                         <span className="font-bold">{target.label}</span>
 

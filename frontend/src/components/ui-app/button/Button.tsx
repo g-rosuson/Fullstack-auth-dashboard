@@ -11,7 +11,7 @@ const Button = (props: ButtonProps) => {
 
     return (
         <ShadcnButton
-            className="p-2"
+            className="p-sm"
             type={type}
             variant={variant}
             size={size || 'default'}

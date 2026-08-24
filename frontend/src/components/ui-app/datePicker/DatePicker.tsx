@@ -42,7 +42,7 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
     const triggerId = `date-picker-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
     return (
-        <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-sm">
             <FieldLabel htmlFor={triggerId} className="gap-0.5">
                 {label}
                 {required && <span className="text-destructive">*</span>}

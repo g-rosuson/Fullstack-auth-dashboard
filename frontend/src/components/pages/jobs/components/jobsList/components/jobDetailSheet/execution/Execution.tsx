@@ -24,7 +24,7 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
 
     // Determine the information section
     const information = (
-        <section className="flex flex-col gap-2 border rounded-md p-3">
+        <section className="flex flex-col gap-sm border rounded-md p-3">
             <div>
                 <Heading level={3} size="xs">
                     {constants.label.title.identifier}
