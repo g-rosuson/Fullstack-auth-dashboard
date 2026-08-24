@@ -4,15 +4,7 @@ Layout spacing (padding, margin, gap) uses named tokens derived from one `--spac
 
 ## Primitive and tokens
 
-`--spacing` is `0.25rem` in `@theme inline` (`global.css`). Named tokens are multipliers of that value:
-
-| Token | Formula | Value |
-|-------|---------|-------|
-| `xs` | `calc(var(--spacing) * 1)` | `0.25rem` |
-| `sm` | `calc(var(--spacing) * 2)` | `0.5rem` |
-| `md` | `calc(var(--spacing) * 4)` | `1rem` |
-| `lg` | `calc(var(--spacing) * 6)` | `1.5rem` |
-| `xl` | `calc(var(--spacing) * 8)` | `2rem` |
+`--spacing` is `0.25rem` in `@theme inline` (`global.css`) and named tokens are multipliers of that value.
 
 `--spacing-{name}` registers the token on Tailwind’s spacing scale, so every spacing family gets a class: `p-sm`, `px-md`, `m-lg`, `mt-xs`, `gap-xl`, `space-y-sm`, `inset-md`, and the rest.
 
@@ -25,8 +17,6 @@ Prefer `xs`–`xl` in app components (`ui-app`, pages, layout). Pick the step th
 - `md` — section padding, card/sheet inset, medium stacks
 - `lg` — between distinct blocks (sheet footer offset)
 - `xl` — page-level separation
-
-Do not invent parallel names (`s` / `m` / `l`, `small` / `medium` / `large`) for spacing.
 
 Numbered utilities (`p-1`, `gap-3`) still exist because they also read `--spacing`. Do not use them in app components (`ui-app`, pages, layout) — snap to the nearest named token. Arbitrary values (`p-[13px]`) only when a concrete design requirement cannot use a token. `p-0` / `m-0` / `gap-0` are fine for “none”.
 
