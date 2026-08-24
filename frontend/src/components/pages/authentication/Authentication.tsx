@@ -225,7 +225,7 @@ const Authentication = () => {
 
     return (
         <div className="flex min-h-svh items-center justify-center p-md">
-            <Card className="w-full max-w-sm">
+            <Card>
                 <CardHeader>
                     <CardTitle size="lg" spacing="md">
                         {heading}
