@@ -33,19 +33,11 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
     );
 }
 
-function CardTitle({
-    className,
-    size = 'm',
-    ...props
-}: React.ComponentProps<'h2'> & VariantProps<typeof headingVariants>) {
+function CardTitle({ className, size, ...props }: React.ComponentProps<'h2'> & VariantProps<typeof headingVariants>) {
     return <h2 data-slot="card-title" className={cn(headingVariants({ size }), className)} {...props} />;
 }
 
-function CardDescription({
-    className,
-    size = 'm',
-    ...props
-}: React.ComponentProps<'p'> & VariantProps<typeof textVariants>) {
+function CardDescription({ className, size, ...props }: React.ComponentProps<'p'> & VariantProps<typeof textVariants>) {
     return <div data-slot="card-description" className={cn(textVariants({ size }), className)} {...props} />;
 }
 

@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/sidebar';
 
 const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
-    // TODO: Fix padding
     const { pathname } = useLocation();
 
     return (
@@ -25,8 +24,8 @@ const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu>
-                            <Flex direction="column" gap="s">
+                        <SidebarMenu className="p-sm">
+                            <Flex direction="column" gap="sm">
                                 {items.map(item => {
                                     const Icon = item.icon;
                                     const isActive = pathname === item.to;
@@ -36,7 +35,7 @@ const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
                                             <SidebarMenuButton isActive={isActive} asChild>
                                                 <NavLink to={item.to}>
                                                     <Icon />
-                                                    <Text size="s" variant="foreground">
+                                                    <Text size="sm" variant="foreground">
                                                         {item.label}
                                                     </Text>
                                                 </NavLink>

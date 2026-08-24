@@ -20,7 +20,7 @@ const statusIndicatorVariants = cva('rounded-full', {
         },
         size: {
             xs: 'size-1.5',
-            s: 'size-2',
+            sm: 'size-2',
         },
     },
     defaultVariants: {
@@ -31,7 +31,7 @@ const statusIndicatorVariants = cva('rounded-full', {
 
 interface StatusProps {
     status: JobStatus;
-    size?: 'xs' | 's';
+    size?: 'xs' | 'sm';
 }
 
 const Status = ({ status, size = 'xs' }: StatusProps) => {
@@ -53,7 +53,7 @@ const Status = ({ status, size = 'xs' }: StatusProps) => {
     }
 
     return (
-        <Flex align="center" gap={size} className={`w-fit px-1.5 py-0.5 rounded-full bg-${variant}`}>
+        <Flex align="center" gap={size === 'sm' ? 'sm' : 'xs'} className={`w-fit px-sm py-xs rounded-full bg-${variant}`}>
             {indicator}
 
             <Text size={size} variant={variant} weight="medium">

@@ -8,7 +8,7 @@ const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {
     let headingContent = <Skeleton className="h-2 w-1/2" />;
     if (jobName) {
         headingContent = (
-            <Heading size="s" level={3} weight="bold" truncate removeMargin>
+            <Heading size="sm" level={3} weight="bold" truncate removeMargin>
                 {jobName}
             </Heading>
         );
@@ -16,8 +16,8 @@ const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {
 
     return (
         <Card>
-            <Flex direction="column" gap="l">
-                <Flex direction="column" gap="s" className="min-w-0">
+            <Flex direction="column" gap="lg">
+                <Flex direction="column" gap="sm" className="min-w-0">
                     <Flex className="min-w-0">{headingContent}</Flex>
 
                     <Flex align="center" gap="xs">
@@ -26,7 +26,7 @@ const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {
                     </Flex>
                 </Flex>
 
-                <Flex direction="column" gap="s">
+                <Flex direction="column" gap="sm">
                     <Skeleton className="h-2.5 w-1/2" />
                     <Skeleton className="h-2.5 w-1/3" />
                     <Skeleton className="h-2.5 w-1/4" />

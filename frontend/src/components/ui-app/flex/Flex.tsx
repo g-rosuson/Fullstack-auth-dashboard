@@ -3,6 +3,8 @@ import { cva } from 'class-variance-authority';
 
 import { cn } from '@/lib/utils';
 
+type FlexGap = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
 const flexVariants = cva('flex', {
     variants: {
         direction: {
@@ -29,10 +31,11 @@ const flexVariants = cva('flex', {
             section: 'section',
         },
         gap: {
-            xs: 'gap-1',
-            s: 'gap-1.5',
-            m: 'gap-4',
-            l: 'gap-6',
+            xs: 'gap-xs',
+            sm: 'gap-sm',
+            md: 'gap-md',
+            lg: 'gap-lg',
+            xl: 'gap-xl',
         },
         wrap: {
             wrap: 'flex-wrap',
@@ -44,7 +47,7 @@ const flexVariants = cva('flex', {
         justify: 'start',
         align: 'start',
         as: 'div',
-        gap: 's',
+        gap: 'sm',
         wrap: 'nowrap',
     },
 });
@@ -57,7 +60,7 @@ interface FlexProps {
     wrap?: 'wrap' | 'nowrap';
     align?: 'start' | 'center' | 'end' | 'between' | 'around' | 'stretch';
     as?: React.ElementType;
-    gap?: 'xs' | 's' | 'm' | 'l';
+    gap?: FlexGap;
 }
 
 const Flex = ({ children, className, direction, justify, wrap, align, as: Tag = 'div', gap }: FlexProps) => {

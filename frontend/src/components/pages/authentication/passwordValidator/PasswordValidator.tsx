@@ -9,9 +9,9 @@ import { Props } from './PasswordValidator.types';
 import utils from '@/utils';
 
 const PasswordValidator = ({ password, confirmationPassword, hidden, onChange }: Props) => {
-    const validatorClassName = 'flex flex-col gap-1 mb-2 rounded-lg border bg-surface p-3';
+    const validatorClassName = 'flex flex-col gap-xs mb-sm rounded-lg border bg-surface p-md';
     const itemClassName = 'flex items-center';
-    const circleClassName = 'mr-2.5 rounded-full border bg-background transition-colors w-5 h-5';
+    const circleClassName = 'mr-sm rounded-full border bg-background transition-colors w-5 h-5';
     const validCircleClassName = `${circleClassName} bg-success animate-[fade-in_0.4s]`;
     const iconClassName = 'w-full h-full';
 

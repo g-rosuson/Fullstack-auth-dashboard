@@ -31,7 +31,7 @@ const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
 
     return (
         <DropdownMenuPrimitive>
-            <DropdownMenuTrigger aria-label="Dropdown menu trigger" className="hover:bg-muted rounded-full p-1">
+            <DropdownMenuTrigger aria-label="Dropdown menu trigger" className="hover:bg-muted rounded-full p-xs">
                 {dropdownMenuTrigger}
             </DropdownMenuTrigger>
 

@@ -1,12 +1,13 @@
 import React from 'react';
 
 type GridSize = 'small' | 'medium' | 'large';
+type GridGap = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 type GridBaseProps = {
     children: React.ReactNode;
     as?: React.ElementType;
     className?: string;
-    gap?: GridSize;
+    gap?: GridGap;
 };
 
 type GridFixedColumnsProps = GridBaseProps & {
@@ -21,4 +22,4 @@ type GridFluidProps = GridBaseProps & {
 };
 
 type GridProps = GridFixedColumnsProps | GridFluidProps;
-export type { GridProps, GridSize };
+export type { GridProps, GridSize, GridGap };

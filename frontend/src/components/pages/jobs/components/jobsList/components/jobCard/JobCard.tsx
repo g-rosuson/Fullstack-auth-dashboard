@@ -27,10 +27,10 @@ const JobCard = ({
         // Note: This expects the stream to be hydrated.
         content = (
             <Card className="cursor-pointer" onClick={onOpen}>
-                <Flex direction="column" gap="m">
+                <Flex direction="column" gap="md">
                     <Flex justify="between">
                         <div>
-                            <Heading size="s" level={2}>
+                            <Heading size="sm" level={2}>
                                 {jobName}
                             </Heading>
 

@@ -114,10 +114,10 @@ const ToolDialog = ({ isOpen, toolToEdit, onOpenChange, onToolAdd, onToolEdit }:
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-scroll pb-0" showCloseButton>
-                <form onSubmit={onAddToolSubmit} className="flex flex-col gap-4">
+                <form onSubmit={onAddToolSubmit} className="flex flex-col gap-md">
                     <DialogHeader>
                         <DialogTitle>{constants.label.title.addTool}</DialogTitle>
-                        <DialogDescription size="s">{constants.label.description.addTool}</DialogDescription>
+                        <DialogDescription size="sm">{constants.label.description.addTool}</DialogDescription>
                     </DialogHeader>
 
                     <Select
@@ -132,7 +132,7 @@ const ToolDialog = ({ isOpen, toolToEdit, onOpenChange, onToolAdd, onToolEdit }:
 
                     {toolComponent}
 
-                    <DialogFooter className="sticky bottom-0 left-0 right-0 mt-6">
+                    <DialogFooter className="sticky bottom-0 left-0 right-0 mt-lg">
                         <Button
                             type="submit"
                             variant="default"

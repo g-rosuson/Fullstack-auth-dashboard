@@ -190,7 +190,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
         <>
             <DialogHeader>
                 <DialogTitle>Global tool settings</DialogTitle>
-                <DialogDescription size="s">Define settings applied to all targets.</DialogDescription>
+                <DialogDescription size="sm">Define settings applied to all targets.</DialogDescription>
             </DialogHeader>
 
             <Field
@@ -222,7 +222,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
             <DialogHeader>
                 <DialogTitle>{constants.label.title.targets}</DialogTitle>
 
-                <DialogDescription size="s">{constants.label.description.targets}</DialogDescription>
+                <DialogDescription size="sm">{constants.label.description.targets}</DialogDescription>
             </DialogHeader>
 
             <Select
@@ -236,7 +236,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
             />
 
             {tool.targets.map((target, index) => (
-                <article key={index} className="flex flex-col gap-3 border rounded-lg p-3 ml-2">
+                <article key={index} className="flex flex-col gap-md border rounded-lg p-md ml-sm">
                     <div className="flex items-center justify-between">
                         <span className="font-bold">{target.label}</span>
 

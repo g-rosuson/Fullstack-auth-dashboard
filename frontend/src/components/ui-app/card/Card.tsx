@@ -10,7 +10,7 @@ interface CardProps {
 }
 
 const Card = ({ children, className, as: Tag = 'div', onClick }: CardProps) => {
-    const classes = cn('cursor-pointer border border-border rounded-lg p-4 bg-surface', className);
+    const classes = cn('cursor-pointer border border-border rounded-lg p-md bg-surface', className);
     return (
         <Tag className={classes} onClick={onClick}>
             {children}

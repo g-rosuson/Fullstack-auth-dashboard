@@ -47,7 +47,7 @@ const ConfirmationDialog = ({
             <DialogContent showCloseButton={false}>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription size="s">
+                    <DialogDescription size="sm">
                         {description ?? <VisuallyHidden.Root>{title}</VisuallyHidden.Root>}
                     </DialogDescription>
                 </DialogHeader>

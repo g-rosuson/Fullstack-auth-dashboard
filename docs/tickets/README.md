@@ -26,7 +26,7 @@ Per-domain sequence. Next free only. Never renumber. Retired IDs stay unused.
 
 ## Labels
 
-Purpose only. Inline after the title:
+Purpose only. Inline after the branch line:
 
 | Label | Use |
 |-------|-----|
@@ -40,6 +40,8 @@ Purpose only. Inline after the title:
 
 ```markdown
 # TKT-<DOMAIN>-### — Short title
+
+`feat/tkt-<domain>-###-<slug>`
 
 Labels: `feature`
 
@@ -57,6 +59,7 @@ As a …, I want … so that ….
 - [FR-…](../../specs/requirements/…)
 ```
 
+- **Branch** — `<prefix>/tkt-<domain>-###-<slug>` directly under the title. Prefix from the label: `feature` → `feat`, otherwise the label (`fix`, `chore`, `docs`, `spike`)
 - **User story** — one short As a / I want / so that (or equivalent)
 - **DoD** — checklist for this slice; link acceptance scenarios instead of rewriting them
 - **Traces** — relative links to FR (required when product-facing); HTTP/CLIENT when relevant (see writing-docs skill)

@@ -13,7 +13,7 @@ const Field: React.FC<FieldProps> = ({ label, type, placeholder, required, name,
 
     return (
         <ShadcnField>
-            <FieldLabel htmlFor={id} className="gap-0.5">
+            <FieldLabel htmlFor={id} className="gap-xs">
                 {label}
                 {required && <span className="text-destructive">*</span>}
             </FieldLabel>

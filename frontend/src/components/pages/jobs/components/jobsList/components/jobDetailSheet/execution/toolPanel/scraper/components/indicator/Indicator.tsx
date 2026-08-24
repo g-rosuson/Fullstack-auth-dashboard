@@ -22,7 +22,7 @@ const Indicator = ({ passed, reasonCodes }: IndicatorProps) => {
 
     // Popover content
     const popoverContent = (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-xs">
             <Text size="xs" variant="foreground">
                 {constants.label.section.execution.table.indicator.reasonCodes}
             </Text>

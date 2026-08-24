@@ -4,7 +4,10 @@ import { Dialog } from 'radix-ui';
 import { HeadingVariants, headingVariants } from '../shared/variants/heading.variants';
 import { cn } from '@/lib/utils';
 
-type DialogTitleProps = React.ComponentProps<typeof Dialog.Title> & HeadingVariants;
+type DialogTitleProps = Omit<React.ComponentProps<typeof Dialog.Title>, 'size'> &
+    Omit<HeadingVariants, 'size'> & {
+        size?: 'xs' | 'sm' | 'md' | 'lg';
+    };
 
 const DialogTitle = ({ className, size, variant, weight, ...props }: DialogTitleProps) => {
     return (

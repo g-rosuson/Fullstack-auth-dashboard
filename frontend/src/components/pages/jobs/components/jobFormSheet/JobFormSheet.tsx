@@ -208,9 +208,9 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
             onFormSubmit={onFormSubmit}
             enableForm>
             <div>
-                <DialogTitle size="l">{title}</DialogTitle>
+                <DialogTitle size="lg">{title}</DialogTitle>
 
-                <Flex direction="column" gap="m" align="stretch">
+                <Flex direction="column" gap="md" align="stretch">
                     <section>
                         <Field
                             name="name"
@@ -224,9 +224,9 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                     </section>
 
                     <section>
-                        <DialogTitle className="mb-3">{jobFormSheetConstants.label.title.tools}</DialogTitle>
+                        <DialogTitle className="mb-md">{jobFormSheetConstants.label.title.tools}</DialogTitle>
 
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-md">
                             <Button
                                 type="button"
                                 size="xs"
@@ -254,7 +254,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                     <section>
                         <DialogTitle>{jobFormSheetConstants.label.title.schedule}</DialogTitle>
 
-                        <div className="flex flex-col gap-3 mb-3">
+                        <div className="flex flex-col gap-md mb-md">
                             <Select
                                 label={jobFormSheetConstants.label.field.scheduleType.label}
                                 options={scheduleTypeOptions}
@@ -265,7 +265,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                                 className="w-full"
                             />
 
-                            <div className="flex flex-col items-center gap-3 sm:flex-row">
+                            <div className="flex flex-col items-center gap-md sm:flex-row">
                                 <DatePicker
                                     label={jobFormSheetConstants.label.field.startDate.label}
                                     placeholder={jobFormSheetConstants.label.field.startDate.placeholder}
@@ -287,7 +287,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                                 />
                             </div>
 
-                            <div className="flex flex-col items-center gap-3 sm:flex-row">
+                            <div className="flex flex-col items-center gap-md sm:flex-row">
                                 <DatePicker
                                     label={jobFormSheetConstants.label.field.endDate.label}
                                     placeholder={jobFormSheetConstants.label.field.endDate.placeholder}
@@ -308,7 +308,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                             </div>
                         </div>
 
-                        <DialogTitle size="s">{jobFormSheetConstants.label.title.status}</DialogTitle>
+                        <DialogTitle size="sm">{jobFormSheetConstants.label.title.status}</DialogTitle>
 
                         <RadioGroup
                             items={scheduleStatusOptions}
