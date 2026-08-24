@@ -2,9 +2,10 @@
 name: writing-tickets
 description: >-
   Create and edit markdown tickets under docs/tickets. Covers ID
-  allocation, labels, user story, definition of done, Traces, and
-  file layout. Use when adding or editing a ticket, user story, or
-  work slice, or when the user asks to write a TKT-* item.
+  allocation, git branch line, labels, user story, definition of
+  done, Traces, and file layout. Use when adding or editing a
+  ticket, user story, or work slice, or when the user asks to write
+  a TKT-* item.
 ---
 
 # Purpose
@@ -24,14 +25,15 @@ For FR / HTTP / CLIENT IDs and where behavior belongs, use [writing-docs](../wri
 1. **Domain** — lowercase folder matching the work (`ui`, `jobs`, `auth`, …). Create the folder if missing; add a link under Domains in the tickets README.
 2. **Next ID** — scan `docs/tickets/<domain>/` for the highest `TKT-<DOMAIN>-###`; use next free number. Never renumber. Retired IDs stay unused.
 3. **Label** — one purpose label (see below).
-4. **Write** — one file: `docs/tickets/<domain>/tkt-<domain>-###-<slug>.md`.
+4. **Write** — one file: `docs/tickets/<domain>/tkt-<domain>-###-<slug>.md`. Put the git branch on the line under the title.
 5. **Traces** — product-facing tickets link ≥1 FR (relative path). HTTP/CLIENT when the slice touches those surfaces. Shared infra may use `None` with a one-line reason.
 
-# ID and file
+# ID, file, and branch
 
 - ID: `TKT-<DOMAIN>-###` — e.g. `TKT-UI-001`
 - Filename: `tkt-<domain>-###-<short-kebab-slug>.md`
-- Branch (optional): `feat|fix|chore/tkt-<domain>-###-<slug>`
+- Branch (required, directly under the title): `<prefix>/tkt-<domain>-###-<slug>`
+  - Prefix from the label: `feature` → `feat`, otherwise the label (`fix`, `chore`, `docs`, `spike`)
 
 # Labels
 
@@ -47,6 +49,8 @@ For FR / HTTP / CLIENT IDs and where behavior belongs, use [writing-docs](../wri
 
 ```markdown
 # TKT-<DOMAIN>-### — Short title
+
+`feat/tkt-<domain>-###-<slug>`
 
 Labels: `feature`
 
@@ -67,6 +71,7 @@ As a …, I want … so that ….
 - **User story** — one short As a / I want / so that (or equivalent)
 - **DoD** — checklist for this slice; link acceptance scenarios instead of rewriting them
 - **Traces** — relative links; see writing-docs for ID rules
+- **Branch** — required, copy-pasteable, directly under the title
 - No status, assignees, or estimates
 
 # Do not

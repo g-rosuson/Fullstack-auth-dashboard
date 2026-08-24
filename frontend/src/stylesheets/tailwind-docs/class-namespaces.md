@@ -1,49 +1,21 @@
-# `@theme` namespaces → utilities
+# How `@theme` tokens become classes
 
-Design tokens live in `global.css`. Tailwind v4 reads them from `@theme inline` and generates utility classes. Components use those classes, not raw `var(--…)` names.
+The **prefix** on a `@theme` variable is the contract. Tailwind only generates classes from prefixes it knows:
 
-In Tailwind v4, the **prefix** on a `@theme` variable decides which utility classes exist. The token name after the prefix becomes the class suffix: `--color-primary` → `bg-primary`, `text-primary`, etc.
+`--color-*`, `--text-*`, `--font-*`, `--radius-*`, `--shadow-*`, `--animate-*`, `--spacing`, `--spacing-*`
 
-Only classes you use are emitted in the build.
+The rest of the name is what you type in a component: `--color-primary` → `bg-primary`.
 
-## `--color-{name}` — many utility families
+Two things that are easy to mix up:
 
-Registers a **color**. Tailwind exposes it on every color-related property:
+**`--color-*` fans out.** One color token becomes many classes (`bg-primary`, `text-primary`, `border-primary`, `ring-primary`, …). Other prefixes map to one class family, and the class name is not always the prefix: `--radius-lg` → `rounded-lg`, not `radius-lg`.
 
-`bg-`, `text-`, `border-` (+ `border-t/r/b/l/x/y-`), `divide-`, `outline-`, `ring-`, `inset-ring-`, `ring-offset-`, `shadow-`, `inset-shadow-`, `fill-`, `stroke-`, `accent-`, `caret-`, `decoration-`, `from-` / `via-` / `to-`, `scrollbar-thumb-`, `scrollbar-track-`
+**`text-*` is two namespaces.** `text-sm` is font size (`--text-sm`). `text-muted-foreground` is color (`--color-muted-foreground`). 
 
-First segment = CSS property, second = token name. Hence `border-border` (border **color** = token `border`).
+## Spacing is two knobs
 
-Opacity: `bg-primary/80`. Variants: `hover:bg-primary`, `dark:text-foreground`.
+`--spacing` (default `0.25rem`) is the step for numbered classes: `p-1` is one step, `p-4` is four. Change it and `p-1` / `p-4` / `gap-2` all move.
 
-To restrict a token to one property, use a specific namespace instead (e.g. `--border-color-neutral` → only `border-neutral`).
+`--spacing-sm` generates named classes: `p-sm`, `m-sm`, `gap-sm`, …
 
-## Other namespaces — one utility family each
-
-Unlike `--color-*`, these map to **one** utility type:
-
-| Namespace | Utilities | Example |
-|-----------|-----------|---------|
-| `--text-{name}` | **Font size** only: `text-{name}` | `--text-sm: 0.8rem` → `text-sm` |
-| `--font-{name}` | Font family: `font-{name}` | `--font-sans: …` → `font-sans` |
-| `--radius-{name}` | Border radius: `rounded-{name}` | `--radius-lg: var(--radius)` → `rounded-lg` |
-| `--shadow-{name}` | Box shadow: `shadow-{name}` | `--shadow-light: …` → `shadow-light` |
-| `--animate-{name}` | Animation: `animate-{name}` | `--animate-fade-in: …` → `animate-fade-in` |
-
-### `--text-{name}` is not text color
-
-`--text-sm` and `--color-muted-foreground` both produce `text-*` classes but mean different things:
-
-| Class | Namespace | Sets |
-|-------|-----------|------|
-| `text-sm` | `--text-sm` | `font-size` |
-| `text-muted-foreground` | `--color-muted-foreground` | `color` |
-
-Optional line-height for a size: `--text-sm--line-height: 1.25rem`.
-
-## Rule of thumb
-
-- **Color value** → `--color-{name}` → usable on bg, text, border, ring, …
-- **Non-color token** → namespace matches the utility prefix (`--radius-*` → `rounded-*`, `--font-*` → `font-*`, …)
-
-See `global.css` `@theme inline` for this project's tokens.
+Tokens: `global.css`, `@theme inline`.
