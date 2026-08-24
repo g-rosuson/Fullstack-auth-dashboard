@@ -9,7 +9,7 @@ type EmailToolPanelProps = {
 const EmailToolPanel = ({ tool }: EmailToolPanelProps) => {
     return (
         <>
-            <h2 className="font-bold text-base ml-3">
+            <h2 className="font-bold text-base ml-md">
                 Targets <span className="text-sm font-normal">({tool.targets.length})</span>
             </h2>
 

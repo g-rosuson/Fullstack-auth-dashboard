@@ -7,9 +7,9 @@ import { cn } from '@/lib/utils';
 const spinnerVariants = cva('', {
     variants: {
         size: {
-            l: 'size-8',
-            m: 'size-6',
-            s: 'size-3',
+            lg: 'size-8',
+            md: 'size-6',
+            sm: 'size-3',
             xs: 'size-2',
         },
         variant: {
@@ -27,14 +27,14 @@ const spinnerVariants = cva('', {
         },
     },
     defaultVariants: {
-        size: 'm',
+        size: 'md',
         variant: 'foreground',
         speed: 'medium',
     },
 });
 
 type SpinnerProps = React.ComponentProps<'svg'> & {
-    size?: 'xs' | 's' | 'm' | 'l';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
     type?: 'circle' | 'dotted';
     variant?: 'primary' | 'foreground' | 'muted' | 'success' | 'warning' | 'destructive';
     speed?: 'slow' | 'medium' | 'fast';

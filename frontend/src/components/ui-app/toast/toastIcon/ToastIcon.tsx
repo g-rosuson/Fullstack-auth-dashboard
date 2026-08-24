@@ -28,7 +28,7 @@ const toastIcons: Record<ToastType, { icon: ReactNode; className?: string }> = {
         className: 'text-destructive',
     },
     loading: {
-        icon: <Spinner type="circle" size="s" className="size-4" aria-hidden="true" />,
+        icon: <Spinner type="circle" size="sm" className="size-4" aria-hidden="true" />,
     },
 };
 

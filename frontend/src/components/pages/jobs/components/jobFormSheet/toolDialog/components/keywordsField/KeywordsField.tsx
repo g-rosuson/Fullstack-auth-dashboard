@@ -49,7 +49,7 @@ const KeyWordsField: React.FC<KeyWordsFieldProps> = ({
     return (
         <div>
             <ShadcnField>
-                <FieldLabel htmlFor={id} className="gap-0.5">
+                <FieldLabel htmlFor={id} className="gap-xs">
                     {label}
                     {required && <span className="text-destructive">{constants.label.field.keywords.asterisk}</span>}
                 </FieldLabel>
@@ -76,7 +76,7 @@ const KeyWordsField: React.FC<KeyWordsFieldProps> = ({
 
             <div className="flex flex-wrap gap-sm border rounded-md p-sm mt-xs" hidden={keywords.length === 0}>
                 {keywords.map((keyword, index) => (
-                    <div key={index} className="flex items-center justify-center gap-xs rounded-md bg-primary pl-1.5">
+                    <div key={index} className="flex items-center justify-center gap-xs rounded-md bg-primary pl-sm">
                         <Text size="xs" variant="foreground">
                             {keyword}
                         </Text>

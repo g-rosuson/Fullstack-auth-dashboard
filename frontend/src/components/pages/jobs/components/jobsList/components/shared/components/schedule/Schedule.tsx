@@ -15,12 +15,12 @@ const constants = {
     },
 };
 
-const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size?: 'xs' | 's' }) => {
+const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size?: 'xs' | 'sm' }) => {
     return (
         <Flex justify="between" align="end" gap="sm">
             <Flex direction="column" gap="sm">
                 {schedule.type && (
-                    <Flex direction="column" gap="xs">
+                    <div>
                         <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
                             {constants.title.type}
                         </Heading>
@@ -28,10 +28,10 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                         <Text size={size} variant="foreground">
                             {schedule.type}
                         </Text>
-                    </Flex>
+                    </div>
                 )}
 
-                <Flex direction="column" gap="xs">
+                <div>
                     <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
                         {constants.title.startDate}
                     </Heading>
@@ -39,9 +39,9 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                     <Text size={size} variant="foreground">
                         {schedule.startDate}
                     </Text>
-                </Flex>
+                </div>
 
-                <Flex direction="column" gap="xs">
+                <div>
                     <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
                         {constants.title.endDate}
                     </Heading>
@@ -49,11 +49,11 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                     <Text size={size} variant="foreground">
                         {schedule.endDate}
                     </Text>
-                </Flex>
+                </div>
             </Flex>
 
             <Flex direction="column" gap="sm">
-                <Flex direction="column" gap="xs">
+                <div>
                     <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
                         {constants.title.nextRun}
                     </Heading>
@@ -61,9 +61,9 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                     <Text size={size} variant="foreground">
                         {schedule.nextRun}
                     </Text>
-                </Flex>
+                </div>
 
-                <Flex direction="column" gap="xs">
+                <div>
                     <Heading size={size} level={3} weight="bold" variant="muted" removeMargin>
                         {constants.title.lastRun}
                     </Heading>
@@ -71,7 +71,7 @@ const ScheduleComponent = ({ schedule, size = 'xs' }: { schedule: Schedule; size
                     <Text size={size} variant="foreground">
                         {schedule.lastRun}
                     </Text>
-                </Flex>
+                </div>
             </Flex>
         </Flex>
     );

@@ -15,9 +15,9 @@ describe('Heading component', () => {
     });
 
     it('merges the className prop without overriding base styles', () => {
-        // size="l" has no font-weight variant, so the base font-bold survives tailwind-merge
+        // size="lg" has no font-weight variant, so the base font-bold survives tailwind-merge
         render(
-            <Heading level={1} size="l" className="mt-md">
+            <Heading level={1} size="lg" className="mt-md">
                 Heading with margin
             </Heading>
         );

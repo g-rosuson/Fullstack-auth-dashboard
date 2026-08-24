@@ -28,6 +28,6 @@ Prefer `xs`–`xl` in app components (`ui-app`, pages, layout). Pick the step th
 
 Do not invent parallel names (`s` / `m` / `l`, `small` / `medium` / `large`) for spacing.
 
-Numbered utilities (`p-1`, `gap-3`) still exist because they also read `--spacing`. Use them only when a value is not on the named scale and a design requires that exact step. Arbitrary values (`p-[13px]`, `gap-[0.37rem]`) only when a concrete design requirement cannot use a token.
+Numbered utilities (`p-1`, `gap-3`) still exist because they also read `--spacing`. Do not use them in app components (`ui-app`, pages, layout) — snap to the nearest named token. Arbitrary values (`p-[13px]`) only when a concrete design requirement cannot use a token. `p-0` / `m-0` / `gap-0` are fine for “none”.
 
 Leave shadcn primitives under `components/ui/` unchanged. Apply the named scale in wrappers (`ui-app`) and product UI.

@@ -8,7 +8,7 @@ const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {
     let headingContent = <Skeleton className="h-2 w-1/2" />;
     if (jobName) {
         headingContent = (
-            <Heading size="s" level={3} weight="bold" truncate removeMargin>
+            <Heading size="sm" level={3} weight="bold" truncate removeMargin>
                 {jobName}
             </Heading>
         );

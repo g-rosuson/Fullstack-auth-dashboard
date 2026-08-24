@@ -5,10 +5,9 @@ type TextVariants = VariantProps<typeof textVariants>;
 const textVariants = cva('text-base', {
     variants: {
         size: {
-            xl: 'text-xl font-black',
-            l: 'text-lg',
-            m: 'text-base',
-            s: 'text-sm',
+            lg: 'text-lg',
+            md: 'text-base',
+            sm: 'text-sm',
             xs: 'text-xs',
         },
         weight: {
@@ -33,7 +32,7 @@ const textVariants = cva('text-base', {
         },
     },
     defaultVariants: {
-        size: 'm',
+        size: 'md',
         variant: 'foreground',
         weight: 'medium',
         align: 'left',

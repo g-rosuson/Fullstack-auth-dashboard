@@ -3,10 +3,11 @@ import React from 'react';
 import { TextVariants, textVariants } from '../shared/variants/text.variants';
 import { cn } from '@/lib/utils';
 
-type TextProps = TextVariants & {
+type TextProps = Omit<TextVariants, 'size'> & {
     children: React.ReactNode;
     className?: string;
     as?: React.ElementType;
+    size?: 'xs' | 'sm' | 'md' | 'lg';
 };
 
 const Text = (props: TextProps) => {

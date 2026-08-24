@@ -266,7 +266,7 @@ const JobsList = ({
                 })}
             </Grid>
 
-            <div className="fixed bottom-4 right-4">
+            <div className="fixed bottom-md right-md">
                 <Button icon={<PlusIcon />} size="icon-lg" ariaLabel="Create job" onClick={() => onEditJob()} />
             </div>
 

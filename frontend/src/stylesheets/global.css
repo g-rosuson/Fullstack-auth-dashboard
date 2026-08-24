@@ -74,7 +74,7 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 
     --spacing: 0.25rem;
-    --spacing-xs: calc(var(--spacing) * 1);
+    --spacing-xs: calc(var(--spacing) * 0.75);
     --spacing-sm: calc(var(--spacing) * 2);
     --spacing-md: calc(var(--spacing) * 4);
     --spacing-lg: calc(var(--spacing) * 6);

@@ -36,11 +36,11 @@ const JobDetailSheet = ({
         <Flex direction="column" gap="sm" align="center" justify="center">
             <BadgeInfo size={24} />
 
-            <DialogTitle size="m" className="mb-0">
+            <DialogTitle size="md" className="mb-0">
                 {constants.label.placeholder.executions.title}
             </DialogTitle>
 
-            <Text size="s" variant="muted" align="center">
+            <Text size="sm" variant="muted" align="center">
                 {constants.label.placeholder.executions.description}
             </Text>
         </Flex>
@@ -67,19 +67,19 @@ const JobDetailSheet = ({
                     <Flex direction="column" gap="md">
                         <Flex justify="between">
                             <div>
-                                <DialogTitle size="l" className="mb-0.5">
+                                <DialogTitle size="lg" className="mb-xs">
                                     {jobName}
                                 </DialogTitle>
 
-                                <Status status={status} size="s" />
+                                <Status status={status} size="sm" />
                             </div>
 
                             <DropdownMenu dropdownMenuItems={menuItems} />
                         </Flex>
 
-                        <Schedule schedule={schedule} size="s" />
+                        <Schedule schedule={schedule} size="sm" />
 
-                        <ActionButton status={status} size="s" isLoading={isSubmitting} onClick={onRequestConfirm} />
+                        <ActionButton status={status} size="sm" isLoading={isSubmitting} onClick={onRequestConfirm} />
                     </Flex>
                 </section>
 

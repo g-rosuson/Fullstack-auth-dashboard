@@ -24,7 +24,7 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
 
     // Determine the information section
     const information = (
-        <section className="flex flex-col gap-sm border rounded-md p-3">
+        <section className="flex flex-col gap-sm border rounded-md p-md">
             <div>
                 <Heading level={3} size="xs">
                     {constants.label.title.identifier}
@@ -91,10 +91,10 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
                 </Button>
             </CollapsibleTrigger>
 
-            <CollapsibleContent className="p-3">
-                <section className="mb-3">{information}</section>
+            <CollapsibleContent className="p-md">
+                <section className="mb-md">{information}</section>
 
-                <Heading size="s" level={2}>
+                <Heading size="sm" level={2}>
                     {constants.label.title.tools}{' '}
                     <span className="text-sm font-normal">({execution.tools.length})</span>
                 </Heading>

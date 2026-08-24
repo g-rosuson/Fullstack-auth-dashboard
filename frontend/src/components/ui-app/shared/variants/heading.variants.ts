@@ -5,10 +5,9 @@ type HeadingVariants = VariantProps<typeof headingVariants>;
 const headingVariants = cva('mb-sm text-xl', {
     variants: {
         size: {
-            xl: 'mb-lg text-4xl font-black',
-            l: 'mb-3 text-xl',
-            m: 'mb-sm text-base',
-            s: 'mb-xs text-sm',
+            lg: 'mb-md text-xl',
+            md: 'mb-sm text-base',
+            sm: 'mb-xs text-sm',
             xs: 'mb-xs text-xs',
         },
         weight: {
@@ -24,7 +23,7 @@ const headingVariants = cva('mb-sm text-xl', {
         },
     },
     defaultVariants: {
-        size: 'm',
+        size: 'md',
         variant: 'foreground',
         weight: 'bold',
     },

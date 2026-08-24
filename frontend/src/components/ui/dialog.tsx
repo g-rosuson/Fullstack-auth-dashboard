@@ -103,7 +103,7 @@ function DialogFooter({
 
 function DialogTitle({
     className,
-    size = 'm',
+    size,
     ...props
 }: React.ComponentProps<typeof DialogPrimitive.Title> & VariantProps<typeof headingVariants>) {
     return (
@@ -117,7 +117,7 @@ function DialogTitle({
 
 function DialogDescription({
     className,
-    size = 'm',
+    size,
     ...props
 }: React.ComponentProps<typeof DialogPrimitive.Description> & VariantProps<typeof textVariants>) {
     return (

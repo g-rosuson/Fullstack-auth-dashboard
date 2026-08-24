@@ -43,7 +43,7 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
 
     return (
         <div className="w-full flex flex-col gap-sm">
-            <FieldLabel htmlFor={triggerId} className="gap-0.5">
+            <FieldLabel htmlFor={triggerId} className="gap-xs">
                 {label}
                 {required && <span className="text-destructive">*</span>}
             </FieldLabel>

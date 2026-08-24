@@ -227,12 +227,12 @@ const Authentication = () => {
         <div className="flex min-h-svh items-center justify-center p-md">
             <Card className="w-full max-w-sm">
                 <CardHeader>
-                    <CardTitle size="l">{heading}</CardTitle>
-                    <CardDescription size="s">{description}</CardDescription>
+                    <CardTitle size="lg">{heading}</CardTitle>
+                    <CardDescription size="sm">{description}</CardDescription>
                 </CardHeader>
 
                 <CardContent>
-                    <form aria-label="Authentication form" className="flex flex-col gap-3" onSubmit={onSubmit}>
+                    <form aria-label="Authentication form" className="flex flex-col gap-md" onSubmit={onSubmit}>
                         {isRegisterActive ? fullFormContent : partialFormContent}
 
                         <Button
@@ -247,7 +247,7 @@ const Authentication = () => {
                 {config.features.registrationEnabled && (
                     <CardFooter className="justify-center">
                         <Link to={route}>
-                            <Text size="s" variant="foreground">
+                            <Text size="sm" variant="foreground">
                                 {authModeLinkLabel}
                             </Text>
                         </Link>

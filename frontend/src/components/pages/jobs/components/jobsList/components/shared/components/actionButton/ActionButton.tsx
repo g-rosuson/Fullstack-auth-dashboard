@@ -3,6 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { Pause, Play, RotateCcw, Square } from 'lucide-react';
 import { Slot } from 'radix-ui';
 
+import Flex from '@/components/ui-app/flex/Flex';
 import Text from '@/components/ui-app/text/Text';
 
 import mappers from '@/components/pages/jobs/components/jobsList/mappers';
@@ -34,22 +35,22 @@ const buttonVariants = cva(
                 ghost: 'hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50',
             },
             size: {
-                xs: "p-sm gap-xs rounded-[min(var(--radius-md),10px)] text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-                s: "p-2.5 gap-sm rounded-[min(var(--radius-md),12px)] text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-                m: "p-3.5 gap-3 rounded-[min(var(--radius-md),12px)] text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-4",
-                l: 'p-4.5 gap-md has-data-[icon=inline-end]:pr-sm has-data-[icon=inline-start]:pl-sm',
+                xs: "p-sm gap-xs rounded-[min(var(--radius-md),10px)] text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-sm has-data-[icon=inline-start]:pl-sm [&_svg:not([class*='size-'])]:size-3",
+                sm: "p-sm gap-sm rounded-[min(var(--radius-md),12px)] text-sm in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-sm has-data-[icon=inline-start]:pl-sm [&_svg:not([class*='size-'])]:size-3.5",
+                md: "p-md gap-md rounded-[min(var(--radius-md),12px)] text-sm in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-sm has-data-[icon=inline-start]:pl-sm [&_svg:not([class*='size-'])]:size-4",
+                lg: 'p-md gap-md has-data-[icon=inline-end]:pr-sm has-data-[icon=inline-start]:pl-sm',
             },
         },
         defaultVariants: {
             variant: 'primary',
-            size: 's',
+            size: 'sm',
         },
     }
 );
 
 interface ButtonProps extends ComponentProps<'button'>, VariantProps<typeof buttonVariants> {
     variant?: 'primary' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'warning' | 'success';
-    size?: 'xs' | 's' | 'm' | 'l';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
     label?: string;
     ariaLabel?: string;
     asChild?: boolean;
@@ -92,7 +93,7 @@ const ActionButton = ({
     onClick,
 }: {
     status: JobStatus;
-    size?: 'xs' | 's' | 'l';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
     isLoading: boolean;
     // eslint-disable-next-line no-unused-vars
     onClick: (e: MouseEvent<HTMLButtonElement>) => void;
@@ -126,11 +127,13 @@ const ActionButton = ({
 
     return (
         <Button size={size} variant={variant} isLoading={isLoading} onClick={onClick}>
-            {iconElement}
+            <Flex align="center" gap="sm">
+                {iconElement}
 
-            <Text size={size} variant={variant}>
-                {label}
-            </Text>
+                <Text size={size} variant={variant}>
+                    {label}
+                </Text>
+            </Flex>
         </Button>
     );
 };

@@ -7,9 +7,6 @@ import { Toaster } from '@/components/ui-app/toast/Toast';
 import './stylesheets/global.css';
 
 // TODO: Design system:
-// TODO: Shared general styles for surface elements like card, toaster and top-bar are not centralized and set individually in each component.
-// TODO: How do we sync spacing/padding for all elements?
-// TODO: - Use tailwind --spacing-* namespace
 // TODO: - Sidebar has wrong padding
 
 // TODO: How do we handle variant ('success' | 'destructive' | 'warning' | 'primary' | 'muted' etc) mapping/typing?

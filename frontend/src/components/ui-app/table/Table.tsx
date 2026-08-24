@@ -76,7 +76,7 @@ function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValu
                 </Table>
             </div>
 
-            <div className="w-full flex justify-center gap-sm mt-3">
+            <div className="w-full flex justify-center gap-sm mt-md">
                 <Button
                     variant="outline"
                     size="sm"

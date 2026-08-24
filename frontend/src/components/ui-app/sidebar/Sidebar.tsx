@@ -25,7 +25,7 @@ const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu>
+                        <SidebarMenu className="p-sm">
                             <Flex direction="column" gap="sm">
                                 {items.map(item => {
                                     const Icon = item.icon;
@@ -36,7 +36,7 @@ const Sidebar = ({ items, collapsible = 'offcanvas' }: SidebarProps) => {
                                             <SidebarMenuButton isActive={isActive} asChild>
                                                 <NavLink to={item.to}>
                                                     <Icon />
-                                                    <Text size="s" variant="foreground">
+                                                    <Text size="sm" variant="foreground">
                                                         {item.label}
                                                     </Text>
                                                 </NavLink>
