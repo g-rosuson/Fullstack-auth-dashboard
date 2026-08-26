@@ -36,9 +36,7 @@ const JobDetailSheet = ({
         <Flex direction="column" gap="sm" align="center" justify="center">
             <BadgeInfo size={24} />
 
-            <DialogTitle size="md">
-                {constants.label.placeholder.executions.title}
-            </DialogTitle>
+            <DialogTitle size="md">{constants.label.placeholder.executions.title}</DialogTitle>
 
             <Text size="sm" variant="muted" align="center">
                 {constants.label.placeholder.executions.description}
@@ -61,7 +59,7 @@ const JobDetailSheet = ({
     const ariaDescribedby = constants.label.ariaDescribedby;
 
     return (
-        <Sheet open={isOpen} onOpenChange={onOpenChange} side="right" ariaDescribedby={ariaDescribedby}>
+        <Sheet width="xl" open={isOpen} onOpenChange={onOpenChange} ariaDescribedby={ariaDescribedby}>
             <Flex direction="column" gap="md">
                 <section className="w-full">
                     <Flex direction="column" gap="md">

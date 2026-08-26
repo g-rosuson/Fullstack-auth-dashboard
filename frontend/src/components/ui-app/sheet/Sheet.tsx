@@ -1,5 +1,7 @@
 import React from 'react';
+import { cva } from 'class-variance-authority';
 
+import Flex from '../flex/Flex';
 import Spinner from '@/components/ui-app/spinner/Spinner';
 
 import { Button } from '@/components/ui/button';
@@ -7,15 +9,30 @@ import { DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Sheet as SheetPrimitive, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
+const sheetWidthVariant = cva('', {
+    variants: {
+        width: {
+            sm: 'sm:max-w-sm',
+            md: 'sm:max-w-md',
+            lg: 'sm:max-w-lg',
+            xl: 'sm:max-w-xl',
+        },
+    },
+    defaultVariants: { width: 'sm' },
+});
+
 interface SheetProps {
     open: boolean;
     ariaDescribedby: string;
     side?: 'top' | 'right' | 'bottom' | 'left';
+    width?: 'sm' | 'md' | 'lg' | 'xl';
     children: React.ReactNode;
     className?: string;
-    enableForm?: boolean;
-    // eslint-disable-next-line no-unused-vars
-    onFormSubmit?: (e: React.SubmitEvent<HTMLFormElement>) => Promise<void>;
+    /**
+     * Associates the primary action with a Form `id` so that button submits
+     * and native-validates that form without wrapping the sheet in another `<form>`.
+     */
+    formId?: string;
     // eslint-disable-next-line no-unused-vars
     onPrimaryButtonClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
     isSubmitting?: boolean;
@@ -30,64 +47,53 @@ const Sheet = ({
     open,
     children,
     className,
-    enableForm,
-    onFormSubmit,
+    formId,
     onPrimaryButtonClick,
     isSubmitting,
     primaryButtonLabel,
     ariaDescribedby,
     side = 'right',
+    width = 'sm',
     onOpenChange,
 }: SheetProps) => {
-    /**
-     * Handles the submit event for the form.
-     * @param e - The form event.
-     */
-    const onSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        onFormSubmit?.(e);
-    };
+    const submitsForm = !!formId;
 
     // Determine the sheet footer
     const sheetFooter = (
-        <div
-            data-slot="sheet-footer"
-            className="sticky bottom-0 left-0 right-0 flex flex-col justify-end gap-sm mt-lg -mx-md border-t bg-muted p-md sm:flex-row">
-            <DialogClose asChild>
-                <Button variant="outline">Close</Button>
-            </DialogClose>
+        <div data-slot="sheet-footer" className="sticky bottom-0 left-0 right-0 mt-lg -mx-md border-t bg-muted p-md">
+            <Flex direction="column" justify="end" align="stretch" gap="sm" className="sm:flex-row">
+                <DialogClose asChild>
+                    <Button variant="outline">Close</Button>
+                </DialogClose>
 
-            {primaryButtonLabel && (
-                <Button
-                    type={enableForm ? 'submit' : 'button'}
-                    variant="default"
-                    disabled={isSubmitting}
-                    {...(!enableForm && { onClick: e => onPrimaryButtonClick?.(e) })}>
-                    {isSubmitting ? <Spinner /> : primaryButtonLabel}
-                </Button>
-            )}
+                {primaryButtonLabel && (
+                    <Button
+                        type={submitsForm ? 'submit' : 'button'}
+                        variant="default"
+                        disabled={isSubmitting}
+                        {...(submitsForm && { form: formId })}
+                        {...(!submitsForm && { onClick: e => onPrimaryButtonClick?.(e) })}>
+                        {isSubmitting ? <Spinner /> : primaryButtonLabel}
+                    </Button>
+                )}
+            </Flex>
         </div>
-    );
-
-    // Determine the inner content
-    const layoutClassName = 'h-full flex flex-col justify-between';
-
-    const content = React.createElement(
-        enableForm ? 'form' : 'div',
-        {
-            className: layoutClassName,
-            ...(enableForm ? { onSubmit } : {}),
-        },
-        children,
-        sheetFooter
     );
 
     return (
         <SheetPrimitive open={open} onOpenChange={onOpenChange}>
             <SheetContent
-                className={cn('min-w-[60%] flex flex-col justify-between px-md pt-md overflow-scroll', className)}
+                className={cn(
+                    'flex flex-col justify-between px-md pt-md overflow-scroll',
+                    sheetWidthVariant({ width }),
+                    className
+                )}
                 side={side}>
-                {content}
+                <Flex direction="column" align="stretch" justify="between" className="h-full">
+                    {children}
+                    {sheetFooter}
+                </Flex>
+
                 <DialogDescription className="sr-only">{ariaDescribedby}</DialogDescription>
             </SheetContent>
         </SheetPrimitive>

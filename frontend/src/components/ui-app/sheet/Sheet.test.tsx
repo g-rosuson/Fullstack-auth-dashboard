@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach } from 'vitest';
 
 import type { SheetProps } from './Sheet';
-import type { ReactNode } from 'react';
+import type { ReactNode, SubmitEvent as ReactSubmitEvent } from 'react';
 
 import Sheet from './Sheet';
 
@@ -18,11 +18,12 @@ const renderSheet = (props: Partial<SheetProps> & { children?: ReactNode } = {})
             open={props.open ?? true}
             onOpenChange={onOpenChange}
             className={props.className}
-            enableForm={props.enableForm}
-            onFormSubmit={props.onFormSubmit}
+            formId={props.formId}
             onPrimaryButtonClick={props.onPrimaryButtonClick}
             isSubmitting={props.isSubmitting}
             primaryButtonLabel={props.primaryButtonLabel}
+            side={props.side}
+            width={props.width}
             ariaDescribedby={props.ariaDescribedby || ''}>
             {props.children ?? <h2>Sheet content</h2>}
         </Sheet>
@@ -77,33 +78,10 @@ describe('Sheet component: form vs button mode', () => {
         vi.clearAllMocks();
     });
 
-    it('uses a submit primary action inside a form when enableForm is true', async () => {
-        const onFormSubmit = vi.fn(() => Promise.resolve());
-
-        renderSheet({
-            enableForm: true,
-            primaryButtonLabel: 'Create',
-            onFormSubmit,
-        });
-
-        const dialog = screen.getByRole('dialog');
-        const submit = within(dialog).getByRole('button', { name: 'Create' });
-
-        expect(submit).toHaveAttribute('type', 'submit');
-        expect(submit.closest('form')).toBeInstanceOf(HTMLFormElement);
-
-        await userEvent.click(submit);
-
-        await waitFor(() => {
-            expect(onFormSubmit).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    it('uses a button primary action and invokes onPrimaryButtonClick when enableForm is false', async () => {
+    it('uses a button primary action and invokes onPrimaryButtonClick when formId is omitted', async () => {
         const onPrimaryButtonClick = vi.fn();
 
         renderSheet({
-            enableForm: false,
             primaryButtonLabel: 'Continue',
             onPrimaryButtonClick,
         });
@@ -118,6 +96,39 @@ describe('Sheet component: form vs button mode', () => {
 
         expect(onPrimaryButtonClick).toHaveBeenCalledTimes(1);
     });
+
+    it('associates the primary action with an external form id without wrapping a sheet form', async () => {
+        const onFormSubmit = vi.fn((event: ReactSubmitEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            return Promise.resolve();
+        });
+
+        render(
+            <Sheet
+                open
+                onOpenChange={vi.fn()}
+                formId="job-form"
+                primaryButtonLabel="Create"
+                ariaDescribedby="sheet-content">
+                <form id="job-form" aria-label="Job form" onSubmit={onFormSubmit}>
+                    <input name="name" />
+                </form>
+            </Sheet>
+        );
+
+        const dialog = screen.getByRole('dialog');
+        const submit = within(dialog).getByRole('button', { name: 'Create' });
+
+        expect(submit).toHaveAttribute('type', 'submit');
+        expect(submit).toHaveAttribute('form', 'job-form');
+        expect(submit.closest('form')).toBeNull();
+
+        await userEvent.click(submit);
+
+        await waitFor(() => {
+            expect(onFormSubmit).toHaveBeenCalledTimes(1);
+        });
+    });
 });
 
 describe('Sheet component: submitting state', () => {
@@ -127,10 +138,9 @@ describe('Sheet component: submitting state', () => {
 
     it('shows loading feedback and disables the primary action while submitting', () => {
         renderSheet({
-            enableForm: true,
+            formId: 'job-form',
             primaryButtonLabel: 'Save',
             isSubmitting: true,
-            onFormSubmit: vi.fn(() => Promise.resolve()),
         });
 
         const dialog = screen.getByRole('dialog');
@@ -143,16 +153,14 @@ describe('Sheet component: submitting state', () => {
 
     it('restores the primary label after submitting finishes', async () => {
         const onOpenChange = vi.fn();
-        const onFormSubmit = vi.fn(() => Promise.resolve());
 
         const { rerender } = render(
             <Sheet
                 open
                 onOpenChange={onOpenChange}
-                enableForm
+                formId="job-form"
                 primaryButtonLabel="Save"
                 isSubmitting
-                onFormSubmit={onFormSubmit}
                 ariaDescribedby="sheet-content">
                 <h2>Sheet content</h2>
             </Sheet>
@@ -165,10 +173,9 @@ describe('Sheet component: submitting state', () => {
             <Sheet
                 open
                 onOpenChange={onOpenChange}
-                enableForm
+                formId="job-form"
                 primaryButtonLabel="Save"
                 isSubmitting={false}
-                onFormSubmit={onFormSubmit}
                 ariaDescribedby="sheet-content">
                 <h2>Sheet content</h2>
             </Sheet>
@@ -197,5 +204,31 @@ describe('Sheet component: controlled open', () => {
         await waitFor(() => {
             expect(onOpenChange).toHaveBeenCalledWith(false);
         });
+    });
+});
+
+describe('Sheet component: width', () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('defaults left and right sheets to the sm width token', () => {
+        renderSheet();
+
+        expect(screen.getByRole('dialog')).toHaveClass('sm:max-w-sm');
+    });
+
+    it('applies the requested width token on left and right sheets', () => {
+        renderSheet({ width: 'lg' });
+
+        const dialog = screen.getByRole('dialog');
+        expect(dialog).toHaveClass('sm:max-w-lg');
+        expect(dialog).not.toHaveClass('sm:max-w-sm');
+    });
+
+    it('does not apply width tokens on top and bottom sheets', () => {
+        renderSheet({ side: 'top', width: 'lg' });
+
+        expect(screen.getByRole('dialog')).not.toHaveClass('sm:max-w-lg');
     });
 });
