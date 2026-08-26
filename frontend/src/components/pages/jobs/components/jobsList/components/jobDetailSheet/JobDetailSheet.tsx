@@ -4,9 +4,9 @@ import Execution from './execution/Execution';
 import ActionButton from '@/components/pages/jobs/components/jobsList/components/shared/components/actionButton/ActionButton';
 import Schedule from '@/components/pages/jobs/components/jobsList/components/shared/components/schedule/Schedule';
 import Status from '@/components/pages/jobs/components/jobsList/components/shared/components/status/Status';
-import DialogTitle from '@/components/ui-app/dialogTitle/DialogTitle';
 import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Flex from '@/components/ui-app/flex/Flex';
+import Heading from '@/components/ui-app/heading/Heading';
 import Sheet from '@/components/ui-app/sheet/Sheet';
 import Text from '@/components/ui-app/text/Text';
 
@@ -36,7 +36,9 @@ const JobDetailSheet = ({
         <Flex direction="column" gap="sm" align="center" justify="center">
             <BadgeInfo size={24} />
 
-            <DialogTitle size="md">{constants.label.placeholder.executions.title}</DialogTitle>
+            <Heading size="md" level={3}>
+                {constants.label.placeholder.executions.title}
+            </Heading>
 
             <Text size="sm" variant="muted" align="center">
                 {constants.label.placeholder.executions.description}
@@ -56,24 +58,18 @@ const JobDetailSheet = ({
         );
     }
 
-    const ariaDescribedby = constants.label.ariaDescribedby;
-
     return (
-        <Sheet width="xl" open={isOpen} onOpenChange={onOpenChange} ariaDescribedby={ariaDescribedby}>
+        <Sheet
+            width="xl"
+            title={jobName}
+            description={constants.label.ariaDescribedby}
+            headerActions={<DropdownMenu dropdownMenuItems={menuItems} />}
+            open={isOpen}
+            onOpenChange={onOpenChange}>
             <Flex direction="column" gap="md">
                 <section className="w-full">
                     <Flex direction="column" gap="md">
-                        <Flex justify="between">
-                            <div>
-                                <DialogTitle size="lg" spacing="xs">
-                                    {jobName}
-                                </DialogTitle>
-
-                                <Status status={status} size="sm" />
-                            </div>
-
-                            <DropdownMenu dropdownMenuItems={menuItems} />
-                        </Flex>
+                        <Status status={status} size="sm" />
 
                         <Schedule schedule={schedule} size="sm" />
 
@@ -82,7 +78,9 @@ const JobDetailSheet = ({
                 </section>
 
                 <section className="w-full">
-                    <DialogTitle>{constants.label.title.executions}</DialogTitle>
+                    <Heading size="md" level={2}>
+                        {constants.label.title.executions}
+                    </Heading>
 
                     {executionsContent}
                 </section>

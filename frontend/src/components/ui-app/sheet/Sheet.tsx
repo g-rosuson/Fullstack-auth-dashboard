@@ -5,7 +5,7 @@ import Flex from '../flex/Flex';
 import Spinner from '@/components/ui-app/spinner/Spinner';
 
 import { Button } from '@/components/ui/button';
-import { DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { DialogClose, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Sheet as SheetPrimitive, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +23,9 @@ const sheetWidthVariant = cva('', {
 
 interface SheetProps {
     open: boolean;
-    ariaDescribedby: string;
+    title: React.ReactNode;
+    description?: string;
+    headerActions?: React.ReactNode;
     side?: 'top' | 'right' | 'bottom' | 'left';
     width?: 'sm' | 'md' | 'lg' | 'xl';
     children: React.ReactNode;
@@ -45,13 +47,15 @@ interface SheetProps {
 
 const Sheet = ({
     open,
+    title,
+    description,
+    headerActions,
     children,
     className,
     formId,
     onPrimaryButtonClick,
     isSubmitting,
     primaryButtonLabel,
-    ariaDescribedby,
     side = 'right',
     width = 'sm',
     onOpenChange,
@@ -59,7 +63,16 @@ const Sheet = ({
     const submitsForm = !!formId;
     const isHorizontal = side === 'left' || side === 'right';
 
-    // Determine the sheet footer
+    const sheetHeader = (
+        <div data-slot="sheet-header">
+            <Flex justify="between" align="center" gap="sm">
+                <DialogTitle size="lg">{title}</DialogTitle>
+                {headerActions}
+            </Flex>
+            {description ? <DialogDescription className="sr-only">{description}</DialogDescription> : null}
+        </div>
+    );
+
     const sheetFooter = (
         <div data-slot="sheet-footer" className="sticky bottom-0 left-0 right-0 mt-lg -mx-md border-t bg-muted p-md">
             <Flex direction="column" justify="end" align="stretch" gap="sm" className="sm:flex-row">
@@ -84,17 +97,22 @@ const Sheet = ({
     return (
         <SheetPrimitive open={open} onOpenChange={onOpenChange}>
             <SheetContent
+                side={side}
                 className={cn(
                     'flex flex-col justify-between px-md pt-md overflow-scroll',
                     isHorizontal && sheetWidthVariant({ width }),
                     className
                 )}
-                side={side}>
+                // aria-describedby is an element id. Omit it when DialogDescription is present so Radix can wire it.
+                {...(description ? {} : { 'aria-describedby': undefined })}>
                 <Flex direction="column" align="stretch" justify="between" className="h-full">
-                    {children}
+                    <Flex direction="column" align="stretch" gap="md">
+                        {sheetHeader}
+                        {children}
+                    </Flex>
+
                     {sheetFooter}
                 </Flex>
-                <DialogDescription className="sr-only">{ariaDescribedby}</DialogDescription>
             </SheetContent>
         </SheetPrimitive>
     );

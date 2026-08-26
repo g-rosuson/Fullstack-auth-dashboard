@@ -17,15 +17,17 @@ const renderSheet = (props: Partial<SheetProps> & { children?: ReactNode } = {})
         <Sheet
             open={props.open ?? true}
             onOpenChange={onOpenChange}
+            title={props.title ?? 'Sheet title'}
+            description={props.description}
+            headerActions={props.headerActions}
             className={props.className}
             formId={props.formId}
             onPrimaryButtonClick={props.onPrimaryButtonClick}
             isSubmitting={props.isSubmitting}
             primaryButtonLabel={props.primaryButtonLabel}
             side={props.side}
-            width={props.width}
-            ariaDescribedby={props.ariaDescribedby || ''}>
-            {props.children ?? <h2>Sheet content</h2>}
+            width={props.width}>
+            {props.children ?? <p>Sheet content</p>}
         </Sheet>
     );
 };
@@ -107,9 +109,9 @@ describe('Sheet component: form vs button mode', () => {
             <Sheet
                 open
                 onOpenChange={vi.fn()}
+                title="Create job"
                 formId="job-form"
-                primaryButtonLabel="Create"
-                ariaDescribedby="sheet-content">
+                primaryButtonLabel="Create">
                 <form id="job-form" aria-label="Job form" onSubmit={onFormSubmit}>
                     <input name="name" />
                 </form>
@@ -158,11 +160,11 @@ describe('Sheet component: submitting state', () => {
             <Sheet
                 open
                 onOpenChange={onOpenChange}
+                title="Edit job"
                 formId="job-form"
                 primaryButtonLabel="Save"
-                isSubmitting
-                ariaDescribedby="sheet-content">
-                <h2>Sheet content</h2>
+                isSubmitting>
+                <p>Sheet content</p>
             </Sheet>
         );
 
@@ -173,11 +175,11 @@ describe('Sheet component: submitting state', () => {
             <Sheet
                 open
                 onOpenChange={onOpenChange}
+                title="Edit job"
                 formId="job-form"
                 primaryButtonLabel="Save"
-                isSubmitting={false}
-                ariaDescribedby="sheet-content">
-                <h2>Sheet content</h2>
+                isSubmitting={false}>
+                <p>Sheet content</p>
             </Sheet>
         );
 
@@ -230,5 +232,39 @@ describe('Sheet component: width', () => {
         renderSheet({ side: 'top', width: 'lg' });
 
         expect(screen.getByRole('dialog')).not.toHaveClass('sm:max-w-lg');
+    });
+});
+
+describe('Sheet component: header', () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('names the dialog from the required title', () => {
+        renderSheet({ title: 'Create job' });
+
+        const dialog = screen.getByRole('dialog', { name: 'Create job' });
+        expect(within(dialog).getByRole('heading', { name: 'Create job' })).toBeInTheDocument();
+    });
+
+    it('renders trailing header actions next to the title', () => {
+        renderSheet({
+            title: 'Nightly scrape',
+            headerActions: <button type="button">Job actions</button>,
+        });
+
+        const dialog = screen.getByRole('dialog', { name: 'Nightly scrape' });
+        expect(within(dialog).getByRole('button', { name: 'Job actions' })).toBeInTheDocument();
+    });
+
+    it('exposes an optional description to assistive tech without showing it', () => {
+        renderSheet({
+            title: 'Job details',
+            description: 'Schedule and execution information for this job.',
+        });
+
+        const dialog = screen.getByRole('dialog', { name: 'Job details' });
+        expect(dialog).toHaveAccessibleDescription('Schedule and execution information for this job.');
+        expect(within(dialog).getByText('Schedule and execution information for this job.')).toHaveClass('sr-only');
     });
 });

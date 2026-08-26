@@ -3,7 +3,6 @@ import { PlusIcon } from 'lucide-react';
 
 import ToolDialog from './toolDialog/ToolDialog';
 import Form from '@/components/blocks/form/Form';
-import DialogTitle from '@/components/ui-app/dialogTitle/DialogTitle';
 import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Flex from '@/components/ui-app/flex/Flex';
 import Sheet from '@/components/ui-app/sheet/Sheet';
@@ -316,19 +315,13 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
 
     return (
         <Sheet
+            title={title}
             open={isOpen}
             primaryButtonLabel={submitLabel}
-            ariaDescribedby={title}
             isSubmitting={isSubmitting}
             onOpenChange={onOpenChange}
             formId={formId}>
-            <div>
-                <DialogTitle size="lg" spacing="md">
-                    {title}
-                </DialogTitle>
-
-                <Form id={formId} ariaLabel={title} groups={groups} onSubmit={onFormSubmit} />
-            </div>
+            <Form id={formId} ariaLabel={title} groups={groups} onSubmit={onFormSubmit} />
 
             <ToolDialog
                 isOpen={state.isToolDialogOpen}
