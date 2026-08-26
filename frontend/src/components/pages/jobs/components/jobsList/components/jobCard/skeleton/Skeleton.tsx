@@ -4,13 +4,16 @@ import Skeleton from '@/components/ui-app/skeleton/Skeleton';
 
 const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {
     return (
-        <Card titleSize="sm" title={jobName ?? <Skeleton className="h-2 w-1/2" />}>
-            <Flex direction="column" gap="lg">
+        <Card
+            titleSize="sm"
+            title={jobName ?? <Skeleton className="h-2 w-1/2" />}
+            titleAddon={
                 <Flex align="center" gap="xs">
                     <Skeleton className="size-2.5 rounded-full" />
                     <Skeleton className="h-2 w-1/3" />
                 </Flex>
-
+            }>
+            <Flex direction="column" gap="lg">
                 <Flex direction="column" gap="sm">
                     <Skeleton className="h-2.5 w-1/2" />
                     <Skeleton className="h-2.5 w-1/3" />

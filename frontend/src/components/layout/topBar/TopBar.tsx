@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
+import Button from '@/components/blocks/button/Button';
 import Avatar from '@/components/ui-app/avatar/Avatar';
-import Button from '@/components/ui-app/button/Button';
 import Flex from '@/components/ui-app/flex/Flex';
 
 import api from '@/api';

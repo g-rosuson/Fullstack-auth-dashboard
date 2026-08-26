@@ -2,9 +2,9 @@ import { type ChangeEvent, type SubmitEvent as ReactSubmitEvent, useCallback, us
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import PasswordValidator from './passwordValidator/PasswordValidator';
+import Button from '@/components/blocks/button/Button';
 import Card from '@/components/blocks/card/Card';
 import Form from '@/components/blocks/form/Form';
-import Button from '@/components/ui-app/button/Button';
 import Flex from '@/components/ui-app/flex/Flex';
 import Text from '@/components/ui-app/text/Text';
 
