@@ -57,6 +57,7 @@ const Sheet = ({
     onOpenChange,
 }: SheetProps) => {
     const submitsForm = !!formId;
+    const isHorizontal = side === 'left' || side === 'right';
 
     // Determine the sheet footer
     const sheetFooter = (
@@ -85,7 +86,7 @@ const Sheet = ({
             <SheetContent
                 className={cn(
                     'flex flex-col justify-between px-md pt-md overflow-scroll',
-                    sheetWidthVariant({ width }),
+                    isHorizontal && sheetWidthVariant({ width }),
                     className
                 )}
                 side={side}>
@@ -93,7 +94,6 @@ const Sheet = ({
                     {children}
                     {sheetFooter}
                 </Flex>
-
                 <DialogDescription className="sr-only">{ariaDescribedby}</DialogDescription>
             </SheetContent>
         </SheetPrimitive>
