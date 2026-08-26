@@ -10,7 +10,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// TODO: Look into: dark-mode, dropdown menu item using destructive variant is to dark
 const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
     // Determine the trigger
     let dropdownMenuTrigger = <EllipsisIcon size={18} />;

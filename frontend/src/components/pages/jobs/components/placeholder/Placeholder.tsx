@@ -1,4 +1,4 @@
-import Button from '@/components/ui-app/button/Button';
+import Button from '@/components/blocks/button/Button';
 import illustration from '@/components/ui-app/illustration/Illustration';
 
 interface PlaceholderProps {

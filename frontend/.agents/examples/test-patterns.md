@@ -7,7 +7,7 @@ Canonical examples for React component tests using `@testing-library/react`.
 ## Component Test
 
 ```typescript
-// frontend/src/components/ui-app/button/Button.test.tsx
+// frontend/src/components/blocks/button/Button.test.tsx
 
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

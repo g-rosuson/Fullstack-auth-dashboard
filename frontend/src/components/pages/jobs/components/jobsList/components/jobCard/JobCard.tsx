@@ -23,16 +23,15 @@ const JobCard = ({
     if (showSkeleton) {
         content = <JobCardSkeleton jobName={jobName} />;
     } else {
-        // Note: This expects the stream to be hydrated.
+        // Note: This relies on the stream to be hydrated.
         content = (
             <Card
                 titleSize="sm"
                 title={jobName}
+                titleAddon={<Status status={status} />}
                 headerActions={<DropdownMenu dropdownMenuItems={menuItems} />}
                 onClick={onOpen}>
-                <Flex direction="column" gap="md">
-                    <Status status={status} />
-
+                <Flex direction="column" gap="lg">
                     <Schedule schedule={schedule} />
 
                     <ActionButton status={status} isLoading={isSubmitting} onClick={onRequestConfirm} />

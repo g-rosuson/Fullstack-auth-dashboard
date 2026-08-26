@@ -92,7 +92,7 @@ Use `Field` from `@/components/ui-app/field/Field`. Never use raw `<input>` in p
 
 ## Button with loading state
 
-Use `Button` from `@/components/ui-app/button/Button`:
+Use `Button` from `@/components/blocks/button/Button`:
 
 ```tsx
 <Button
