@@ -1,17 +1,18 @@
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react';
+import { type ChangeEvent, type SubmitEvent as ReactSubmitEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import PasswordValidator from './passwordValidator/PasswordValidator';
+import Card from '@/components/blocks/card/Card';
+import Form from '@/components/blocks/form/Form';
 import Button from '@/components/ui-app/button/Button';
-import Card from '@/components/ui-app/card/Card';
-import Field from '@/components/ui-app/field/Field';
+import Flex from '@/components/ui-app/flex/Flex';
 import Text from '@/components/ui-app/text/Text';
 
 import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
+import type { FormField, FormGroup } from '@/components/blocks/form/Form.types';
 
 import constants from './constants';
 import api from '@/api';
-import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import config from '@/config';
 import { CustomError } from '@/services/error';
 import logging from '@/services/logging';
@@ -70,7 +71,7 @@ const Authentication = () => {
     /**
      * Sets the access-token and its decoded content in the store on login and register.
      */
-    const onSubmit = async (event: FormEvent) => {
+    const onSubmit = async (event: ReactSubmitEvent<HTMLFormElement>) => {
         try {
             event.preventDefault();
 
@@ -149,74 +150,75 @@ const Authentication = () => {
         }
     }, [navigate, userSelectors.accessToken]);
 
-    // Determine partial form (Login)
-    const partialFormContent = (
-        <>
-            <Field
-                label={constants.labels.input.email.label}
-                type="email"
-                name="email"
-                value={email}
-                placeholder={constants.labels.input.email.placeholder}
-                onChange={onInputChange}
-                required
-            />
+    // Login fields
+    const loginFields: FormField[] = [
+        {
+            type: 'email',
+            name: 'email',
+            label: constants.labels.input.email.label,
+            value: email,
+            placeholder: constants.labels.input.email.placeholder,
+            onChange: onInputChange,
+            required: true,
+        },
+        {
+            type: 'password',
+            name: 'password',
+            label: constants.labels.input.password.label,
+            value: password,
+            placeholder: constants.labels.input.password.placeholder,
+            onChange: onInputChange,
+            required: true,
+        },
+    ];
 
-            <Field
-                label={constants.labels.input.password.label}
-                type="password"
-                name="password"
-                value={password}
-                placeholder={constants.labels.input.password.placeholder}
-                onChange={onInputChange}
-                required
-            />
-        </>
-    );
+    // Register fields
+    const registerFields: FormField[] = [
+        {
+            type: 'text',
+            name: 'firstName',
+            label: constants.labels.input.firstName.label,
+            value: firstName,
+            placeholder: constants.labels.input.firstName.placeholder,
+            onChange: onInputChange,
+            required: true,
+        },
+        {
+            type: 'text',
+            name: 'lastName',
+            label: constants.labels.input.lastName.label,
+            value: lastName,
+            placeholder: constants.labels.input.lastName.placeholder,
+            onChange: onInputChange,
+            required: true,
+        },
+        ...loginFields,
+        {
+            type: 'password',
+            name: 'confirmationPassword',
+            label: constants.labels.input.confirmPassword.label,
+            value: confirmationPassword,
+            placeholder: constants.labels.input.confirmPassword.placeholder,
+            onChange: onInputChange,
+            required: true,
+        },
+    ];
 
-    // Determine full form content (Register)
-    const fullFormContent = (
-        <>
-            <Field
-                label={constants.labels.input.firstName.label}
-                type="text"
-                name="firstName"
-                value={firstName}
-                placeholder={constants.labels.input.firstName.placeholder}
-                onChange={onInputChange}
-                required
-            />
+    // Groups
+    const groups: FormGroup[] = [
+        {
+            fields: isRegisterActive ? registerFields : loginFields,
+            children: isRegisterActive ? (
+                <PasswordValidator
+                    password={password}
+                    confirmationPassword={confirmationPassword}
+                    onChange={onPasswordChange}
+                />
+            ) : undefined,
+        },
+    ];
 
-            <Field
-                label={constants.labels.input.lastName.label}
-                type="text"
-                name="lastName"
-                value={lastName}
-                placeholder={constants.labels.input.lastName.placeholder}
-                onChange={onInputChange}
-                required
-            />
-
-            {partialFormContent}
-
-            <Field
-                label={constants.labels.input.confirmPassword.label}
-                type="password"
-                name="confirmationPassword"
-                value={confirmationPassword}
-                placeholder={constants.labels.input.confirmPassword.placeholder}
-                onChange={onInputChange}
-                required
-            />
-
-            <PasswordValidator
-                password={password}
-                confirmationPassword={state.confirmationPassword}
-                onChange={onPasswordChange}
-            />
-        </>
-    );
-
+    // Labels
     const heading = isRegisterActive ? constants.labels.heading.register : constants.labels.heading.login;
     const buttonLabel = isRegisterActive ? constants.labels.button.register : constants.labels.button.login;
     const authModeLinkLabel = isRegisterActive ? constants.labels.links.login : constants.labels.links.register;
@@ -224,39 +226,31 @@ const Authentication = () => {
     const description = isRegisterActive ? 'Create your account to get started.' : 'Sign in to your account.';
 
     return (
-        <div className="flex min-h-svh items-center justify-center p-md">
-            <Card>
-                <CardHeader>
-                    <CardTitle size="lg" spacing="md">
-                        {heading}
-                    </CardTitle>
-                    <CardDescription size="sm">{description}</CardDescription>
-                </CardHeader>
-
-                <CardContent>
-                    <form aria-label="Authentication form" className="flex flex-col gap-md" onSubmit={onSubmit}>
-                        {isRegisterActive ? fullFormContent : partialFormContent}
-
-                        <Button
-                            type="submit"
-                            label={buttonLabel}
-                            isLoading={isLoading}
-                            disabled={isRegisterActive && isPasswordValid === false}
-                        />
-                    </form>
-                </CardContent>
-
-                {config.features.registrationEnabled && (
-                    <CardFooter className="justify-center">
-                        <Link to={route}>
-                            <Text size="sm" variant="foreground">
-                                {authModeLinkLabel}
-                            </Text>
-                        </Link>
-                    </CardFooter>
-                )}
+        <Flex direction="column" justify="center" align="center" className="min-h-svh p-md">
+            <Card
+                title={heading}
+                description={description}
+                footer={
+                    config.features.registrationEnabled ? (
+                        <Flex justify="center">
+                            <Link to={route}>
+                                <Text size="sm" variant="foreground">
+                                    {authModeLinkLabel}
+                                </Text>
+                            </Link>
+                        </Flex>
+                    ) : undefined
+                }>
+                <Form ariaLabel="Authentication form" groups={groups} onSubmit={onSubmit}>
+                    <Button
+                        type="submit"
+                        label={buttonLabel}
+                        isLoading={isLoading}
+                        disabled={isRegisterActive && isPasswordValid === false}
+                    />
+                </Form>
             </Card>
-        </div>
+        </Flex>
     );
 };
 
