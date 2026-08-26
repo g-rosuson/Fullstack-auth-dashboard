@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 const spinnerVariants = cva('', {
     variants: {
         size: {
-            lg: 'size-8',
-            md: 'size-6',
-            sm: 'size-3',
-            xs: 'size-2',
+            lg: 'size-lg',
+            md: 'size-md',
+            sm: 'size-sm',
+            xs: 'size-xs',
         },
         variant: {
             primary: 'text-primary-foreground',
