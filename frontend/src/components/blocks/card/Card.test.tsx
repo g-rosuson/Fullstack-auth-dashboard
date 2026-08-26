@@ -12,6 +12,7 @@ const renderCard = (props: Partial<CardProps> & { children?: ReactNode } = {}) =
         <Card
             title={props.title ?? 'Card title'}
             titleSize={props.titleSize}
+            titleAddon={props.titleAddon}
             description={props.description}
             headerActions={props.headerActions}
             footer={props.footer}
@@ -50,6 +51,17 @@ describe('Card block: chrome', () => {
         });
 
         expect(screen.getByRole('button', { name: 'Job actions' })).toBeInTheDocument();
+    });
+
+    it('renders a title addon below the heading without including it in the heading name', () => {
+        renderCard({
+            title: 'Nightly scrape',
+            titleAddon: <span>Active</span>,
+        });
+
+        expect(screen.getByRole('heading', { name: 'Nightly scrape' })).toBeInTheDocument();
+        expect(screen.getByText('Active')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Nightly scrape' })).not.toHaveTextContent('Active');
     });
 
     it('renders an optional footer', () => {

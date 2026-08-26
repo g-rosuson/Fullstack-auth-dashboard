@@ -1,5 +1,7 @@
 import React from 'react';
 
+import Flex from '@/components/ui-app/flex/Flex';
+
 import {
     Card as CardPrimitive,
     CardAction,
@@ -14,6 +16,7 @@ import { cn } from '@/lib/utils';
 interface CardProps {
     title: React.ReactNode;
     titleSize?: 'xs' | 'sm' | 'md' | 'lg';
+    titleAddon?: React.ReactNode;
     description?: string;
     headerActions?: React.ReactNode;
     footer?: React.ReactNode;
@@ -25,6 +28,7 @@ interface CardProps {
 const Card = ({
     title,
     titleSize = 'lg',
+    titleAddon,
     description,
     headerActions,
     footer,
@@ -32,19 +36,49 @@ const Card = ({
     className,
     onClick,
 }: CardProps) => {
+    let descriptionContent = null;
+
+    if (description) {
+        descriptionContent = <CardDescription size="sm">{description}</CardDescription>;
+    }
+
+    let headerActionsContent = null;
+
+    if (headerActions) {
+        headerActionsContent = <CardAction onClick={event => event.stopPropagation()}>{headerActions}</CardAction>;
+    }
+
+    let childrenContent = null;
+
+    if (children) {
+        childrenContent = <CardContent>{children}</CardContent>;
+    }
+
+    let footerContent = null;
+
+    if (footer) {
+        footerContent = <CardFooter>{footer}</CardFooter>;
+    }
+
     return (
         <CardPrimitive className={cn(onClick && 'cursor-pointer', className)} onClick={onClick}>
             <CardHeader>
-                <CardTitle size={titleSize}>{title}</CardTitle>
-                {description ? <CardDescription size="sm">{description}</CardDescription> : null}
-                {headerActions ? (
-                    <CardAction onClick={event => event.stopPropagation()}>{headerActions}</CardAction>
-                ) : null}
+                <Flex direction="column" gap="xs" className="min-w-0">
+                    <CardTitle size={titleSize} className="min-w-0 truncate">
+                        {title}
+                    </CardTitle>
+
+                    {titleAddon}
+                </Flex>
+
+                {descriptionContent}
+
+                {headerActionsContent}
             </CardHeader>
 
-            {children ? <CardContent>{children}</CardContent> : null}
+            {childrenContent}
 
-            {footer ? <CardFooter>{footer}</CardFooter> : null}
+            {footerContent}
         </CardPrimitive>
     );
 };
