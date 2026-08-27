@@ -1,6 +1,6 @@
 ---
 name: sse-streaming
-description: Implement Server-Sent Events (SSE) endpoints using req.context.emitter, sendSSE, and the close-listener cleanup pattern. Covers header setup, event listener registration, replay of previously emitted events on reconnect, and mandatory listener teardown. Use when adding a new SSE stream endpoint or modifying the jobs stream.
+description: Implement Server-Sent Events (SSE) endpoints using req.context.emitter, openSSE, sendSSE, and the close-listener cleanup pattern. Covers header setup, WebKit priming, event listener registration, replay of previously emitted events on reconnect, and mandatory listener teardown. Use when adding a new SSE stream endpoint or modifying the jobs stream.
 ---
 
 # Purpose
@@ -15,25 +15,33 @@ Implement SSE endpoints correctly — headers, initial state flush, live event f
 
 # Required Patterns
 
-## SSE headers — always set these four
+## Open the stream with `openSSE`
+
+Always open via `openSSE` from `aop/http/sse` — do not set SSE headers in the controller:
 
 ```typescript
-res.setHeader('Content-Type', 'text/event-stream');
-res.setHeader('Cache-Control', 'no-cache');
-res.setHeader('Connection', 'keep-alive');
-res.flushHeaders();
+import { openSSE, sendSSE } from 'aop/http/sse';
+
+openSSE(res);  // headers, WebKit comment, flush
 ```
 
-Call `res.flushHeaders()` immediately after setting headers to begin the stream. Do not defer.
+`openSSE` sets:
+
+- `Content-Type: text/event-stream`
+- `Cache-Control: no-cache, no-transform` — `no-transform` stops proxies from rewriting the stream
+- `Connection: keep-alive`
+- `X-Accel-Buffering: no` — stops nginx from buffering
+
+It then calls `res.flushHeaders()`, writes a priming SSE **comment** (`: connected\n`) so WebKit starts delivering bytes, and flushes. The comment must **not** end with a blank line: a dispatched empty frame makes `JSON.parse` throw in the frontend stream client on every browser.
 
 ## sendSSE helper
 
-All event writes use `sendSSE` from `aop/http/sse`:
+All event writes use `sendSSE` from `aop/http/sse`. Each call serializes the payload and flushes so live events are not held in a proxy or compression buffer:
 
 ```typescript
 import { sendSSE } from 'aop/http/sse';
 
-sendSSE(res, payload);  // serializes payload to SSE format
+sendSSE(res, payload);  // serializes payload to SSE format and flushes
 ```
 
 ## Event listener pattern
@@ -88,7 +96,7 @@ Replay individually (not batched) to match the format and ordering of live event
 ## Adding a new SSE endpoint
 
 1. Create a synchronous controller function — SSE does not use `async`.
-2. Set the four required headers and call `res.flushHeaders()`.
+2. Call `openSSE(res)` immediately (headers, WebKit comment, flush).
 3. Send initial state if applicable.
 4. For each event type: define a typed handler const, call `req.context.emitter.on(eventName, handler)`, and register `req.on('close', () => req.context.emitter.off(eventName, handler))`.
 5. Add the route to `<module>-routing.ts` — SSE routes should be protected by `authenticateContextMiddleware`.
@@ -106,15 +114,12 @@ Replay individually (not batched) to match the format and ordering of live event
 
 ```typescript
 import { Request, Response } from 'express';
-import { sendSSE } from 'aop/http/sse';
+import { openSSE, sendSSE } from 'aop/http/sse';
 import constants from 'shared/constants';
 import type { EventTypeToPayloadMap } from 'shared/types/jobs/events/types-jobs-events';
 
 const streamJobs = (req: Request, res: Response) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
+    openSSE(res);
 
     // Initial state
     const runningJobIds: string[] = [];
@@ -139,18 +144,20 @@ export { streamJobs };
 
 ## Frontend — consuming the stream
 
-The frontend uses `@microsoft/fetch-event-source` via `api/service/client/stream.ts`. SSE events are received as parsed JSON. See the frontend `api-client-patterns` skill for stream consumption patterns.
+The frontend uses `@microsoft/fetch-event-source` via `api/service/client/stream.ts` with `openWhenHidden: true`. Skip frames with empty `data` before `JSON.parse`. See the frontend `api-client-patterns` skill for stream consumption patterns.
 
 # Edge Cases
 
 - **Listener memory leak**: If `req.on('close', ...)` is not registered, listeners accumulate for every client connection. Node.js will warn at 11+ listeners on the same emitter event. Always clean up.
 - **Reconnect replay**: Use `getEmittedJobTargetEventsForUser(userId)` for reconnect buffer. On reconnect, replay only events where the job is still running (`delegator.runningJobs.has(event.jobId)`) to avoid stale data.
-- **Synchronous controller**: SSE controllers are synchronous (no `async`). Do not `await` in the handler — it blocks `res.flushHeaders()`.
+- **Synchronous controller**: SSE controllers are synchronous (no `async`). Do not `await` in the handler — it blocks `openSSE` / `res.flushHeaders()`.
 - **User scoping**: The emitter broadcasts to all listeners; filter by `event.userId` on every event. Never send another user's events to the current connection.
+- **WebKit / proxy buffering**: Safari will not deliver live events until `openSSE` primes with a comment (no trailing blank line) and `sendSSE` flushes. Missing `no-transform` or `X-Accel-Buffering: no` can hide the same events behind a proxy.
 
 # Anti-Patterns
 
-- **Never** omit `res.flushHeaders()` — without it, the stream does not start.
+- **Never** omit `openSSE(res)` — without it, headers are not flushed and WebKit may not deliver live events.
+- **Never** end the priming comment with a blank line (`\n\n`) — that dispatches an empty frame and `JSON.parse` throws on the client.
 - **Never** use an anonymous function for event listeners — you cannot call `.off()` with an anonymous reference.
 - **Never** skip the `req.on('close', ...)` cleanup — every uncleaned listener is a memory leak.
 - **Never** emit events to a connection without filtering by `userId`.
@@ -159,11 +166,11 @@ The frontend uses `@microsoft/fetch-event-source` via `api/service/client/stream
 
 # Validation Checklist
 
-- [ ] Four SSE headers set and `res.flushHeaders()` called
+- [ ] `openSSE(res)` called (headers include `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`; WebKit comment has no trailing blank line)
 - [ ] Initial state sent before registering live listeners
 - [ ] Each handler stored as a `const` for `.off()` reference
 - [ ] `req.on('close', ...)` cleanup registered for every listener
 - [ ] All events filtered by `event.userId === req.context.user.id`
-- [ ] `sendSSE` used for all writes — no raw `res.write()`
+- [ ] `sendSSE` used for all event writes — no raw `res.write()` in the controller
 - [ ] Controller is synchronous (not `async`)
 - [ ] Route protected by `authenticateContextMiddleware`

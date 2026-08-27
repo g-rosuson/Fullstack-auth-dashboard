@@ -11,7 +11,7 @@ Auth: [HTTP-AUTH-TOK-003](../auth/session.md). Events are owner-scoped ([FR-JOBS
   - No body
 - Response:
   - Status: `200`
-  - Headers: `Content-Type` includes `text/event-stream`; `Cache-Control: no-cache`; `Connection: keep-alive`
+  - Headers: `Content-Type` includes `text/event-stream`; `Cache-Control: no-cache, no-transform`; `Connection: keep-alive`; `X-Accel-Buffering: no`
   - Body: SSE stream (not a JSON envelope)
 
 Traces:

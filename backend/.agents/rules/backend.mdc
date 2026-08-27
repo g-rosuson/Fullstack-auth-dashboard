@@ -73,8 +73,7 @@ try {
 
 ## SSE (Server-Sent Events)
 
-- Set `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`, then `res.flushHeaders()`.
-- Use `sendSSE(res, payload)` from `aop/http/sse`.
+- Open the stream with `openSSE(res)` from `aop/http/sse` (headers, WebKit comment, flush). Write events with `sendSSE(res, payload)` — it flushes each event.
 - Remove all event listeners on `req.on('close', ...)`.
 
 TODO: This is defined in documenation/specificationan/architecture/http .... need here to?
