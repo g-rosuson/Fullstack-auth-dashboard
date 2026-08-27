@@ -9,7 +9,7 @@ const placeholder = 'No jobs exist yet, create your first job to get started.';
 
 const Placeholder = ({ openFormSheet }: PlaceholderProps) => {
     return (
-        <div className="flex flex-col items-center justify-center grow-1 gap-md">
+        <div className="flex flex-col items-center justify-center grow gap-md">
             <div className="flex flex-col items-center justify-center gap-md">
                 <illustration.NotFound />
 
