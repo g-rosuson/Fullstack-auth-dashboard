@@ -1,9 +1,11 @@
-import ToastIcon from './toastIcon/ToastIcon';
 import Flex from '@/components/ui-app/flex/Flex';
 
 import type { ToastAddOptions, ToasterProps, ToastUpdateOptions } from './Toast.types';
 
 import constants from './constants';
+import ToastIcon from './ToastIcon';
+import { textVariants } from '@/components/blocks/shared/variants/typography/text.variants';
+import { titleVariants } from '@/components/blocks/shared/variants/typography/title.variants';
 import {
     Toast,
     toast as toastManager,
@@ -16,34 +18,29 @@ import {
     ToastViewport,
     useToastManager,
 } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
 
 function ToastList() {
     const { toasts } = useToastManager();
 
     return toasts.map(toastItem => (
-        <Toast key={toastItem.id} toast={toastItem} className="border border-border rounded-lg bg-surface cursor-grab">
-            <ToastContent>
-                <Flex gap="md">
-                    <ToastIcon type={toastItem.type} />
+        <Toast key={toastItem.id} toast={toastItem} className="rounded-lg bg-surface cursor-grab">
+            <ToastContent className="gap-md">
+                <ToastIcon type={toastItem.type} />
 
-                    <Flex direction="column" gap="sm">
-                        <Flex direction="column" gap="md">
-                            <Flex direction="column" gap="sm">
-                                <ToastTitle />
-                                <ToastDescription />
-                            </Flex>
-                        </Flex>
-                    </Flex>
-
-                    <ToastClose />
+                <Flex direction="column" gap="sm" className="min-w-0">
+                    <ToastTitle className={cn(titleVariants({ size: 'sm', spacing: 'none', weight: 'medium' }))} />
+                    <ToastDescription className={textVariants({ size: 'sm', variant: 'muted' })} />
                 </Flex>
+
+                <ToastClose />
             </ToastContent>
         </Toast>
     ));
 }
 
 /**
- * App toast shell — mounts the Base UI toast provider and viewport once.
+ * Composes the shadcn toast with a product content model: title, description, type, and dismiss.
  */
 function Toaster({ children }: ToasterProps) {
     return (
@@ -66,3 +63,7 @@ const toast = {
 };
 
 export { toast, Toaster, constants };
+
+export default Toaster;
+
+export type { ToastAddOptions, ToasterProps, ToastType, ToastUpdateOptions } from './Toast.types';

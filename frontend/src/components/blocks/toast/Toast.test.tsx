@@ -12,7 +12,7 @@ const addToast = (options: ToastAddOptions) => {
     });
 };
 
-describe('Toaster', () => {
+describe('Toast block: chrome', () => {
     afterEach(() => {
         act(() => {
             toast.close();
@@ -20,15 +20,23 @@ describe('Toaster', () => {
         cleanup();
     });
 
-    it('shows title and description when a toast is added', async () => {
+    it('[CLIENT-UI-NTF-001] / [FR-UI-NTF-001] names the notification from its title', async () => {
+        render(<Toaster />);
+        addToast({ title: 'Saved' });
+
+        expect(await screen.findByRole('dialog', { name: 'Saved' })).toBeInTheDocument();
+    });
+
+    it('[CLIENT-UI-NTF-002] / [FR-UI-NTF-002] shows an optional visible description', async () => {
         render(<Toaster />);
         addToast({ title: 'Saved', description: 'Job created' });
 
         const notification = await screen.findByRole('dialog', { name: 'Saved' });
         expect(within(notification).getByText('Job created')).toBeInTheDocument();
+        expect(within(notification).getByText('Job created')).not.toHaveClass('sr-only');
     });
 
-    it('shows a loading status for loading toasts', async () => {
+    it('[CLIENT-UI-NTF-004] / [FR-UI-NTF-004] exposes a loading status for an in-progress notification', async () => {
         render(<Toaster />);
         addToast({ type: 'loading', title: 'Working…' });
 
@@ -36,15 +44,24 @@ describe('Toaster', () => {
         expect(within(notification).getByRole('status', { name: 'Loading' })).toBeInTheDocument();
     });
 
-    it('does not show a loading status for default toasts', async () => {
+    it('does not expose a loading status when the notification is not in progress', async () => {
         render(<Toaster />);
         addToast({ title: 'Notice' });
 
         const notification = await screen.findByRole('dialog', { name: 'Notice' });
         expect(within(notification).queryByRole('status')).not.toBeInTheDocument();
     });
+});
 
-    it('closes the toast when the close control is activated', async () => {
+describe('Toast block: dismiss', () => {
+    afterEach(() => {
+        act(() => {
+            toast.close();
+        });
+        cleanup();
+    });
+
+    it('[CLIENT-UI-NTF-003] / [FR-UI-NTF-003] dismisses the notification when the user activates the close control', async () => {
         render(<Toaster />);
         addToast({ title: 'Dismiss me' });
 

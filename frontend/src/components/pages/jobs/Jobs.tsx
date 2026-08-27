@@ -5,7 +5,7 @@ import JobsList from './components/jobsList/JobsList';
 import JobsSkeleton from './components/jobsList/JobsSkeleton';
 import Placeholder from './components/placeholder/Placeholder';
 import Title from '@/components/blocks/title/Title';
-import { constants as toastConstants, toast } from '@/components/ui-app/toast/Toast';
+import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
 
 import mappers from './mappers';
 

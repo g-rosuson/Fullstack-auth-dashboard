@@ -19,7 +19,8 @@ function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
         <ToastPrimitive.Viewport
             data-slot="toast-viewport"
             className={cn(
-                'pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto w-auto max-w-sm outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full',
+                // Style-system tokens (inset-x-md, bottom-md, sm:right-md) replace stock inset-x-4 / bottom-4 / sm:right-4.
+                'pointer-events-none fixed inset-x-md bottom-md z-50 mx-auto w-auto max-w-sm outline-none sm:right-md sm:left-auto sm:mx-0 sm:w-full',
                 className
             )}
             {...props}
@@ -59,7 +60,8 @@ function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
         <ToastPrimitive.Content
             data-slot="toast-content"
             className={cn(
-                'flex h-full items-center gap-3 overflow-hidden p-4 transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100',
+                // Style-system token (p-md) replaces stock p-4. gap-3 has no named token.
+                'flex h-full items-center gap-3 overflow-hidden p-md transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100',
                 className
             )}
             {...props}

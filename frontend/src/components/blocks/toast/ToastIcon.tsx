@@ -2,11 +2,14 @@ import { CircleCheckIcon, CircleXIcon, InfoIcon, MegaphoneIcon } from 'lucide-re
 
 import Spinner from '@/components/ui-app/spinner/Spinner';
 
-import type { ToastType } from '../Toast.types';
-import type { ToastIconProps } from './ToastIcon.types';
+import type { ToastType } from './Toast.types';
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
+
+type ToastIconProps = {
+    type?: string;
+};
 
 const iconClassName = "shrink-0 [&_svg:not([class*='size-'])]:size-5";
 
