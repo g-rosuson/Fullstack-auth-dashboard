@@ -29,6 +29,7 @@ const stream = <TEvents extends EventMap>(path: string, options: StreamOptions<T
 
     fetchEventSource(buildUrl(path), {
         method: 'GET',
+        credentials: 'include',
         headers: {
             ...(!!accessToken && { Authorization: `Bearer ${accessToken}` }),
             ...options.headers,

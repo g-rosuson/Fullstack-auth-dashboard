@@ -111,6 +111,7 @@ describe('jobs-controller streamJobs', () => {
 
             expect(firstWrite.startsWith(':')).toBe(true);
             expect(firstWrite.endsWith('\n\n')).toBe(false);
+            expect(firstWrite.length).toBeGreaterThanOrEqual(2048);
         });
 
         it('should detach listeners when the connection is closed', () => {

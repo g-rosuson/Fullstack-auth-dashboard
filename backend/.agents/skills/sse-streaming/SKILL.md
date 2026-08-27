@@ -32,11 +32,11 @@ openSSE(res);  // headers, WebKit comment, flush
 - `Connection: keep-alive`
 - `X-Accel-Buffering: no` — stops nginx from buffering
 
-It then calls `res.flushHeaders()`, writes a priming SSE **comment** (`: connected\n`) so WebKit starts delivering bytes, and flushes. The comment must **not** end with a blank line: a dispatched empty frame makes `JSON.parse` throw in the frontend stream client on every browser.
+It then calls `res.flushHeaders()`, writes a ≥2KB priming SSE **comment** (no trailing blank line) so WebKit's fetch stream releases bytes, disables Nagle on the socket, and flushes. The comment must **not** end with a blank line: a dispatched empty frame makes `JSON.parse` throw in the frontend stream client on every browser.
 
 ## sendSSE helper
 
-All event writes use `sendSSE` from `aop/http/sse`. Each call serializes the payload and flushes so live events are not held in a proxy or compression buffer:
+All event writes use `sendSSE` from `aop/http/sse`. Each call prefixes the same ≥2KB comment, serializes the payload, and flushes — WebKit otherwise holds small live frames until later traffic arrives:
 
 ```typescript
 import { sendSSE } from 'aop/http/sse';
@@ -152,7 +152,7 @@ The frontend uses `@microsoft/fetch-event-source` via `api/service/client/stream
 - **Reconnect replay**: Use `getEmittedJobTargetEventsForUser(userId)` for reconnect buffer. On reconnect, replay only events where the job is still running (`delegator.runningJobs.has(event.jobId)`) to avoid stale data.
 - **Synchronous controller**: SSE controllers are synchronous (no `async`). Do not `await` in the handler — it blocks `openSSE` / `res.flushHeaders()`.
 - **User scoping**: The emitter broadcasts to all listeners; filter by `event.userId` on every event. Never send another user's events to the current connection.
-- **WebKit / proxy buffering**: Safari will not deliver live events until `openSSE` primes with a comment (no trailing blank line) and `sendSSE` flushes. Missing `no-transform` or `X-Accel-Buffering: no` can hide the same events behind a proxy.
+- **WebKit / proxy buffering**: Safari's fetch stream holds small chunks until more data arrives. `openSSE` / `sendSSE` prefix a ≥2KB comment (no trailing blank line) and flush with `setNoDelay`. Missing `no-transform` or `X-Accel-Buffering: no` can hide the same events behind a proxy.
 
 # Anti-Patterns
 
@@ -166,7 +166,7 @@ The frontend uses `@microsoft/fetch-event-source` via `api/service/client/stream
 
 # Validation Checklist
 
-- [ ] `openSSE(res)` called (headers include `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`; WebKit comment has no trailing blank line)
+- [ ] `openSSE(res)` called (headers include `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`; WebKit comment is ≥2KB and has no trailing blank line)
 - [ ] Initial state sent before registering live listeners
 - [ ] Each handler stored as a `const` for `.off()` reference
 - [ ] `req.on('close', ...)` cleanup registered for every listener
