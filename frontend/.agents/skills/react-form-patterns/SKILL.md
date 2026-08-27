@@ -3,6 +3,7 @@ name: react-form-patterns
 description: Implement controlled React forms using the single-state-object pattern, Field components, Zod validation, and the try/catch/finally loading state convention. Covers onInputChange, onSubmit, isLoading lifecycle, CustomError issue surfacing, and password validation. Use when building any form that submits to the API.
 ---
 
+<!-- TODO: Review, shouldn't this point to blocks/form? -->
 # Purpose
 
 Implement forms consistently — controlled inputs with a single state object, API submission with correct loading lifecycle, and structured error handling using `CustomError`.
