@@ -15,7 +15,7 @@ Enforce React, Zustand, API layer, routing, form, and styling patterns used in t
 - Use functional components only. DO NOT use class components.
 - Export components as default exports from their file.
 - Types for props live in a co-located `<Component>.types.ts` file.
-- Compose from `ui-app/` wrapper components, not directly from `ui/` shadcn primitives.
+- Unless using our Tailwind utilities, compose from `blocks/` components, not directly from `ui/` shadcn primitives.
 - DO NOT manually edit files under `src/components/ui/` — managed exclusively via `npm run scadd`.
 - DO NOT manually edit files in `src/_types/_gen/` — managed by `npm run generate-types`.
 
@@ -72,7 +72,7 @@ npm run scadd <component> # Add shadcn component + auto-format
 
 # Anti-Patterns
 
-- DO NOT import from `src/components/ui/` directly — use `ui-app/` wrappers.
+- DO NOT import from `src/components/ui/` in pages or layout when a block exists — use `blocks/`.
 - DO NOT store access tokens in `localStorage` or `sessionStorage`.
 - DO NOT add API calls inside Zustand store slices.
 - DO NOT use `fetch` or `axios` directly in components.

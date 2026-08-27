@@ -77,7 +77,7 @@ Rules:
 
 ## Field component
 
-Use `Field` from `@/components/ui-app/field/Field`. Never use raw `<input>` in page forms.
+Use `Field` from `@/components/blocks/field/Field`. Never use raw `<input>` in page forms.
 
 ```tsx
 <Field
@@ -209,8 +209,8 @@ const onPasswordChange = useCallback((isPasswordValid: boolean) => {
 - **Never** use multiple `useState` calls for individual form fields — use a single state object.
 - **Never** set `isLoading: false` in both `try` success and `catch` — use `finally` only.
 - **Never** call `event.preventDefault()` after an `await` — the form submits before the handler resumes.
-- **Never** use raw `<input>` elements in page forms — use the `Field` ui-app component.
-- **Never** import from `src/components/ui/` directly — use `ui-app/` wrappers.
+- **Never** use raw `<input>` elements in page forms — use the `Field` block.
+- **Never** import from `src/components/ui/` in page forms when a block exists — use `blocks/`.
 - **Never** define API payload types manually — import from `@/_types/_gen`.
 - **Never** swallow errors with an empty `catch` block.
 - **Never** use `fetch` directly in components — use `api.service.resources.*`.
@@ -224,6 +224,6 @@ const onPasswordChange = useCallback((isPasswordValid: boolean) => {
 - [ ] `isLoading: false` cleared only in `finally`
 - [ ] `CustomError` checked with `instanceof` before accessing `.issues`
 - [ ] `logging.error` called in `catch`
-- [ ] `Field` and `Button` ui-app components used
+- [ ] `Field` and `Button` blocks used
 - [ ] API payload types imported from `@/_types/_gen`
 - [ ] `@/` path alias used — no `../../` relative imports

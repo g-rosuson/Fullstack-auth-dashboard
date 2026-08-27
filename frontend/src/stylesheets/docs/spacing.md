@@ -10,7 +10,7 @@ Layout spacing (padding, margin, gap) uses named tokens derived from one `--spac
 
 ## What to use
 
-Prefer `xs`–`xl` in app components (`ui-app`, pages, layout). Pick the step that matches the relationship, not a pixel target:
+Prefer `xs`–`xl` in app components (`blocks`, pages, layout). Pick the step that matches the relationship, not a pixel target:
 
 - `xs` — tight: icon-to-label, stacked meta
 - `sm` — default between related items
@@ -18,6 +18,6 @@ Prefer `xs`–`xl` in app components (`ui-app`, pages, layout). Pick the step th
 - `lg` — between distinct blocks (sheet footer offset)
 - `xl` — page-level separation
 
-Numbered utilities (`p-1`, `gap-3`) still exist because they also read `--spacing`. Do not use them in app components (`ui-app`, pages, layout) — snap to the nearest named token. Arbitrary values (`p-[13px]`) only when a concrete design requirement cannot use a token. `p-0` / `m-0` / `gap-0` are fine for “none”.
+Numbered utilities (`p-1`, `gap-3`) still exist because they also read `--spacing`. Do not use them in app components (`blocks`, pages, layout) — snap to the nearest named token. Arbitrary values (`p-[13px]`) only when a concrete design requirement cannot use a token. `p-0` / `m-0` / `gap-0` are fine for “none”.
 
-Leave shadcn primitives under `components/ui/` unchanged. Apply the named scale in wrappers (`ui-app`) and product UI.
+On shadcn primitives under `components/ui/`, swap numbered spacing that matches the scale (`2` → `sm`, `4` → `md`) and comment the line. Apply named tokens on the composed block surface.

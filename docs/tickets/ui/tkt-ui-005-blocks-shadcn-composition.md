@@ -16,7 +16,7 @@ As a frontend contributor, I want app-specific UI refactored into `components/bl
 
 ## Definition of done
 
-- [ ] App-specific UI lives under `frontend/src/components/blocks/` (move from `ui-app`). Imports, tests, and docs/skills that cite `ui-app` update
+- [] App-specific UI lives under `frontend/src/components/blocks/` (move from `ui-app`). Imports, tests, and docs/skills that cite `ui-app` update
 - [ ] Blocks are composed from shadcn primitives, with exceptions only when that composition is the product or no primitive exists
 - [ ] Token/style conflicts on a single primitive are fixed in `components/ui/` with a comment marking the stock-shadcn change — not a restyle wrapper
 - [ ] Blocks overwrite stock shadcn layout/type on the composed surface with style-system utilities (`p-md`, `gap-sm`, `text-sm`, …). Call sites do not patch the same primitive’s defaults
