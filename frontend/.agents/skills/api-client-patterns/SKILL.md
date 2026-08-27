@@ -78,7 +78,12 @@ const streamJobs = (handlers: StreamHandlers, signal: AbortSignal) => {
         },
         credentials: 'include',
         signal,
+        openWhenHidden: true,
         onmessage(event) {
+            if (!event.data) {
+                return;
+            }
+
             const data = JSON.parse(event.data);
             handlers.onEvent(data);
         },
@@ -176,6 +181,8 @@ useEffect(() => {
 
 - **Missing access token on first load**: `rest.ts` reads the token from `useStore.getState()`. On first page load before the `Authenticate` component refreshes the token, it may be null. The backend returns `401`; `rest.ts` throws `CustomError`. Handle in the consumer's `catch` block.
 - **SSE reconnect**: `fetchEventSource` reconnects automatically on network interruption. The backend's replay logic sends previously emitted events on reconnect — no client-side replay logic is needed.
+- **Empty SSE frames**: Skip `onmessage` when `data` is empty before `JSON.parse`. A comment that ends with a blank line dispatches an empty frame on every browser.
+- **Hidden documents**: Pass `openWhenHidden: true` so Safari / WebKit (and background tabs) keep the stream open.
 - **Route URL construction**: API route paths come from `config.routes.api.*`. Never hardcode URL strings in resource files.
 
 # Anti-Patterns
@@ -192,6 +199,7 @@ useEffect(() => {
 - [ ] Resource functions use `get`, `post`, `put`, `del` from `rest.ts`
 - [ ] Types imported from `@/_types/_gen`, not manually defined
 - [ ] SSE streams use `fetchEventSource` with `AbortSignal` for cleanup
+- [ ] `openWhenHidden: true`; skip frames with empty `data` before `JSON.parse`
 - [ ] `AbortController.abort()` called in effect cleanup
 - [ ] `CustomError` checked with `instanceof` in catch
 - [ ] `logging.error` called for all caught errors

@@ -34,6 +34,7 @@ const stream = <TEvents extends EventMap>(path: string, options: StreamOptions<T
             ...options.headers,
         },
         signal: ctrl.signal,
+        openWhenHidden: true,
 
         async onopen(response) {
             if (response.ok && response.headers.get('content-type')?.startsWith(EventStreamContentType)) {
@@ -49,6 +50,10 @@ const stream = <TEvents extends EventMap>(path: string, options: StreamOptions<T
         },
 
         onmessage(msg) {
+            if (!msg.data) {
+                return;
+            }
+
             if (msg.event === 'FatalError') {
                 throw new FatalError(msg.data);
             }

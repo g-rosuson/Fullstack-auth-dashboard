@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 
 import { BusinessLogicException } from 'aop/exceptions';
 import { ErrorCode } from 'aop/exceptions/shared/enums';
-import { sendSSE } from 'aop/http/sse';
+import { openSSE, sendSSE } from 'aop/http/sse';
 import { logger } from 'aop/logging';
 
 import mappers from './mappers';
@@ -690,10 +690,7 @@ const retryJobSchedule = async (req: Request<IdRouteParam>, res: Response) => {
  * FR-JOBS-OWN-001 — Events filtered to the requesting owner
  */
 const streamJobs = (req: Request, res: Response) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
+    openSSE(res);
 
     const userId = req.context.user.id;
 

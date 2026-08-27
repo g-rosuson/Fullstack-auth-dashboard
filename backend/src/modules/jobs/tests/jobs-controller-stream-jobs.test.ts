@@ -14,10 +14,12 @@ import type { Request, Response } from 'express';
 const mockResponseWrite = vi.fn();
 const mockResponseFlushHeaders = vi.fn();
 const mockResponseSetHeader = vi.fn();
+const mockResponseFlush = vi.fn();
 const mockResponse = {
     write: mockResponseWrite,
     flushHeaders: mockResponseFlushHeaders,
     setHeader: mockResponseSetHeader,
+    flush: mockResponseFlush,
 } as unknown as Response;
 const mockRequestOn = vi.fn();
 
@@ -63,13 +65,26 @@ describe('jobs-controller streamJobs', () => {
         return raw
             .split('\n\n')
             .filter(Boolean)
-            .map(chunk => {
-                const [eventLine, dataLine] = chunk.split('\n');
+            .flatMap(chunk => {
+                const lines = chunk.split('\n').filter(line => line !== '' && !line.startsWith(':'));
 
-                return {
-                    event: eventLine.replace('event: ', ''),
-                    data: JSON.parse(dataLine.replace('data: ', '')),
-                };
+                if (lines.length === 0) {
+                    return [];
+                }
+
+                const eventLine = lines.find(line => line.startsWith('event: '));
+                const dataLine = lines.find(line => line.startsWith('data: '));
+
+                if (!eventLine || !dataLine) {
+                    return [];
+                }
+
+                return [
+                    {
+                        event: eventLine.replace('event: ', ''),
+                        data: JSON.parse(dataLine.replace('data: ', '')),
+                    },
+                ];
             });
     };
 
@@ -84,9 +99,18 @@ describe('jobs-controller streamJobs', () => {
     describe('[HTTP-JOBS-STR-001]', () => {
         it('should handle header setup correctly', () => {
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
-            expect(mockResponseSetHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
+            expect(mockResponseSetHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache, no-transform');
             expect(mockResponseSetHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
+            expect(mockResponseSetHeader).toHaveBeenCalledWith('X-Accel-Buffering', 'no');
             expect(mockResponseFlushHeaders).toHaveBeenCalled();
+            expect(mockResponseFlush).toHaveBeenCalled();
+        });
+
+        it('should prime WebKit with an SSE comment that does not dispatch an empty frame', () => {
+            const firstWrite = mockResponseWrite.mock.calls[0]?.[0] as string;
+
+            expect(firstWrite.startsWith(':')).toBe(true);
+            expect(firstWrite.endsWith('\n\n')).toBe(false);
         });
 
         it('should detach listeners when the connection is closed', () => {

@@ -10,15 +10,21 @@ function parseJobsEvents(buffer: string): JobsEvent[] {
     return buffer
         .split('\n\n')
         .filter(Boolean)
-        .map(chunk => {
-            const lines = chunk.split('\n');
-            const eventLine = lines.find(line => line.startsWith('event: ')) ?? '';
-            const dataLine = lines.find(line => line.startsWith('data: ')) ?? '';
+        .flatMap(chunk => {
+            const lines = chunk.split('\n').filter(line => line !== '' && !line.startsWith(':'));
+            const eventLine = lines.find(line => line.startsWith('event: '));
+            const dataLine = lines.find(line => line.startsWith('data: '));
 
-            return {
-                event: eventLine.replace('event: ', ''),
-                data: JSON.parse(dataLine.replace('data: ', '') || '{}') as Record<string, unknown>,
-            };
+            if (!eventLine || !dataLine) {
+                return [];
+            }
+
+            return [
+                {
+                    event: eventLine.replace('event: ', ''),
+                    data: JSON.parse(dataLine.replace('data: ', '')) as Record<string, unknown>,
+                },
+            ];
         });
 }
 
