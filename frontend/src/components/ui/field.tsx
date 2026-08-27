@@ -10,7 +10,8 @@ function FieldSet({ className, ...props }: React.ComponentProps<'fieldset'>) {
         <fieldset
             data-slot="field-set"
             className={cn(
-                'flex flex-col gap-4 has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3',
+                // Style-system token (gap-md) replaces stock gap-4. gap-3 has no named token.
+                'flex flex-col gap-md has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3',
                 className
             )}
             {...props}
@@ -38,7 +39,8 @@ function FieldGroup({ className, ...props }: React.ComponentProps<'div'>) {
         <div
             data-slot="field-group"
             className={cn(
-                'group/field-group @container/field-group flex w-full flex-col gap-5 data-[slot=checkbox-group]:gap-3 *:data-[slot=field-group]:gap-4',
+                // Style-system token (gap-md) replaces stock gap-4. gap-5 and gap-3 have no named token.
+                'group/field-group @container/field-group flex w-full flex-col gap-5 data-[slot=checkbox-group]:gap-3 *:data-[slot=field-group]:gap-md',
                 className
             )}
             {...props}
@@ -46,7 +48,8 @@ function FieldGroup({ className, ...props }: React.ComponentProps<'div'>) {
     );
 }
 
-const fieldVariants = cva('group/field flex w-full gap-2 data-[invalid=true]:text-destructive', {
+// Style-system token (gap-sm) replaces stock gap-2.
+const fieldVariants = cva('group/field flex w-full gap-sm data-[invalid=true]:text-destructive', {
     variants: {
         orientation: {
             vertical: 'flex-col *:w-full [&>.sr-only]:w-auto',
@@ -92,7 +95,8 @@ function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>)
         <Label
             data-slot="field-label"
             className={cn(
-                'group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border *:data-[slot=field]:p-2.5 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10',
+                // Style-system token (gap-sm) replaces stock gap-2. p-2.5 has no named token.
+                'group/field-label peer/field-label flex w-fit gap-sm leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border *:data-[slot=field]:p-2.5 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10',
                 'has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col',
                 className
             )}
@@ -106,7 +110,8 @@ function FieldTitle({ className, ...props }: React.ComponentProps<'div'>) {
         <div
             data-slot="field-label"
             className={cn(
-                'flex w-fit items-center gap-2 text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50',
+                // Style-system token (gap-sm) replaces stock gap-2.
+                'flex w-fit items-center gap-sm text-sm leading-snug font-medium group-data-[disabled=true]/field:opacity-50',
                 className
             )}
             {...props}
@@ -140,12 +145,17 @@ function FieldSeparator({
         <div
             data-slot="field-separator"
             data-content={!!children}
-            className={cn('relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2', className)}
+            className={cn(
+                // Style-system tokens (-my-sm, -mb-sm) replace stock -my-2 / -mb-2.
+                'relative -my-sm h-5 text-sm group-data-[variant=outline]/field-group:-mb-sm',
+                className
+            )}
             {...props}>
             <Separator className="absolute inset-0 top-1/2" />
             {children && (
                 <span
-                    className="relative mx-auto block w-fit bg-background px-2 text-muted-foreground"
+                    // Style-system token (px-sm) replaces stock px-2.
+                    className="relative mx-auto block w-fit bg-background px-sm text-muted-foreground"
                     data-slot="field-separator-content">
                     {children}
                 </span>
@@ -178,7 +188,8 @@ function FieldError({
         }
 
         return (
-            <ul className="ml-4 flex list-disc flex-col gap-1">
+            // Style-system token (ml-md) replaces stock ml-4. gap-1 has no named token.
+            <ul className="ml-md flex list-disc flex-col gap-1">
                 {uniqueErrors.map((error, index) => error?.message && <li key={index}>{error.message}</li>)}
             </ul>
         );
