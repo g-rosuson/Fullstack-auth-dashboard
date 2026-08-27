@@ -8,12 +8,9 @@ declare module '@tanstack/react-table' {
     }
 }
 
-/**
- * The props for the DataTable component.
- */
-interface DataTableProps<TData, TValue> {
+type TableProps<TData, TValue> = {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
-}
+};
 
-export type { DataTableProps };
+export type { TableProps };

@@ -46,7 +46,8 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
         <th
             data-slot="table-head"
             className={cn(
-                'h-10 p-3 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0',
+                // Style-system token (px-sm) replaces stock px-2.
+                'h-10 px-sm text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0',
                 className
             )}
             {...props}
@@ -58,7 +59,11 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
     return (
         <td
             data-slot="table-cell"
-            className={cn('align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 p-3', className)}
+            className={cn(
+                // Style-system token (p-sm) replaces stock p-2.
+                'align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 p-sm',
+                className
+            )}
             {...props}
         />
     );
@@ -66,7 +71,15 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
 
 function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) {
     return (
-        <caption data-slot="table-caption" className={cn('mt-4 text-sm text-muted-foreground', className)} {...props} />
+        <caption
+            data-slot="table-caption"
+            className={cn(
+                // Style-system token (mt-md) replaces stock mt-4.
+                'mt-md text-sm text-muted-foreground',
+                className
+            )}
+            {...props}
+        />
     );
 }
 

@@ -1,5 +1,5 @@
 import Indicator from './components/indicator/Indicator';
-import DataTable from '@/components/ui-app/table/Table';
+import Table from '@/components/blocks/table/Table';
 
 import mappers from './mappers';
 
@@ -57,7 +57,7 @@ const ScraperTarget = ({ target }: ScraperTargetProps) => {
         }
     }
 
-    return <DataTable data={[...passedRows, ...failedRows]} columns={columns} />;
+    return <Table data={[...passedRows, ...failedRows]} columns={columns} />;
 };
 
 export default ScraperTarget;
