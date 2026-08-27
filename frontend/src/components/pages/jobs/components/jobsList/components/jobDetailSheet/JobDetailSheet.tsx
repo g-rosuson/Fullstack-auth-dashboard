@@ -1,12 +1,12 @@
 import { BadgeInfo } from 'lucide-react';
 
 import Execution from './execution/Execution';
+import DropdownMenu from '@/components/blocks/dropdownMenu/DropdownMenu';
 import Sheet from '@/components/blocks/sheet/Sheet';
 import Title from '@/components/blocks/title/Title';
 import ActionButton from '@/components/pages/jobs/components/jobsList/components/shared/components/actionButton/ActionButton';
 import Schedule from '@/components/pages/jobs/components/jobsList/components/shared/components/schedule/Schedule';
 import Status from '@/components/pages/jobs/components/jobsList/components/shared/components/status/Status';
-import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Flex from '@/components/ui-app/flex/Flex';
 import Text from '@/components/ui-app/text/Text';
 
@@ -63,7 +63,7 @@ const JobDetailSheet = ({
             width="xl"
             title={jobName}
             description={constants.label.ariaDescribedby}
-            headerActions={<DropdownMenu dropdownMenuItems={menuItems} />}
+            headerActions={<DropdownMenu items={menuItems} />}
             open={isOpen}
             onOpenChange={onOpenChange}>
             <Flex direction="column" gap="md">

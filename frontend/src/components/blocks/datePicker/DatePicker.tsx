@@ -6,19 +6,29 @@ import type { DatePickerProps } from './DatePicker.types';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disabled, required }: DatePickerProps) => {
-    // State
+/**
+ * Composes the shadcn popover and calendar with a product content model: label, value, and required.
+ */
+const DatePicker = ({
+    value,
+    label,
+    onChange,
+    placeholder = 'Pick a date',
+    disabled,
+    required,
+    name,
+    error,
+}: DatePickerProps) => {
     const [open, setOpen] = useState(false);
-
-    // Ref
     const datePickerRef = useRef<HTMLInputElement>(null);
+    const triggerId = name ? `${name}-field` : `date-picker-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
     /**
-     * Converts the selected Date to a YYYY-MM-DD string and forwards it to onChange.
+     * Forwards the selected day and closes the calendar.
      */
     const onSelect = (date: Date | undefined) => {
         onChange(date ? date : null);
@@ -26,10 +36,7 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
     };
 
     /**
-     * Programmatically set the validity of the input element based
-     * whether its required and has a date selected.
-     * @param required - Whether the field is required
-     * @param value - The value of the date picker
+     * Native required validity lives on a hidden input because the trigger is a button.
      */
     useEffect(() => {
         if (!datePickerRef.current) return;
@@ -38,11 +45,8 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
         datePickerRef.current.setCustomValidity(message);
     }, [required, value]);
 
-    // Generate the trigger ID
-    const triggerId = `date-picker-${label.toLowerCase().replace(/\s+/g, '-')}`;
-
     return (
-        <div className="w-full flex flex-col gap-sm">
+        <Field data-invalid={error ? true : undefined} className="gap-sm">
             <FieldLabel htmlFor={triggerId} className="gap-xs">
                 {label}
                 {required && <span className="text-destructive">*</span>}
@@ -52,8 +56,10 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
                 <PopoverTrigger asChild>
                     <Button
                         id={triggerId}
+                        type="button"
                         variant="outline"
                         disabled={disabled}
+                        aria-invalid={error ? true : undefined}
                         className={cn(
                             'w-full justify-start font-normal border-input bg-muted hover:bg-muted-hover',
                             !value && 'text-muted-foreground'
@@ -62,14 +68,15 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
                         {value ? format(value, 'PPP') : placeholder}
 
                         <input
-                            name="required-hidden-input"
+                            ref={datePickerRef}
+                            name={name}
                             type="text"
                             required={required}
                             value={value ? value.toString() : ''}
-                            // noop to satisfy React
                             onChange={() => {}}
-                            ref={datePickerRef}
                             className="sr-only"
+                            tabIndex={-1}
+                            aria-hidden
                         />
                     </Button>
                 </PopoverTrigger>
@@ -78,8 +85,12 @@ const DatePicker = ({ value, label, onChange, placeholder = 'Pick a date', disab
                     <Calendar mode="single" selected={value} onSelect={onSelect} autoFocus />
                 </PopoverContent>
             </Popover>
-        </div>
+
+            {error ? <FieldError>{error}</FieldError> : null}
+        </Field>
     );
 };
 
 export default DatePicker;
+
+export type { DatePickerProps } from './DatePicker.types';

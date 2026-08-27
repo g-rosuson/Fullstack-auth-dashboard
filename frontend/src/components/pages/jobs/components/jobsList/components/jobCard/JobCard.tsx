@@ -1,9 +1,9 @@
 import JobCardSkeleton from './skeleton/Skeleton';
 import Card from '@/components/blocks/card/Card';
+import DropdownMenu from '@/components/blocks/dropdownMenu/DropdownMenu';
 import ActionButton from '@/components/pages/jobs/components/jobsList/components/shared/components/actionButton/ActionButton';
 import Schedule from '@/components/pages/jobs/components/jobsList/components/shared/components/schedule/Schedule';
 import Status from '@/components/pages/jobs/components/jobsList/components/shared/components/status/Status';
-import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Flex from '@/components/ui-app/flex/Flex';
 
 import type { JobCardProps } from './JobCard.types';
@@ -29,7 +29,7 @@ const JobCard = ({
                 titleSize="sm"
                 title={jobName}
                 titleAddon={<Status status={status} />}
-                headerActions={<DropdownMenu dropdownMenuItems={menuItems} />}
+                headerActions={<DropdownMenu items={menuItems} />}
                 onClick={onOpen}>
                 <Flex direction="column" gap="lg">
                     <Schedule schedule={schedule} />

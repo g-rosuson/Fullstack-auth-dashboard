@@ -1,4 +1,4 @@
-import DropdownMenu from '../dropdownMenu/DropdownMenu';
+import DropdownMenu from '@/components/blocks/dropdownMenu/DropdownMenu';
 
 import { Props } from './Avatar.types';
 import { Avatar as ShadcnAvatar, AvatarFallback } from '@/components/ui/avatar';
@@ -16,7 +16,7 @@ const Avatar = ({ email, actions }: Props) => {
         </ShadcnAvatar>
     );
 
-    return <DropdownMenu dropdownMenuItems={actions} trigger={trigger} />;
+    return <DropdownMenu items={actions} trigger={trigger} />;
 };
 
 export default Avatar;

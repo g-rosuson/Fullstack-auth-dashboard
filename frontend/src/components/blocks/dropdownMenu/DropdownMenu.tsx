@@ -1,7 +1,8 @@
-import React, { Fragment } from 'react';
+import { Fragment, type MouseEvent } from 'react';
 import { EllipsisIcon } from 'lucide-react';
 
-import { DropdownMenuProps } from './DropdownMenu.types';
+import type { DropdownMenuProps } from './DropdownMenu.types';
+
 import {
     DropdownMenu as DropdownMenuPrimitive,
     DropdownMenuContent,
@@ -10,8 +11,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
-    // Determine the trigger
+/**
+ * Composes the shadcn dropdown menu with a product content model: trigger and labelled actions.
+ */
+const DropdownMenu = ({ items, trigger }: DropdownMenuProps) => {
     let dropdownMenuTrigger = <EllipsisIcon size={18} />;
 
     if (trigger) {
@@ -19,11 +22,9 @@ const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
     }
 
     /**
-     * Handles the click event for the menu item.
-     * @param event - The click event
-     * @param onClick - The function to call when the menu item is clicked
+     * Stops the menu item click from bubbling (e.g. a parent card) and invokes the item action.
      */
-    const onMenuItemClick = (event: React.MouseEvent<HTMLDivElement>, onClick: () => void) => {
+    const onMenuItemClick = (event: MouseEvent<HTMLDivElement>, onClick: () => void) => {
         event.stopPropagation();
         onClick();
     };
@@ -35,7 +36,7 @@ const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
-                {dropdownMenuItems.map(item => {
+                {items.map(item => {
                     const addSeparator = item.variant === 'destructive';
 
                     return (
@@ -57,3 +58,5 @@ const DropdownMenu = ({ dropdownMenuItems, trigger }: DropdownMenuProps) => {
 };
 
 export default DropdownMenu;
+
+export type { DropdownMenuItem, DropdownMenuProps } from './DropdownMenu.types';

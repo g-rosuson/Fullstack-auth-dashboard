@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { PlusIcon } from 'lucide-react';
 
 import ToolDialog from './toolDialog/ToolDialog';
+import DropdownMenu from '@/components/blocks/dropdownMenu/DropdownMenu';
 import Form from '@/components/blocks/form/Form';
 import Sheet from '@/components/blocks/sheet/Sheet';
-import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Flex from '@/components/ui-app/flex/Flex';
 
 import mappers from './mappers';
@@ -230,7 +230,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
                             </ItemContent>
 
                             <ItemActions>
-                                <DropdownMenu dropdownMenuItems={getToolItemOptions(index, tool)} />
+                                <DropdownMenu items={getToolItemOptions(index, tool)} />
                             </ItemActions>
                         </Item>
                     ))}
