@@ -8,7 +8,7 @@ import Title from './Title';
 const marginClasses = (element: HTMLElement) => [...element.classList].filter(className => className.startsWith('mb-'));
 
 describe('Title component', () => {
-    it('renders the correct heading tag based on the "level" prop', () => {
+    it('[CLIENT-UI-TTL-001] / [FR-UI-TTL-001] renders the correct heading tag based on the "level" prop', () => {
         render(<Title level={1}>Title 1</Title>);
         expect(screen.getByText('Title 1').tagName).toBe('H1');
 

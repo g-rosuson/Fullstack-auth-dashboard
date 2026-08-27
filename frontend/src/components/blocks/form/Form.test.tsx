@@ -20,7 +20,7 @@ describe('Form', () => {
         vi.clearAllMocks();
     });
 
-    it('renders a form by default and calls onSubmit after preventDefault', async () => {
+    it('[CLIENT-UI-FRM-001] / [FR-UI-FRM-001] renders a form by default and calls onSubmit after preventDefault', async () => {
         const onSubmit = vi.fn();
         render(
             <Form ariaLabel="Test form" groups={[{ fields: [textField('Email')] }]} onSubmit={onSubmit}>
@@ -37,7 +37,7 @@ describe('Form', () => {
         expect(onSubmit.mock.calls[0][0].defaultPrevented).toBe(true);
     });
 
-    it('lets an external submit control target the form by id and skips onSubmit when required fields are empty', async () => {
+    it('[CLIENT-UI-FRM-003] / [FR-UI-FRM-003] lets an external submit control target the form by id and skips onSubmit when required fields are empty', async () => {
         const onSubmit = vi.fn();
         render(
             <>
@@ -84,21 +84,21 @@ describe('Form', () => {
         expect(onSubmit.mock.calls[0][0].defaultPrevented).toBe(true);
     });
 
-    it('renders a div with no form when as is div', () => {
+    it('[CLIENT-UI-FRM-002] / [FR-UI-FRM-002] renders a div with no form when as is div', () => {
         render(<Form as="div" groups={[{ fields: [textField('Email')] }]} />);
 
         expect(screen.queryByRole('form')).not.toBeInTheDocument();
         expect(screen.getByLabelText('Email')).toBeInTheDocument();
     });
 
-    it('omits a legend when the group has none', () => {
+    it('[CLIENT-UI-FRM-004] / [FR-UI-FRM-004] omits a legend when the group has none', () => {
         render(<Form ariaLabel="Test form" groups={[{ fields: [textField('Email')] }]} onSubmit={vi.fn()} />);
 
         expect(screen.queryByText('Schedule')).not.toBeInTheDocument();
         expect(screen.getByLabelText('Email')).toBeInTheDocument();
     });
 
-    it('renders a fieldset legend when the group has one', () => {
+    it('[CLIENT-UI-FRM-004] / [FR-UI-FRM-004] renders a fieldset legend when the group has one', () => {
         render(
             <Form
                 ariaLabel="Test form"
@@ -110,7 +110,7 @@ describe('Form', () => {
         expect(screen.getByRole('group', { name: 'Schedule' })).toBeInTheDocument();
     });
 
-    it('lays out row fields together', () => {
+    it('[CLIENT-UI-FRM-002] / [FR-UI-FRM-002] lays out row fields together', () => {
         render(
             <Form
                 ariaLabel="Test form"
@@ -177,7 +177,7 @@ describe('Form', () => {
         expect(within(fieldset).queryByRole('button', { name: 'Create' })).not.toBeInTheDocument();
     });
 
-    it('shows a field error and marks the control invalid', () => {
+    it('[CLIENT-UI-FRM-003] / [FR-UI-FRM-003] shows a field error and marks the control invalid', () => {
         render(
             <Form
                 ariaLabel="Test form"

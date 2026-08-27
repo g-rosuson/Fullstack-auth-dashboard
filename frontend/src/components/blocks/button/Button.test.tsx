@@ -5,20 +5,18 @@ import { afterEach } from 'vitest';
 
 import Button from './Button';
 
-// TODO: Are we adding NFR's or other docs?
-
 describe('Button block: content', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('renders a labelled button', () => {
+    it('[CLIENT-UI-ACT-001] / [FR-UI-ACT-001] renders a labelled button', () => {
         render(<Button label="Save" />);
 
         expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     });
 
-    it('renders an icon-only button named from ariaLabel', () => {
+    it('[CLIENT-UI-ACT-001] / [FR-UI-ACT-001] renders an icon-only button named from ariaLabel', () => {
         render(<Button icon={<Home />} ariaLabel="Home" />);
 
         const button = screen.getByRole('button', { name: 'Home' });
@@ -42,7 +40,7 @@ describe('Button block: loading', () => {
         vi.clearAllMocks();
     });
 
-    it('disables the button and exposes a busy state while loading', () => {
+    it('[CLIENT-UI-ACT-002] / [FR-UI-ACT-002] disables the button and exposes a busy state while loading', () => {
         render(<Button label="Save" isLoading />);
 
         const button = screen.getByRole('button');
@@ -53,7 +51,7 @@ describe('Button block: loading', () => {
         expect(within(button).getByText('Save')).toBeInTheDocument();
     });
 
-    it('does not invoke onClick while loading', async () => {
+    it('[CLIENT-UI-ACT-002] / [FR-UI-ACT-002] does not invoke onClick while loading', async () => {
         const onClick = vi.fn();
 
         render(<Button label="Save" isLoading onClick={onClick} />);
@@ -111,7 +109,17 @@ describe('Button block: interaction', () => {
         expect(onClick).not.toHaveBeenCalled();
     });
 
-    it('submits the form when type is submit', async () => {
+    it('[CLIENT-UI-ACT-004] / [FR-UI-ACT-004] shows unavailable appearance and pointer when disabled', () => {
+        render(<Button label="Save" disabled />);
+
+        const button = screen.getByRole('button', { name: 'Save' });
+
+        expect(button).toBeDisabled();
+        expect(button).toHaveClass('disabled:opacity-50');
+        expect(button).toHaveClass('disabled:cursor-not-allowed');
+    });
+
+    it('[CLIENT-UI-ACT-003] / [FR-UI-ACT-003] submits the form when type is submit', async () => {
         const onSubmit = vi.fn(event => event.preventDefault());
 
         render(
@@ -125,7 +133,7 @@ describe('Button block: interaction', () => {
         expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
-    it('defaults type to button so it does not submit a parent form', async () => {
+    it('[CLIENT-UI-ACT-003] / [FR-UI-ACT-003] defaults type to button so it does not submit a parent form', async () => {
         const onSubmit = vi.fn(event => event.preventDefault());
 
         render(

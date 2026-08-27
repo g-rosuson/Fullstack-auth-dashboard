@@ -28,7 +28,7 @@ describe('Card block: chrome', () => {
         vi.clearAllMocks();
     });
 
-    it('renders the required title as a heading', () => {
+    it('[CLIENT-UI-TTL-002] / [FR-UI-TTL-001] renders the required title as a heading', () => {
         renderCard({ title: 'Login' });
 
         expect(screen.getByRole('heading', { name: 'Login' })).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('Card block: chrome', () => {
         expect(screen.getByRole('button', { name: 'Job actions' })).toBeInTheDocument();
     });
 
-    it('renders a title addon below the heading without including it in the heading name', () => {
+    it('[CLIENT-UI-TTL-002] / [FR-UI-TTL-001] renders a title addon below the heading without including it in the heading name', () => {
         renderCard({
             title: 'Nightly scrape',
             titleAddon: <span>Active</span>,
