@@ -166,7 +166,7 @@ const RefreshSession = ({ open, close }: Props) => {
                 className="sm:max-w-sm">
                 <DialogHeader>
                     <DialogTitle>{constants.labels.refreshSessionModal.title}</DialogTitle>
-                    <DialogDescription size="sm">
+                    <DialogDescription>
                         Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds
                         to avoid being logged out.
                     </DialogDescription>

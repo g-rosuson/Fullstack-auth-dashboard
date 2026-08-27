@@ -117,7 +117,7 @@ const ToolDialog = ({ isOpen, toolToEdit, onOpenChange, onToolAdd, onToolEdit }:
                 <form onSubmit={onAddToolSubmit} className="flex flex-col gap-md">
                     <DialogHeader>
                         <DialogTitle>{constants.label.title.addTool}</DialogTitle>
-                        <DialogDescription size="sm">{constants.label.description.addTool}</DialogDescription>
+                        <DialogDescription>{constants.label.description.addTool}</DialogDescription>
                     </DialogHeader>
 
                     <Select

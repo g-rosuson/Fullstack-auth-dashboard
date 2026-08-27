@@ -1,12 +1,9 @@
-import { type VariantProps } from 'class-variance-authority';
-
-import { buttonVariants } from '@/components/ui/button';
-
-type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
+import type { ButtonVariant } from '@/components/blocks/button/Button.types';
 
 type ConfirmationDialogProps = {
     open: boolean;
-    onOpenChange: () => void;
+    // eslint-disable-next-line no-unused-vars
+    onOpenChange: (open: boolean) => void;
     title: string;
     description?: string;
     onConfirm: () => Promise<void>;

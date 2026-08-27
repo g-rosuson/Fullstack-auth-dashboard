@@ -2,12 +2,7 @@ import * as React from 'react';
 import { XIcon } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 
-import type { VariantProps } from 'class-variance-authority';
-
 import { Button } from '@/components/ui/button';
-// TODO: Do this in wrapper, right?
-import { headingVariants } from '@/components/ui-app/shared/variants/heading.variants';
-import { textVariants } from '@/components/ui-app/shared/variants/text.variants';
 import { cn } from '@/lib/utils';
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -53,14 +48,19 @@ function DialogContent({
             <DialogPrimitive.Content
                 data-slot="dialog-content"
                 className={cn(
-                    'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+                    // Style-system tokens (gap-md, p-md) replace stock gap-4 / p-4.
+                    'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-md rounded-xl bg-popover p-md text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
                     className
                 )}
                 {...props}>
                 {children}
                 {showCloseButton && (
                     <DialogPrimitive.Close data-slot="dialog-close" asChild>
-                        <Button variant="ghost" className="absolute top-2 right-2" size="icon">
+                        <Button
+                            variant="ghost"
+                            // Style-system tokens (top-sm, right-sm) replace stock top-2 / right-2.
+                            className="absolute top-sm right-sm"
+                            size="icon">
                             <XIcon />
                             <span className="sr-only">Close</span>
                         </Button>
@@ -72,7 +72,14 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
-    return <div data-slot="dialog-header" className={cn('flex flex-col gap-2', className)} {...props} />;
+    return (
+        <div
+            data-slot="dialog-header"
+            // Style-system token (gap-sm) replaces stock gap-2.
+            className={cn('flex flex-col gap-sm', className)}
+            {...props}
+        />
+    );
 }
 
 function DialogFooter({
@@ -87,7 +94,8 @@ function DialogFooter({
         <div
             data-slot="dialog-footer"
             className={cn(
-                '-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted p-4 sm:flex-row sm:justify-end',
+                // Style-system tokens (-mx-md, -mb-md, gap-sm, p-md) replace stock -mx-4 / -mb-4 / gap-2 / p-4.
+                '-mx-md -mb-md flex flex-col-reverse gap-sm rounded-b-xl border-t bg-muted p-md sm:flex-row sm:justify-end',
                 className
             )}
             {...props}>
@@ -101,29 +109,21 @@ function DialogFooter({
     );
 }
 
-function DialogTitle({
-    className,
-    size,
-    ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title> & VariantProps<typeof headingVariants>) {
+function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
     return (
         <DialogPrimitive.Title
             data-slot="dialog-title"
-            className={cn(headingVariants({ size }), className)}
+            className={cn('font-semibold text-foreground', className)}
             {...props}
         />
     );
 }
 
-function DialogDescription({
-    className,
-    size,
-    ...props
-}: React.ComponentProps<typeof DialogPrimitive.Description> & VariantProps<typeof textVariants>) {
+function DialogDescription({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Description>) {
     return (
         <DialogPrimitive.Description
             data-slot="dialog-description"
-            className={cn(textVariants({ size }), className)}
+            className={cn('text-sm text-muted-foreground', className)}
             {...props}
         />
     );
