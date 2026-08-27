@@ -2,6 +2,8 @@ import React from 'react';
 
 import Flex from '@/components/ui-app/flex/Flex';
 
+import { textVariants } from '@/components/blocks/shared/variants/typography/text.variants';
+import { titleVariants } from '@/components/blocks/shared/variants/typography/title.variants';
 import {
     Card as CardPrimitive,
     CardAction,
@@ -39,7 +41,9 @@ const Card = ({
     let descriptionContent = null;
 
     if (description) {
-        descriptionContent = <CardDescription size="sm">{description}</CardDescription>;
+        descriptionContent = (
+            <CardDescription className={textVariants({ size: 'sm', variant: 'muted' })}>{description}</CardDescription>
+        );
     }
 
     let headerActionsContent = null;
@@ -64,7 +68,7 @@ const Card = ({
         <CardPrimitive className={cn(onClick && 'cursor-pointer', className)} onClick={onClick}>
             <CardHeader>
                 <Flex direction="column" gap="xs" className="min-w-0">
-                    <CardTitle size={titleSize} className="min-w-0 truncate">
+                    <CardTitle className={cn(titleVariants({ size: titleSize }), 'min-w-0 truncate')}>
                         {title}
                     </CardTitle>
 
