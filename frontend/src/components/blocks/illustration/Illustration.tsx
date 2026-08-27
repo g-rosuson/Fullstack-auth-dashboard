@@ -1,3 +1,6 @@
+/**
+ * Named illustrations for empty and missing-content surfaces.
+ */
 const NotFound = () => (
     <svg width="190" height="184" viewBox="0 0 190 184" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -116,3 +119,5 @@ const illustrations = {
 };
 
 export default illustrations;
+
+export type { IllustrationName } from './Illustration.types';

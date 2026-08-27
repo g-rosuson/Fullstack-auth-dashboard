@@ -1,6 +1,6 @@
 import type { FieldProps } from './Field.types';
 
-import { textVariants } from '@/components/blocks/shared/variants/typography/text.variants';
+import { chromeLabel } from '@/components/blocks/shared/variants/typography/recipes';
 import { Field as FieldPrimitive, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,7 @@ const Field = ({ label, name, type, value, onChange, placeholder, required, disa
 
     return (
         <FieldPrimitive data-invalid={error ? true : undefined}>
-            <FieldLabel htmlFor={id} className={cn(textVariants({ size: 'sm', weight: 'medium' }), 'gap-xs')}>
+            <FieldLabel htmlFor={id} className={cn(chromeLabel(), 'gap-xs')}>
                 {label}
                 {required && <span className="text-destructive">*</span>}
             </FieldLabel>

@@ -1,6 +1,6 @@
 import { CircleCheckIcon, CircleXIcon, InfoIcon, MegaphoneIcon } from 'lucide-react';
 
-import Spinner from '@/components/ui-app/spinner/Spinner';
+import Spinner from '@/components/blocks/spinner/Spinner';
 
 import type { ToastType } from './Toast.types';
 import type { ReactNode } from 'react';

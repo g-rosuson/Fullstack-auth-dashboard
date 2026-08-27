@@ -1,6 +1,6 @@
 import Card from '@/components/blocks/card/Card';
 import Flex from '@/components/blocks/flex/Flex';
-import Skeleton from '@/components/ui-app/skeleton/Skeleton';
+import Skeleton from '@/components/blocks/skeleton/Skeleton';
 
 const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {
     return (

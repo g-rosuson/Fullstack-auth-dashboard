@@ -1,4 +1,4 @@
-import Spinner from '@/components/ui-app/spinner/Spinner';
+import Spinner from '@/components/blocks/spinner/Spinner';
 
 import type { ButtonProps } from './Button.types';
 import type { ReactNode } from 'react';

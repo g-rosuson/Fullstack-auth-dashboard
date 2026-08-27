@@ -1,5 +1,5 @@
 import Button from '@/components/blocks/button/Button';
-import illustration from '@/components/ui-app/illustration/Illustration';
+import illustration from '@/components/blocks/illustration/Illustration';
 
 interface PlaceholderProps {
     openFormSheet: () => void;

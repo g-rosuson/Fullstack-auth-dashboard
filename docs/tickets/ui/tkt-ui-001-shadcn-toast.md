@@ -25,7 +25,7 @@ As a user, I want brief toast feedback for actions so that I can see success, in
 | `info` | muted `i` in a circle (`InfoIcon`) |
 | `warning` | loudspeaker / horn (`MegaphoneIcon`) |
 | `error` | red X in a circle (`CircleXIcon`) |
-| `loading` | [`Spinner`](../../../frontend/src/components/ui-app/spinner/Spinner.tsx) with `type="circle"` |
+| `loading` | [`Spinner`](../../../frontend/src/components/blocks/spinner/Spinner.tsx) with `type="circle"` |
 
 ## Traces
 

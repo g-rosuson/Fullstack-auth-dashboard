@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 
 import type { PopoverProps } from './Popover.types';
 
@@ -8,7 +8,6 @@ import Popover from './Popover';
 
 /**
  * Renders Popover into the JS-DOM with sensible defaults.
- * Pass `onOpenChange` explicitly in tests that need to assert on it.
  */
 const renderPopover = (overrides: Partial<PopoverProps> = {}) => {
     const props: PopoverProps = {
@@ -21,36 +20,37 @@ const renderPopover = (overrides: Partial<PopoverProps> = {}) => {
     return render(<Popover {...props} />);
 };
 
-describe('Popover: rendering', () => {
+describe('Popover block: visibility', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('renders the trigger content', () => {
+    it('[CLIENT-UI-ACT-001] / [FR-UI-ACT-001] renders the trigger', () => {
         renderPopover();
 
+        expect(screen.getByRole('button')).toBeInTheDocument();
         expect(screen.getByText('Trigger')).toBeInTheDocument();
     });
 
-    it('does not render popover content when open is false', () => {
+    it('[CLIENT-UI-POP-001] / [FR-UI-POP-001] does not show panel content when the panel is closed', () => {
         renderPopover({ open: false });
 
         expect(screen.queryByText('Popover content')).not.toBeInTheDocument();
     });
 
-    it('renders popover content when open is true', () => {
+    it('[CLIENT-UI-POP-001] / [FR-UI-POP-001] shows panel content when the panel is open', () => {
         renderPopover({ open: true });
 
         expect(screen.getByText('Popover content')).toBeInTheDocument();
     });
 });
 
-describe('Popover: click mode', () => {
+describe('Popover block: click', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('calls onOpenChange(true) when the trigger is clicked and the popover is closed', async () => {
+    it('[CLIENT-UI-POP-001] / [FR-UI-POP-001] requests the panel to open when the trigger is activated', async () => {
         const onOpenChange = vi.fn();
         renderPopover({ triggerMode: 'click', onOpenChange, open: false });
 
@@ -59,7 +59,7 @@ describe('Popover: click mode', () => {
         expect(onOpenChange).toHaveBeenCalledWith(true);
     });
 
-    it('calls onOpenChange(false) when the trigger is clicked and the popover is open', async () => {
+    it('[CLIENT-UI-POP-001] / [FR-UI-POP-001] requests the panel to close when the trigger is activated while open', async () => {
         const onOpenChange = vi.fn();
         renderPopover({ triggerMode: 'click', onOpenChange, open: true });
 
@@ -78,7 +78,7 @@ describe('Popover: click mode', () => {
     });
 });
 
-describe('Popover: hover mode', () => {
+describe('Popover block: hover', () => {
     beforeEach(() => {
         vi.useFakeTimers();
     });
@@ -120,11 +120,9 @@ describe('Popover: hover mode', () => {
 
         const contentPanel = screen.getByText('Popover content').closest('[data-slot="popover-content"]')!;
 
-        // Cursor leaves the trigger, starting the close countdown
         fireEvent.mouseLeave(screen.getByRole('button'));
         vi.advanceTimersByTime(50);
 
-        // Cursor reaches the content panel before the delay expires
         fireEvent.mouseEnter(contentPanel);
         vi.advanceTimersByTime(100);
 

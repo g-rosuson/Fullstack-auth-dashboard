@@ -2,7 +2,7 @@ import React from 'react';
 
 import Flex from '@/components/blocks/flex/Flex';
 
-import { textVariants } from '@/components/blocks/shared/variants/typography/text.variants';
+import { surfaceDescription } from '@/components/blocks/shared/variants/typography/recipes';
 import { titleVariants } from '@/components/blocks/shared/variants/typography/title.variants';
 import {
     Card as CardPrimitive,
@@ -42,7 +42,7 @@ const Card = ({
 
     if (description) {
         descriptionContent = (
-            <CardDescription className={textVariants({ size: 'sm', variant: 'muted' })}>{description}</CardDescription>
+            <CardDescription className={surfaceDescription()}>{description}</CardDescription>
         );
     }
 

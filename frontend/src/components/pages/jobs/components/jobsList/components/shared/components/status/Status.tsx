@@ -1,8 +1,8 @@
 import { cva } from 'class-variance-authority';
 
 import Flex from '@/components/blocks/flex/Flex';
+import Spinner from '@/components/blocks/spinner/Spinner';
 import Text from '@/components/blocks/text/Text';
-import Spinner from '@/components/ui-app/spinner/Spinner';
 
 import type { JobStatus } from '@/components/pages/jobs/components/jobsList/types';
 
@@ -53,7 +53,10 @@ const Status = ({ status, size = 'xs' }: StatusProps) => {
     }
 
     return (
-        <Flex align="center" gap={size === 'sm' ? 'sm' : 'xs'} className={`w-fit px-sm py-xs rounded-full bg-${variant}`}>
+        <Flex
+            align="center"
+            gap={size === 'sm' ? 'sm' : 'xs'}
+            className={`w-fit px-sm py-xs rounded-full bg-${variant}`}>
             {indicator}
 
             <Text size={size} variant={variant} weight="medium">

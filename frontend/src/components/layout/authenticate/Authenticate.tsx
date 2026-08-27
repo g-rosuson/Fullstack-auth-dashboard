@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import Dashboard from '../dashboard/Dashboard';
 import RefreshSessionModal from './refreshSession/RefreshSession';
-import Spinner from '@/components/ui-app/spinner/Spinner';
+import Spinner from '@/components/blocks/spinner/Spinner';
 
 import api from '@/api';
 import config from '@/config';

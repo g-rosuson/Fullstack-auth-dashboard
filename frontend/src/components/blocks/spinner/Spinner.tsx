@@ -1,6 +1,7 @@
-import React from 'react';
 import { cva } from 'class-variance-authority';
 import { Loader, Loader2Icon } from 'lucide-react';
+
+import type { SpinnerProps } from './Spinner.types';
 
 import { cn } from '@/lib/utils';
 
@@ -22,7 +23,7 @@ const spinnerVariants = cva('', {
         },
         speed: {
             slow: 'animate-[spin_1.5s_linear_infinite]',
-            medium: 'animate-spin', // default 1s
+            medium: 'animate-spin',
             fast: 'animate-[spin_0.5s_linear_infinite]',
         },
     },
@@ -33,14 +34,10 @@ const spinnerVariants = cva('', {
     },
 });
 
-type SpinnerProps = React.ComponentProps<'svg'> & {
-    size?: 'xs' | 'sm' | 'md' | 'lg';
-    type?: 'circle' | 'dotted';
-    variant?: 'primary' | 'foreground' | 'muted' | 'success' | 'warning' | 'destructive';
-    speed?: 'slow' | 'medium' | 'fast';
-};
-
-function Spinner({ size, type = 'circle', variant, speed, className }: SpinnerProps) {
+/**
+ * Shows an in-progress status with named size, type, and speed.
+ */
+const Spinner = ({ size, type = 'circle', variant, speed, className }: SpinnerProps) => {
     const iconMap = {
         circle: Loader2Icon,
         dotted: Loader,
@@ -50,6 +47,8 @@ function Spinner({ size, type = 'circle', variant, speed, className }: SpinnerPr
     return (
         <Icon role="status" aria-label="Loading" className={cn(spinnerVariants({ size, variant, speed }), className)} />
     );
-}
+};
 
 export default Spinner;
+
+export type { SpinnerProps, SpinnerSize } from './Spinner.types';

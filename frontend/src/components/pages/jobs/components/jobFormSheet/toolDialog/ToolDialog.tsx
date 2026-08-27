@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import ScraperTool from './components/scraperTool/ScraperTool';
 import { ToolDialogProps, ToolType } from './types/ToolDialog.types';
 import Dialog from '@/components/blocks/dialog/Dialog';
-import Select from '@/components/ui-app/select/Select';
+import Select from '@/components/blocks/select/Select';
 
 import type { JobFormSheetTool } from '../types/JobSheet.types';
 
@@ -120,7 +120,7 @@ const ToolDialog = ({ isOpen, toolToEdit, onOpenChange, onToolAdd, onToolEdit }:
                     className="w-full"
                     label={constants.label.field.toolType.label}
                     options={toolOptions}
-                    id="tool-type-field"
+                    name="toolType"
                     value={tool?.type || ''}
                     placeholder={constants.label.field.toolType.placeholder}
                     onChange={onToolTypeChange}
