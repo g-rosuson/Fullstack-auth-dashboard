@@ -2,7 +2,7 @@ import DatePicker from './controls/DatePicker';
 import Field from './controls/Field';
 import RadioGroup from './controls/RadioGroup';
 import Select from './controls/Select';
-import Flex from '@/components/ui-app/flex/Flex';
+import Flex from '@/components/blocks/flex/Flex';
 
 import type { FormControlField, FormField, FormGroup, FormProps } from './Form.types';
 import type { ReactNode, SubmitEvent as ReactSubmitEvent } from 'react';

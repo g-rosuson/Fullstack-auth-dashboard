@@ -5,9 +5,9 @@ import type { GridProps, GridSize } from './Grid.types';
 import { cn } from '@/lib/utils';
 
 const MIN_ITEM_WIDTH: Record<GridSize, string> = {
-    small: '14rem',
-    medium: '18rem',
-    large: '24rem',
+    sm: '14rem',
+    md: '18rem',
+    lg: '24rem',
 };
 
 const gridVariants = cva('grid', {
@@ -29,11 +29,13 @@ const gridVariants = cva('grid', {
         },
     },
     defaultVariants: {
-        columns: 3,
         gap: 'md',
     },
 });
 
+/**
+ * Lays out children in columns with named gap.
+ */
 const Grid = ({ children, className, gap, as: Tag = 'div', minItemWidth, columns }: GridProps) => {
     const hasMinItemWidth = !!minItemWidth;
     const gridStyle = hasMinItemWidth
@@ -52,3 +54,5 @@ const Grid = ({ children, className, gap, as: Tag = 'div', minItemWidth, columns
 Grid.displayName = 'Grid';
 
 export default Grid;
+
+export type { GridGap, GridProps, GridSize } from './Grid.types';

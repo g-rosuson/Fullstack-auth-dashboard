@@ -2,7 +2,7 @@ import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } fro
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 import Button from '@/components/blocks/button/Button';
-import Flex from '@/components/ui-app/flex/Flex';
+import Flex from '@/components/blocks/flex/Flex';
 
 import type { TableProps } from './Table.types';
 

@@ -3,9 +3,9 @@ import { PlusIcon } from 'lucide-react';
 
 import ToolDialog from './toolDialog/ToolDialog';
 import DropdownMenu from '@/components/blocks/dropdownMenu/DropdownMenu';
+import Flex from '@/components/blocks/flex/Flex';
 import Form from '@/components/blocks/form/Form';
 import Sheet from '@/components/blocks/sheet/Sheet';
-import Flex from '@/components/ui-app/flex/Flex';
 
 import mappers from './mappers';
 

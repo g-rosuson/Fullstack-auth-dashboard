@@ -1,5 +1,5 @@
 import Card from '@/components/blocks/card/Card';
-import Flex from '@/components/ui-app/flex/Flex';
+import Flex from '@/components/blocks/flex/Flex';
 import Skeleton from '@/components/ui-app/skeleton/Skeleton';
 
 const JobCardSkeleton = ({ jobName }: { jobName?: string }) => {

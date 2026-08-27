@@ -1,11 +1,11 @@
-import React from 'react';
+import type { ElementType, ReactNode } from 'react';
 
-type GridSize = 'small' | 'medium' | 'large';
+type GridSize = 'sm' | 'md' | 'lg';
 type GridGap = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 type GridBaseProps = {
-    children: React.ReactNode;
-    as?: React.ElementType;
+    children: ReactNode;
+    as?: ElementType;
     className?: string;
     gap?: GridGap;
 };
@@ -16,10 +16,10 @@ type GridFixedColumnsProps = GridBaseProps & {
 };
 
 type GridFluidProps = GridBaseProps & {
-    /** Minimum track width token. Column count follows the container. */
     minItemWidth: GridSize;
     columns?: never;
 };
 
 type GridProps = GridFixedColumnsProps | GridFluidProps;
-export type { GridProps, GridSize, GridGap };
+
+export type { GridGap, GridProps, GridSize };

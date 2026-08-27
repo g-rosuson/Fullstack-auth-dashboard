@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { afterEach } from 'vitest';
 
 import Text from './Text';
 
@@ -7,7 +8,31 @@ import Text from './Text';
  */
 const marginClasses = (element: HTMLElement) => [...element.classList].filter(className => className.startsWith('mb-'));
 
-describe('Text component', () => {
+describe('Text block: copy', () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('renders a paragraph by default', () => {
+        render(<Text>Body copy</Text>);
+
+        const copy = screen.getByText('Body copy');
+        expect(copy.tagName).toBe('P');
+        expect(copy).toHaveTextContent('Body copy');
+    });
+
+    it('renders the requested element', () => {
+        render(<Text as="span">Inline copy</Text>);
+
+        expect(screen.getByText('Inline copy').tagName).toBe('SPAN');
+    });
+});
+
+describe('Text block: type scale', () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
     it('keeps the same default spacing when size changes', () => {
         render(
             <>

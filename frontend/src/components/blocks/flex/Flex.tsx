@@ -1,9 +1,8 @@
-import React from 'react';
 import { cva } from 'class-variance-authority';
 
-import { cn } from '@/lib/utils';
+import type { FlexProps } from './Flex.types';
 
-type FlexGap = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+import { cn } from '@/lib/utils';
 
 const flexVariants = cva('flex', {
     variants: {
@@ -26,10 +25,6 @@ const flexVariants = cva('flex', {
             around: 'items-around',
             stretch: 'items-stretch',
         },
-        as: {
-            div: 'div',
-            section: 'section',
-        },
         gap: {
             xs: 'gap-xs',
             sm: 'gap-sm',
@@ -46,30 +41,22 @@ const flexVariants = cva('flex', {
         direction: 'row',
         justify: 'start',
         align: 'start',
-        as: 'div',
         gap: 'sm',
         wrap: 'nowrap',
     },
 });
 
-interface FlexProps {
-    children: React.ReactNode;
-    className?: string;
-    direction?: 'row' | 'column';
-    justify?: 'start' | 'center' | 'end' | 'between' | 'around';
-    wrap?: 'wrap' | 'nowrap';
-    align?: 'start' | 'center' | 'end' | 'between' | 'around' | 'stretch';
-    as?: React.ElementType;
-    gap?: FlexGap;
-}
-
+/**
+ * Stacks children in a row or column with named gap and alignment.
+ */
 const Flex = ({ children, className, direction, justify, wrap, align, as: Tag = 'div', gap }: FlexProps) => {
-    const extras = ['w-full'];
     return (
-        <Tag className={cn(flexVariants({ direction, justify, wrap, align, gap }), extras, className)}>{children}</Tag>
+        <Tag className={cn(flexVariants({ direction, justify, wrap, align, gap }), 'w-full', className)}>{children}</Tag>
     );
 };
 
 Flex.displayName = 'Flex';
 
 export default Flex;
+
+export type { FlexGap, FlexProps } from './Flex.types';

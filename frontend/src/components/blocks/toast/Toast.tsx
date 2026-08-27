@@ -1,4 +1,4 @@
-import Flex from '@/components/ui-app/flex/Flex';
+import Flex from '@/components/blocks/flex/Flex';
 
 import type { ToastAddOptions, ToasterProps, ToastUpdateOptions } from './Toast.types';
 

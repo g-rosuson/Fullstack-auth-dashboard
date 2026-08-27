@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority';
 
 import Button from '@/components/blocks/button/Button';
-import Flex from '@/components/ui-app/flex/Flex';
+import Flex from '@/components/blocks/flex/Flex';
 
 import type { SheetProps } from './Sheet.types';
 import type { ReactNode } from 'react';

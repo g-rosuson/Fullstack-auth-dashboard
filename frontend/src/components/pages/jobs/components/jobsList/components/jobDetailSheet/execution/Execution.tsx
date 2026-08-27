@@ -3,8 +3,8 @@ import { ChevronDownIcon } from 'lucide-react';
 
 import ToolPanel from './toolPanel/ToolPanel';
 import Tabs from '@/components/blocks/tabs/Tabs';
+import Text from '@/components/blocks/text/Text';
 import Title from '@/components/blocks/title/Title';
-import Text from '@/components/ui-app/text/Text';
 
 import type { CollapsibleExecutionProps } from './types/Execution.types';
 import type { ExecutionTool } from '@/_types/_gen';

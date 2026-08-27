@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 
 import Button from '@/components/blocks/button/Button';
+import Flex from '@/components/blocks/flex/Flex';
 import Avatar from '@/components/ui-app/avatar/Avatar';
-import Flex from '@/components/ui-app/flex/Flex';
 
 import api from '@/api';
 import { useSidebar } from '@/components/ui/sidebar';

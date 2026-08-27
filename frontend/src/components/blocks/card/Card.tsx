@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Flex from '@/components/ui-app/flex/Flex';
+import Flex from '@/components/blocks/flex/Flex';
 
 import { textVariants } from '@/components/blocks/shared/variants/typography/text.variants';
 import { titleVariants } from '@/components/blocks/shared/variants/typography/title.variants';

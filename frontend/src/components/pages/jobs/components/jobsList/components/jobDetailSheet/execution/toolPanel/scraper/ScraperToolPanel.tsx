@@ -1,6 +1,6 @@
 import Tabs from '@/components/blocks/tabs/Tabs';
+import Text from '@/components/blocks/text/Text';
 import Title from '@/components/blocks/title/Title';
-import Text from '@/components/ui-app/text/Text';
 
 import type { ScraperToolPanelProps } from './types/Scraper.types';
 

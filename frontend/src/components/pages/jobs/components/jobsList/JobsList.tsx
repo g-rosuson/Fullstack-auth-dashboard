@@ -5,7 +5,7 @@ import JobCard from './components/jobCard/JobCard';
 import JobDetailSheet from './components/jobDetailSheet/JobDetailSheet';
 import Button from '@/components/blocks/button/Button';
 import ConfirmationDialog from '@/components/blocks/confirmationDialog/ConfirmationDialog';
-import Grid from '@/components/ui-app/grid/Grid';
+import Grid from '@/components/blocks/grid/Grid';
 
 import mappers from '@/components/pages/jobs/components/jobsList/mappers';
 

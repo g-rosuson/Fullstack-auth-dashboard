@@ -4,9 +4,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import PasswordValidator from './passwordValidator/PasswordValidator';
 import Button from '@/components/blocks/button/Button';
 import Card from '@/components/blocks/card/Card';
+import Flex from '@/components/blocks/flex/Flex';
 import Form from '@/components/blocks/form/Form';
-import Flex from '@/components/ui-app/flex/Flex';
-import Text from '@/components/ui-app/text/Text';
+import Text from '@/components/blocks/text/Text';
 
 import type { LoginUserInput, RegisterUserInput } from '@/_types/_gen';
 import type { FormField, FormGroup } from '@/components/blocks/form/Form.types';

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Dialog from '@/components/blocks/dialog/Dialog';
-import Text from '@/components/ui-app/text/Text';
+import Text from '@/components/blocks/text/Text';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';

@@ -1,8 +1,8 @@
 import { cva } from 'class-variance-authority';
 
-import Flex from '@/components/ui-app/flex/Flex';
+import Flex from '@/components/blocks/flex/Flex';
+import Text from '@/components/blocks/text/Text';
 import Spinner from '@/components/ui-app/spinner/Spinner';
-import Text from '@/components/ui-app/text/Text';
 
 import type { JobStatus } from '@/components/pages/jobs/components/jobsList/types';
 

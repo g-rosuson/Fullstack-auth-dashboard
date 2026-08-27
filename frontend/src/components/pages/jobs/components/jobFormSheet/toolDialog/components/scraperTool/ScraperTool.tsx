@@ -2,11 +2,11 @@ import React from 'react';
 import { Trash2Icon } from 'lucide-react';
 
 import KeyWordsField from '../keywordsField/KeywordsField';
+import Flex from '@/components/blocks/flex/Flex';
+import Text from '@/components/blocks/text/Text';
 import Title from '@/components/blocks/title/Title';
 import Field from '@/components/ui-app/field/Field';
-import Flex from '@/components/ui-app/flex/Flex';
 import Select from '@/components/ui-app/select/Select';
-import Text from '@/components/ui-app/text/Text';
 
 import type { ScraperToolProps } from './types/ScraperTool.types';
 
