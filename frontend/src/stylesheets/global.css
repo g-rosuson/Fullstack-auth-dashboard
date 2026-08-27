@@ -91,7 +91,9 @@
 }
 
 /*
- * @theme (emitted) — same prefix → class mapping, plus the names exist as CSS variables.
+ * @theme (emitted) — same prefix → class mapping, and the names exist as CSS variables
+ * so the client can read them (var(--min-width-sm), var(--grid-template-columns-autofill-md)).
+ * Inline tokens never land on :root; Grid's autofill recipe needs that runtime lookup.
  */
 @theme {
     --min-width-xs: 14rem;
