@@ -32,7 +32,7 @@ const renderSheet = (props: Partial<SheetProps> & { children?: ReactNode } = {})
     );
 };
 
-describe('Sheet component: visibility', () => {
+describe('Sheet block: visibility', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
@@ -55,12 +55,12 @@ describe('Sheet component: visibility', () => {
     });
 });
 
-describe('Sheet component: footer and primary action', () => {
+describe('Sheet block: footer and primary action', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('shows a primary action labelled from primaryButtonLabel', () => {
+    it('[CLIENT-UI-ACT-001] / [FR-UI-ACT-001] shows a primary action labelled from primaryButtonLabel', () => {
         renderSheet({ primaryButtonLabel: 'Save changes' });
 
         const dialog = screen.getByRole('dialog');
@@ -75,12 +75,12 @@ describe('Sheet component: footer and primary action', () => {
     });
 });
 
-describe('Sheet component: form vs button mode', () => {
+describe('Sheet block: form vs button mode', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('uses a button primary action and invokes onPrimaryButtonClick when formId is omitted', async () => {
+    it('[CLIENT-UI-ACT-003] / [FR-UI-ACT-003] uses a button primary action and invokes onPrimaryButtonClick when formId is omitted', async () => {
         const onPrimaryButtonClick = vi.fn();
 
         renderSheet({
@@ -99,7 +99,7 @@ describe('Sheet component: form vs button mode', () => {
         expect(onPrimaryButtonClick).toHaveBeenCalledTimes(1);
     });
 
-    it('associates the primary action with an external form id without wrapping a sheet form', async () => {
+    it('[CLIENT-UI-ACT-003] / [FR-UI-ACT-003] associates the primary action with an external form id without wrapping a sheet form', async () => {
         const onFormSubmit = vi.fn((event: ReactSubmitEvent<HTMLFormElement>) => {
             event.preventDefault();
             return Promise.resolve();
@@ -133,12 +133,12 @@ describe('Sheet component: form vs button mode', () => {
     });
 });
 
-describe('Sheet component: submitting state', () => {
+describe('Sheet block: submitting state', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('shows loading feedback and disables the primary action while submitting', () => {
+    it('[CLIENT-UI-ACT-002] / [FR-UI-ACT-002] shows loading feedback and disables the primary action while submitting', () => {
         renderSheet({
             formId: 'job-form',
             primaryButtonLabel: 'Save',
@@ -146,14 +146,16 @@ describe('Sheet component: submitting state', () => {
         });
 
         const dialog = screen.getByRole('dialog');
-        const submit = within(dialog).getByRole('button', { name: 'Loading' });
+        const submit = within(dialog).getByRole('button', { name: /save/i });
 
         expect(submit).toBeDisabled();
         expect(submit).toHaveAttribute('type', 'submit');
+        expect(submit).toHaveAttribute('aria-busy', 'true');
         expect(within(submit).getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+        expect(within(submit).getByText('Save')).toBeInTheDocument();
     });
 
-    it('restores the primary label after submitting finishes', async () => {
+    it('[CLIENT-UI-ACT-002] / [FR-UI-ACT-002] restores the primary label after submitting finishes', async () => {
         const onOpenChange = vi.fn();
 
         const { rerender } = render(
@@ -169,7 +171,9 @@ describe('Sheet component: submitting state', () => {
         );
 
         const dialog = screen.getByRole('dialog');
-        expect(within(dialog).getByRole('button', { name: 'Loading' })).toBeDisabled();
+        const submitting = within(dialog).getByRole('button', { name: /save/i });
+        expect(submitting).toBeDisabled();
+        expect(within(submitting).getByRole('status', { name: 'Loading' })).toBeInTheDocument();
 
         rerender(
             <Sheet
@@ -191,7 +195,7 @@ describe('Sheet component: submitting state', () => {
     });
 });
 
-describe('Sheet component: controlled open', () => {
+describe('Sheet block: controlled open', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
@@ -209,7 +213,7 @@ describe('Sheet component: controlled open', () => {
     });
 });
 
-describe('Sheet component: width', () => {
+describe('Sheet block: width', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
@@ -235,12 +239,12 @@ describe('Sheet component: width', () => {
     });
 });
 
-describe('Sheet component: header', () => {
+describe('Sheet block: header', () => {
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('names the dialog from the required title', () => {
+    it('[CLIENT-UI-TTL-003] / [FR-UI-TTL-001] names the dialog from the required title', () => {
         renderSheet({ title: 'Create job' });
 
         const dialog = screen.getByRole('dialog', { name: 'Create job' });

@@ -1,13 +1,13 @@
 import { BadgeInfo } from 'lucide-react';
 
 import Execution from './execution/Execution';
+import Sheet from '@/components/blocks/sheet/Sheet';
 import Title from '@/components/blocks/title/Title';
 import ActionButton from '@/components/pages/jobs/components/jobsList/components/shared/components/actionButton/ActionButton';
 import Schedule from '@/components/pages/jobs/components/jobsList/components/shared/components/schedule/Schedule';
 import Status from '@/components/pages/jobs/components/jobsList/components/shared/components/status/Status';
 import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Flex from '@/components/ui-app/flex/Flex';
-import Sheet from '@/components/ui-app/sheet/Sheet';
 import Text from '@/components/ui-app/text/Text';
 
 import type { JobDetailSheetProps } from './types';

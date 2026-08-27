@@ -14,6 +14,7 @@ type BaseProps = {
     disabled?: boolean;
     isLoading?: boolean;
     fullWidth?: boolean;
+    form?: string;
     onClick?: MouseEventHandler<HTMLButtonElement>;
 };
 

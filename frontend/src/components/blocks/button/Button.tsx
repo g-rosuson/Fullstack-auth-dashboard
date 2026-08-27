@@ -17,6 +17,7 @@ const Button = (props: ButtonProps) => {
         disabled,
         isLoading,
         fullWidth,
+        form,
         icon,
         label,
         ariaLabel,
@@ -39,6 +40,7 @@ const Button = (props: ButtonProps) => {
             aria-disabled={disabled || isLoading}
             aria-busy={isLoading}
             aria-label={ariaLabel}
+            form={form}
             className={cn(fullWidth && 'w-full')}>
             {leading}
             {label}
