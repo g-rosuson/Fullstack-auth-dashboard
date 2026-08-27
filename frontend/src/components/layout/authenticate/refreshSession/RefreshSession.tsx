@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Button from '@/components/blocks/button/Button';
+import Dialog from '@/components/blocks/dialog/Dialog';
 import Text from '@/components/ui-app/text/Text';
 
 import constants from './constants';
 import { Props } from './RefreshSession.types';
 import api from '@/api';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import config from '@/config';
 import logging from '@/services/logging';
 import { jwtPayloadSchema } from '@/shared/schemas/jwt';
@@ -158,32 +150,24 @@ const RefreshSession = ({ open, close }: Props) => {
     }, [countdown, logout, open]);
 
     return (
-        <Dialog open={open}>
-            <DialogContent
-                showCloseButton={false}
-                onEscapeKeyDown={e => e.preventDefault()}
-                onInteractOutside={e => e.preventDefault()}
-                className="sm:max-w-sm">
-                <DialogHeader>
-                    <DialogTitle>{constants.labels.refreshSessionModal.title}</DialogTitle>
-                    <DialogDescription>
-                        Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds
-                        to avoid being logged out.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <Text size="sm" variant="foreground">
-                    You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
-                </Text>
-
-                <DialogFooter>
-                    <Button
-                        label={constants.labels.refreshSessionModal.confirmBtn}
-                        onClick={renewSession}
-                        isLoading={isSubmitting}
-                    />
-                </DialogFooter>
-            </DialogContent>
+        <Dialog
+            open={open}
+            onOpenChange={() => {}}
+            title={constants.labels.refreshSessionModal.title}
+            description={
+                <>
+                    Your session has expired, please refresh it within <b>{constants.time.logoutTimeout}</b> seconds to
+                    avoid being logged out.
+                </>
+            }
+            primaryButtonLabel={constants.labels.refreshSessionModal.confirmBtn}
+            isSubmitting={isSubmitting}
+            onPrimaryButtonClick={renewSession}
+            showCloseButton={false}
+            dismissible={false}>
+            <Text size="sm" variant="foreground">
+                You will be automatically logged out in: <b data-testid="countdown">{countdown}</b> seconds
+            </Text>
         </Dialog>
     );
 };

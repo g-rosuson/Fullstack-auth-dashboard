@@ -2,15 +2,17 @@ import React from 'react';
 import { Trash2Icon } from 'lucide-react';
 
 import KeyWordsField from '../keywordsField/KeywordsField';
+import Title from '@/components/blocks/title/Title';
 import Field from '@/components/ui-app/field/Field';
+import Flex from '@/components/ui-app/flex/Flex';
 import Select from '@/components/ui-app/select/Select';
+import Text from '@/components/ui-app/text/Text';
 
 import type { ScraperToolProps } from './types/ScraperTool.types';
 
 import { ScraperToolTargetName } from '@/_types/_gen/scraperToolTargetName';
 import constants from '@/components/pages/jobs/components/jobFormSheet/constants';
 import { Button } from '@/components/ui/button';
-import { DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
     /**
@@ -188,10 +190,14 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
 
     return (
         <>
-            <DialogHeader>
-                <DialogTitle>Global tool settings</DialogTitle>
-                <DialogDescription>Define settings applied to all targets.</DialogDescription>
-            </DialogHeader>
+            <Flex direction="column" gap="sm">
+                <Title level={3} size="md" spacing="none">
+                    Global tool settings
+                </Title>
+                <Text size="sm" variant="muted">
+                    Define settings applied to all targets.
+                </Text>
+            </Flex>
 
             <Field
                 type="number"
@@ -219,11 +225,14 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
                 />
             </div>
 
-            <DialogHeader>
-                <DialogTitle>{constants.label.title.targets}</DialogTitle>
-
-                <DialogDescription>{constants.label.description.targets}</DialogDescription>
-            </DialogHeader>
+            <Flex direction="column" gap="sm">
+                <Title level={3} size="md" spacing="none">
+                    {constants.label.title.targets}
+                </Title>
+                <Text size="sm" variant="muted">
+                    {constants.label.description.targets}
+                </Text>
+            </Flex>
 
             <Select
                 onChange={onTargetChange}
@@ -236,8 +245,8 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
             />
 
             {tool.targets.map((target, index) => (
-                <article key={index} className="flex flex-col gap-md border rounded-lg p-md ml-sm">
-                    <div className="flex items-center justify-between">
+                <Flex as="article" key={index} direction="column" gap="md" className="border rounded-lg p-md ml-sm">
+                    <Flex align="center" justify="between">
                         <span className="font-bold">{target.label}</span>
 
                         <Button
@@ -248,7 +257,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
                             onClick={() => onTargetRemove(index)}>
                             <Trash2Icon />
                         </Button>
-                    </div>
+                    </Flex>
 
                     <Field
                         type="number"
@@ -275,7 +284,7 @@ const ScraperTool = ({ tool, onChange }: ScraperToolProps) => {
                             onKeywordRemove={(keywordIndex: number) => onTargetKeywordRemove(index, keywordIndex)}
                         />
                     </div>
-                </article>
+                </Flex>
             ))}
         </>
     );
