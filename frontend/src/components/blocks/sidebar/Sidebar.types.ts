@@ -1,20 +1,14 @@
 import type { LucideIcon } from 'lucide-react';
 
-/**
- * A navigation item rendered in the sidebar.
- */
-interface SidebarItem {
+type SidebarItem = {
     label: string;
     icon: LucideIcon;
     to: string;
-}
+};
 
-/**
- * The props for the Sidebar component.
- */
-interface SidebarProps {
+type SidebarProps = {
     items: SidebarItem[];
     collapsible?: 'offcanvas' | 'icon' | 'none';
-}
+};
 
 export type { SidebarItem, SidebarProps };
