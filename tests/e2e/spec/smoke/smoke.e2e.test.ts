@@ -13,7 +13,7 @@ test.describe('smoke', () => {
     });
 
     test('[SMK-002] register route redirects to login when registration is disabled', async ({ page, loginPage }) => {
-        test.skip(features.registrationEnabled, 'Registration is enabled in frontend config');
+        test.skip(features.isRegistrationEnabled, 'Registration is enabled in frontend config');
 
         await page.goto(routes.register);
 

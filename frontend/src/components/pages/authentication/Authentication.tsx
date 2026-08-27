@@ -42,7 +42,7 @@ const Authentication = () => {
     const navigate = useNavigate();
 
     // Flags
-    const isRegisterActive = config.features.registrationEnabled && location.pathname === config.routes.register;
+    const isRegisterActive = config.features.isRegistrationEnabled && location.pathname === config.routes.register;
 
     /**
      * Sets the input field changes in the state.
@@ -231,7 +231,7 @@ const Authentication = () => {
                 title={heading}
                 description={description}
                 footer={
-                    config.features.registrationEnabled ? (
+                    config.features.isRegistrationEnabled ? (
                         <Flex justify="center">
                             <Link to={route}>
                                 <Text size="sm" variant="foreground">

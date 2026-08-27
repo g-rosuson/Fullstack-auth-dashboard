@@ -11,7 +11,7 @@ const Routes = () => {
     return (
         <ReactRouterDOMRoutes>
             <Route path={config.routes.login} element={<Authentication />} />
-            {config.features.registrationEnabled ? (
+            {config.features.isRegistrationEnabled ? (
                 <Route path={config.routes.register} element={<Authentication />} />
             ) : (
                 <Route path={config.routes.register} element={<Navigate to={config.routes.login} replace />} />
