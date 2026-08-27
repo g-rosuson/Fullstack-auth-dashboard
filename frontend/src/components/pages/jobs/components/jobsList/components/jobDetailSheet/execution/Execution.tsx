@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 
 import ToolPanel from './toolPanel/ToolPanel';
+import Tabs from '@/components/blocks/tabs/Tabs';
 import Title from '@/components/blocks/title/Title';
-import Tabs from '@/components/ui-app/tabs/Tabs';
 import Text from '@/components/ui-app/text/Text';
 
 import type { CollapsibleExecutionProps } from './types/Execution.types';
@@ -60,20 +60,14 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
     );
 
     /**
-     * Maps the tools to tabs and tab contents.
+     * Maps tools to the Tabs content model.
      */
     const mapToTabs = (tools: ExecutionTool[]) => {
-        const tabs = tools.map(tool => ({
+        return tools.map(tool => ({
             value: tool.toolId,
             label: utils.string.capitalize(tool.type),
-        }));
-
-        const tabContents = tools.map(tool => ({
-            value: tool.toolId,
             children: <ToolPanel tool={tool} />,
         }));
-
-        return { tabs, tabContents };
     };
 
     return (
@@ -99,7 +93,7 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
                     <span className="text-sm font-normal">({execution.tools.length})</span>
                 </Title>
 
-                <Tabs tabs={mapToTabs(execution.tools).tabs} tabContents={mapToTabs(execution.tools).tabContents} />
+                <Tabs items={mapToTabs(execution.tools)} />
             </CollapsibleContent>
         </Collapsible>
     );

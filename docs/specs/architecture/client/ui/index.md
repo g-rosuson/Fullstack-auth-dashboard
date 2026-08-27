@@ -4,7 +4,7 @@ Realizes [fr/ui](../../../requirements/fr/ui/index.md). Writing rules: [client a
 
 ## Surface
 
-- Shared chrome used across routes: title, card, button, form, sheet, table
+- Shared chrome used across routes: title, card, button, form, sheet, table, tabs
 
 ## Files
 
@@ -14,3 +14,4 @@ Realizes [fr/ui](../../../requirements/fr/ui/index.md). Writing rules: [client a
 - [button.md](./button.md) — `CLIENT-UI-ACT-*`
 - [form.md](./form.md) — `CLIENT-UI-FRM-*`
 - [table.md](./table.md) — `CLIENT-UI-TBL-*`
+- [tabs.md](./tabs.md) — `CLIENT-UI-TAB-*`

@@ -1,5 +1,5 @@
+import Tabs from '@/components/blocks/tabs/Tabs';
 import Title from '@/components/blocks/title/Title';
-import Tabs from '@/components/ui-app/tabs/Tabs';
 import Text from '@/components/ui-app/text/Text';
 
 import type { ScraperToolPanelProps } from './types/Scraper.types';
@@ -11,16 +11,12 @@ import utils from '@/utils';
 
 const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
     /**
-     * Maps the targets to tabs and tab contents.
+     * Maps targets to the Tabs content model.
      */
     const mapToTabs = (targets: ExecutionScraperToolTarget[]) => {
-        const tabs = targets.map(target => ({
+        return targets.map(target => ({
             value: target.targetId,
             label: utils.string.capitalize(target.target),
-        }));
-
-        const tabContents = targets.map(target => ({
-            value: target.targetId,
             children: (
                 <div>
                     <div className="flex gap-md">
@@ -80,8 +76,6 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                 </div>
             ),
         }));
-
-        return { tabs, tabContents };
     };
 
     return (
@@ -113,7 +107,7 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                     {constants.label.title.targets} <span className="text-sm font-normal">({tool.targets.length})</span>
                 </Title>
 
-                <Tabs tabs={mapToTabs(tool.targets).tabs} tabContents={mapToTabs(tool.targets).tabContents} />
+                <Tabs items={mapToTabs(tool.targets)} />
             </section>
         </div>
     );
