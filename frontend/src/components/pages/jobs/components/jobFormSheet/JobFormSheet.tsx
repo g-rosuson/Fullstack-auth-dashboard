@@ -10,7 +10,7 @@ import Sheet from '@/components/blocks/sheet/Sheet';
 import mappers from './mappers';
 
 import type { JobFormSheetProps, JobFormSheetState, JobFormSheetTool } from './types/JobSheet.types';
-import type { FormGroup, FormOption } from '@/components/blocks/form/Form.types';
+import type { FormField, FormGroup, FormOption } from '@/components/blocks/form/Form.types';
 
 import jobFormSheetConstants from './constants';
 import { JobScheduleStatus, JobScheduleType } from '@/_types/_gen';
@@ -54,15 +54,18 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
      */
     const onScheduleTypeChange = (option: FormOption | undefined) => {
         const hasScheduleType = !!option?.value;
+        const isOnceSchedule = option?.value === JobScheduleType.once;
 
         setState(prev => ({
             ...prev,
             scheduleType: option?.value || '',
+            ...((!hasScheduleType || isOnceSchedule) && {
+                endDate: undefined,
+                endTime: '',
+            }),
             ...(!hasScheduleType && {
                 startDate: undefined,
                 startTime: '',
-                endDate: undefined,
-                endTime: '',
             }),
         }));
     };
@@ -194,6 +197,80 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
         : jobFormSheetConstants.label.button.create.label;
 
     const hasScheduleType = !!state.scheduleType;
+    const isOnceSchedule = state.scheduleType === JobScheduleType.once;
+
+    const scheduleFields: FormField[] = [
+        {
+            type: 'select',
+            name: 'scheduleType',
+            label: jobFormSheetConstants.label.field.scheduleType.label,
+            options: scheduleTypeOptions,
+            value: state.scheduleType,
+            placeholder: jobFormSheetConstants.label.field.scheduleType.placeholder,
+            onChange: onScheduleTypeChange,
+        },
+        {
+            type: 'row',
+            fields: [
+                {
+                    type: 'date',
+                    name: 'startDate',
+                    label: jobFormSheetConstants.label.field.startDate.label,
+                    placeholder: jobFormSheetConstants.label.field.startDate.placeholder,
+                    value: state.startDate,
+                    onChange: value => onDateChange('startDate', value),
+                    disabled: !hasScheduleType,
+                    required: hasScheduleType,
+                },
+                {
+                    type: 'time',
+                    name: 'startTime',
+                    label: jobFormSheetConstants.label.field.startTime.label,
+                    placeholder: jobFormSheetConstants.label.field.startTime.placeholder,
+                    value: state.startTime,
+                    onChange: onFieldChange,
+                    disabled: !hasScheduleType,
+                    required: hasScheduleType,
+                },
+            ],
+        },
+    ];
+
+    if (!isOnceSchedule) {
+        scheduleFields.push({
+            type: 'row',
+            fields: [
+                {
+                    type: 'date',
+                    name: 'endDate',
+                    label: jobFormSheetConstants.label.field.endDate.label,
+                    placeholder: jobFormSheetConstants.label.field.endDate.placeholder,
+                    value: state.endDate,
+                    onChange: value => onDateChange('endDate', value),
+                    disabled: !hasScheduleType,
+                },
+                {
+                    type: 'time',
+                    name: 'endTime',
+                    label: jobFormSheetConstants.label.field.endTime.label,
+                    placeholder: jobFormSheetConstants.label.field.endTime.placeholder,
+                    value: state.endTime,
+                    onChange: onFieldChange,
+                    disabled: !hasScheduleType,
+                },
+            ],
+        });
+    }
+
+    scheduleFields.push({
+        type: 'radio',
+        name: 'scheduleStatus',
+        label: jobFormSheetConstants.label.title.status,
+        items: scheduleStatusOptions,
+        value: state.scheduleStatus,
+        disabled: !hasScheduleType,
+        onChange: onScheduleStatusChange,
+    });
 
     const groups: FormGroup[] = [
         {
@@ -239,74 +316,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
         },
         {
             legend: jobFormSheetConstants.label.title.schedule,
-            fields: [
-                {
-                    type: 'select',
-                    name: 'scheduleType',
-                    label: jobFormSheetConstants.label.field.scheduleType.label,
-                    options: scheduleTypeOptions,
-                    value: state.scheduleType,
-                    placeholder: jobFormSheetConstants.label.field.scheduleType.placeholder,
-                    onChange: onScheduleTypeChange,
-                },
-                {
-                    type: 'row',
-                    fields: [
-                        {
-                            type: 'date',
-                            name: 'startDate',
-                            label: jobFormSheetConstants.label.field.startDate.label,
-                            placeholder: jobFormSheetConstants.label.field.startDate.placeholder,
-                            value: state.startDate,
-                            onChange: value => onDateChange('startDate', value),
-                            disabled: !hasScheduleType,
-                            required: hasScheduleType,
-                        },
-                        {
-                            type: 'time',
-                            name: 'startTime',
-                            label: jobFormSheetConstants.label.field.startTime.label,
-                            placeholder: jobFormSheetConstants.label.field.startTime.placeholder,
-                            value: state.startTime,
-                            onChange: onFieldChange,
-                            disabled: !hasScheduleType,
-                            required: hasScheduleType,
-                        },
-                    ],
-                },
-                {
-                    type: 'row',
-                    fields: [
-                        {
-                            type: 'date',
-                            name: 'endDate',
-                            label: jobFormSheetConstants.label.field.endDate.label,
-                            placeholder: jobFormSheetConstants.label.field.endDate.placeholder,
-                            value: state.endDate,
-                            onChange: value => onDateChange('endDate', value),
-                            disabled: !hasScheduleType,
-                        },
-                        {
-                            type: 'time',
-                            name: 'endTime',
-                            label: jobFormSheetConstants.label.field.endTime.label,
-                            placeholder: jobFormSheetConstants.label.field.endTime.placeholder,
-                            value: state.endTime,
-                            onChange: onFieldChange,
-                            disabled: !hasScheduleType,
-                        },
-                    ],
-                },
-                {
-                    type: 'radio',
-                    name: 'scheduleStatus',
-                    label: jobFormSheetConstants.label.title.status,
-                    items: scheduleStatusOptions,
-                    value: state.scheduleStatus,
-                    disabled: !hasScheduleType,
-                    onChange: onScheduleStatusChange,
-                },
-            ],
+            fields: scheduleFields,
         },
     ];
 
