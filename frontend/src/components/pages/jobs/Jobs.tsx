@@ -4,7 +4,7 @@ import JobFormSheet from './components/jobFormSheet/JobFormSheet';
 import JobsList from './components/jobsList/JobsList';
 import JobsSkeleton from './components/jobsList/JobsSkeleton';
 import Placeholder from './components/placeholder/Placeholder';
-import Heading from '@/components/ui-app/heading/Heading';
+import Title from '@/components/blocks/title/Title';
 import { constants as toastConstants, toast } from '@/components/ui-app/toast/Toast';
 
 import mappers from './mappers';
@@ -440,9 +440,9 @@ const Jobs = () => {
 
     return (
         <section className="h-full flex flex-col">
-            <Heading size="lg" spacing="md" level={1} weight="bold">
+            <Title size="lg" spacing="md" level={1} weight="bold">
                 Jobs
-            </Heading>
+            </Title>
 
             {content}
 

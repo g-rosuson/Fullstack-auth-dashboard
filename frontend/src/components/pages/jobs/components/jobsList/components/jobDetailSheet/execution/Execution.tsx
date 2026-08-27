@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 
 import ToolPanel from './toolPanel/ToolPanel';
-import Heading from '@/components/ui-app/heading/Heading';
+import Title from '@/components/blocks/title/Title';
 import Tabs from '@/components/ui-app/tabs/Tabs';
 import Text from '@/components/ui-app/text/Text';
 
@@ -26,33 +26,33 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
     const information = (
         <section className="flex flex-col gap-sm border rounded-md p-md">
             <div>
-                <Heading level={3} size="xs" spacing="xs">
+                <Title level={3} size="xs" spacing="xs">
                     {constants.label.title.identifier}
-                </Heading>
+                </Title>
 
                 <Text size="xs">{execution.executionId}</Text>
             </div>
 
             <div>
-                <Heading level={3} size="xs" spacing="xs">
+                <Title level={3} size="xs" spacing="xs">
                     {constants.label.title.delegatedAt}
-                </Heading>
+                </Title>
                 <Text size="xs">{new Date(execution.schedule.delegatedAt).toLocaleString()}</Text>
             </div>
 
             <div>
-                <Heading level={3} size="xs" spacing="xs">
+                <Title level={3} size="xs" spacing="xs">
                     {constants.label.title.finishedAt}
-                </Heading>
+                </Title>
 
                 <Text size="xs">{new Date(execution.schedule.finishedAt || '').toLocaleString()}</Text>
             </div>
 
             {execution.schedule.cancelledAt && (
                 <div>
-                    <Heading level={3} size="xs" spacing="xs">
+                    <Title level={3} size="xs" spacing="xs">
                         {constants.label.title.cancelledAt}
-                    </Heading>
+                    </Title>
                     <Text size="xs">{new Date(execution.schedule.cancelledAt).toLocaleString()}</Text>
                 </div>
             )}
@@ -94,10 +94,10 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
             <CollapsibleContent className="p-md">
                 <section className="mb-md">{information}</section>
 
-                <Heading size="sm" spacing="xs" level={2}>
+                <Title size="sm" spacing="xs" level={2}>
                     {constants.label.title.tools}{' '}
                     <span className="text-sm font-normal">({execution.tools.length})</span>
-                </Heading>
+                </Title>
 
                 <Tabs tabs={mapToTabs(execution.tools).tabs} tabContents={mapToTabs(execution.tools).tabContents} />
             </CollapsibleContent>

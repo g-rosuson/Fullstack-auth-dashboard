@@ -1,7 +1,7 @@
 import { flexRender, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
-import Heading from '@/components/ui-app/heading/Heading';
+import Title from '@/components/blocks/title/Title';
 import Text from '@/components/ui-app/text/Text';
 
 import type { DataTableProps } from './Table.types';
@@ -29,9 +29,9 @@ function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValu
                                     return (
                                         <TableHead key={header.id}>
                                             {header.isPlaceholder ? null : (
-                                                <Heading size="xs" level={3}>
+                                                <Title size="xs" level={3}>
                                                     {flexRender(header.column.columnDef.header, header.getContext())}
-                                                </Heading>
+                                                </Title>
                                             )}
                                         </TableHead>
                                     );

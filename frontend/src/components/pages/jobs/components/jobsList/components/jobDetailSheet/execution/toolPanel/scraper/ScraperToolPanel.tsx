@@ -1,4 +1,4 @@
-import Heading from '@/components/ui-app/heading/Heading';
+import Title from '@/components/blocks/title/Title';
 import Tabs from '@/components/ui-app/tabs/Tabs';
 import Text from '@/components/ui-app/text/Text';
 
@@ -26,54 +26,54 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
                     <div className="flex gap-md">
                         <section className="flex flex-1 flex-col gap-sm p-md my-md border rounded-md">
                             <div>
-                                <Heading level={3} size="xs" spacing="xs">
+                                <Title level={3} size="xs" spacing="xs">
                                     {constants.label.title.identifier}
-                                </Heading>
+                                </Title>
                                 <Text size="xs">{target.targetId}</Text>
                             </div>
                             <div>
-                                <Heading level={3} size="xs" spacing="xs">
+                                <Title level={3} size="xs" spacing="xs">
                                     {constants.label.title.keywords}
-                                </Heading>
+                                </Title>
                                 <Text size="xs">{target.keywords?.join(', ') || '-'}</Text>
                             </div>
 
                             <div>
-                                <Heading level={3} size="xs" spacing="xs">
+                                <Title level={3} size="xs" spacing="xs">
                                     {constants.label.title.maxPages}
-                                </Heading>
+                                </Title>
                                 <Text size="xs">{target.maxPages}</Text>
                             </div>
                         </section>
 
                         <section className="flex flex-1 flex-col gap-sm p-md my-md border rounded-md">
                             <div>
-                                <Heading level={3} size="xs" spacing="xs">
+                                <Title level={3} size="xs" spacing="xs">
                                     {constants.label.title.total}
-                                </Heading>
+                                </Title>
                                 <Text size="xs">{target.summary.total}</Text>
                             </div>
                             <div>
-                                <Heading level={3} size="xs" spacing="xs">
+                                <Title level={3} size="xs" spacing="xs">
                                     {constants.label.title.passed}
-                                </Heading>
+                                </Title>
                                 <Text size="xs">{target.summary.passed}</Text>
                             </div>
 
                             <div>
-                                <Heading level={3} size="xs" spacing="xs">
+                                <Title level={3} size="xs" spacing="xs">
                                     {constants.label.title.rejected}
-                                </Heading>
+                                </Title>
                                 <Text size="xs">{target.summary.rejected}</Text>
                             </div>
                         </section>
                     </div>
 
                     <section>
-                        <Heading size="sm" spacing="xs" level={2}>
+                        <Title size="sm" spacing="xs" level={2}>
                             {constants.label.title.results}
                             <span className="text-sm font-normal">({target.results.length})</span>
-                        </Heading>
+                        </Title>
 
                         <ScraperTarget target={target} />
                     </section>
@@ -88,30 +88,30 @@ const ScraperToolPanel = ({ tool }: ScraperToolPanelProps) => {
         <div>
             <section className="flex flex-col gap-sm p-md my-md border rounded-md">
                 <div>
-                    <Heading level={3} size="xs" spacing="xs">
+                    <Title level={3} size="xs" spacing="xs">
                         {constants.label.title.identifier}
-                    </Heading>
+                    </Title>
                     <Text size="xs">{tool.toolId}</Text>
                 </div>
                 <div>
-                    <Heading level={3} size="xs" spacing="xs">
+                    <Title level={3} size="xs" spacing="xs">
                         {constants.label.title.keywords}
-                    </Heading>
+                    </Title>
                     <Text size="xs">{tool.keywords?.join(', ') || '-'}</Text>
                 </div>
 
                 <div>
-                    <Heading level={3} size="xs" spacing="xs">
+                    <Title level={3} size="xs" spacing="xs">
                         {constants.label.title.maxPages}
-                    </Heading>
+                    </Title>
                     <Text size="xs">{tool.maxPages}</Text>
                 </div>
             </section>
 
             <section className="pl-md">
-                <Heading size="sm" spacing="xs" level={2}>
+                <Title size="sm" spacing="xs" level={2}>
                     {constants.label.title.targets} <span className="text-sm font-normal">({tool.targets.length})</span>
-                </Heading>
+                </Title>
 
                 <Tabs tabs={mapToTabs(tool.targets).tabs} tabContents={mapToTabs(tool.targets).tabContents} />
             </section>

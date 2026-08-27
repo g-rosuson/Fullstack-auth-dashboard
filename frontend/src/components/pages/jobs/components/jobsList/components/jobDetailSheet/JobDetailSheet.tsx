@@ -1,12 +1,12 @@
 import { BadgeInfo } from 'lucide-react';
 
 import Execution from './execution/Execution';
+import Title from '@/components/blocks/title/Title';
 import ActionButton from '@/components/pages/jobs/components/jobsList/components/shared/components/actionButton/ActionButton';
 import Schedule from '@/components/pages/jobs/components/jobsList/components/shared/components/schedule/Schedule';
 import Status from '@/components/pages/jobs/components/jobsList/components/shared/components/status/Status';
 import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
 import Flex from '@/components/ui-app/flex/Flex';
-import Heading from '@/components/ui-app/heading/Heading';
 import Sheet from '@/components/ui-app/sheet/Sheet';
 import Text from '@/components/ui-app/text/Text';
 
@@ -36,9 +36,9 @@ const JobDetailSheet = ({
         <Flex direction="column" gap="sm" align="center" justify="center">
             <BadgeInfo size={24} />
 
-            <Heading size="md" level={3}>
+            <Title size="md" level={3}>
                 {constants.label.placeholder.executions.title}
-            </Heading>
+            </Title>
 
             <Text size="sm" variant="muted" align="center">
                 {constants.label.placeholder.executions.description}
@@ -78,9 +78,9 @@ const JobDetailSheet = ({
                 </section>
 
                 <section className="w-full">
-                    <Heading size="md" level={2}>
+                    <Title size="md" level={2}>
                         {constants.label.title.executions}
-                    </Heading>
+                    </Title>
 
                     {executionsContent}
                 </section>
