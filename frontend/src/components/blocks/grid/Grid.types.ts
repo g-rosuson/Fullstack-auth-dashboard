@@ -1,6 +1,6 @@
 import type { ElementType, ReactNode } from 'react';
 
-type GridSize = 'sm' | 'md' | 'lg';
+type GridSize = 'xs' | 'sm' | 'md' | 'lg';
 type GridGap = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 type GridBaseProps = {

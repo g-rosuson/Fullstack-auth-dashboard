@@ -27,6 +27,8 @@ import type { StreamSubscription } from '@/api/service/client/types';
 
 import constants from './constants';
 import api from '@/api';
+import { CustomError } from '@/services/error';
+import logging from '@/services/logging';
 
 interface State {
     jobs: Job[];
@@ -310,6 +312,12 @@ const Jobs = () => {
 
             const response = await api.service.resources.jobs.update(job.id, payload);
 
+            toast.add({
+                type: toastConstants.type.success,
+                title: response.data.name,
+                description: constants.label.toast.updated,
+            });
+
             setState(prev => ({
                 ...prev,
                 jobs: prev.jobs.map(jobItem => (jobItem.id === response.data.id ? response.data : jobItem)),
@@ -317,7 +325,12 @@ const Jobs = () => {
                 isFormOpen: false,
             }));
         } catch (error) {
-            console.log(error);
+            logging.error(error as Error);
+            toast.add({
+                type: toastConstants.type.error,
+                title: constants.label.toast.fallback,
+                description: error instanceof CustomError ? error.message : constants.label.toast.mutationFailed,
+            });
         } finally {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }
@@ -333,6 +346,12 @@ const Jobs = () => {
 
             const response = await api.service.resources.jobs.create(payload);
 
+            toast.add({
+                type: toastConstants.type.success,
+                title: response.data.name,
+                description: constants.label.toast.created,
+            });
+
             setState(prev => ({
                 ...prev,
                 jobs: [...prev.jobs, response.data],
@@ -340,7 +359,12 @@ const Jobs = () => {
                 isFormOpen: false,
             }));
         } catch (error) {
-            console.log(error);
+            logging.error(error as Error);
+            toast.add({
+                type: toastConstants.type.error,
+                title: constants.label.toast.fallback,
+                description: error instanceof CustomError ? error.message : constants.label.toast.mutationFailed,
+            });
         } finally {
             setState(prev => ({ ...prev, isSubmitting: false }));
         }

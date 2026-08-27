@@ -24,7 +24,11 @@ function ToastList() {
     const { toasts } = useToastManager();
 
     return toasts.map(toastItem => (
-        <Toast key={toastItem.id} toast={toastItem} className="rounded-lg bg-surface cursor-grab">
+        <Toast
+            key={toastItem.id}
+            toast={toastItem}
+            data-type={toastItem.type}
+            className="rounded-lg bg-surface cursor-grab">
             <ToastContent className="gap-md">
                 <ToastIcon type={toastItem.type} />
 

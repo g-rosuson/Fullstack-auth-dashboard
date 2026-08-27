@@ -6,7 +6,7 @@ import Routes from '@/components/routing/routes/Routes';
 
 import './stylesheets/global.css';
 
-// TODO: Should blocks have explicit nfr's fr's or client "rules". Or do we link them when it makes sense?
+// TODO: Use css vars and TW utils for breakpoints
 
 // TODO: How do we handle variant ('success' | 'destructive' | 'warning' | 'primary' | 'muted' etc) mapping/typing?
 

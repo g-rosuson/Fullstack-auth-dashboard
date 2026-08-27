@@ -230,6 +230,7 @@ const Authentication = () => {
             <Card
                 title={heading}
                 description={description}
+                minWidth="sm"
                 footer={
                     config.features.isRegistrationEnabled ? (
                         <Flex justify="center">

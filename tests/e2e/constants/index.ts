@@ -18,4 +18,7 @@ const OPENAPI_URL = `${E2E_BACKEND_URL}/api/docs/openapi`;
 /** The URL of the register endpoint. */
 const REGISTER_URL = `${E2E_BACKEND_URL}/api/auth/register`;
 
-export { E2E_BACKEND_URL, E2E_TEST_USER, E2E_TEST_PASSWORD, OPENAPI_URL, REGISTER_URL };
+/** The URL of the create-job endpoint. */
+const JOBS_CREATE_URL = `${E2E_BACKEND_URL}/api/jobs/create`;
+
+export { E2E_BACKEND_URL, E2E_TEST_USER, E2E_TEST_PASSWORD, OPENAPI_URL, REGISTER_URL, JOBS_CREATE_URL };

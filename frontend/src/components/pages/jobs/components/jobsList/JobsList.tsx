@@ -6,6 +6,7 @@ import JobDetailSheet from './components/jobDetailSheet/JobDetailSheet';
 import Button from '@/components/blocks/button/Button';
 import ConfirmationDialog from '@/components/blocks/confirmationDialog/ConfirmationDialog';
 import Grid from '@/components/blocks/grid/Grid';
+import { constants as toastConstants, toast } from '@/components/blocks/toast/Toast';
 
 import mappers from '@/components/pages/jobs/components/jobsList/mappers';
 
@@ -15,6 +16,9 @@ import type { ConfirmableAction, JobStatus, PendingConfirmation, Schedule } from
 import jobListConstants from './constants';
 import { Job, JobScheduleStatus, JobScheduleType, ScheduledJobEvent } from '@/_types/_gen';
 import api from '@/api';
+import jobConstants from '@/components/pages/jobs/constants';
+import { CustomError } from '@/services/error';
+import logging from '@/services/logging';
 
 interface State {
     jobIdToDisplay: string;
@@ -72,6 +76,8 @@ const JobsList = ({
      * Deletes the selected job and notifies the parent to remove it from state.
      */
     const onDeleteJob = async (jobId: string) => {
+        const jobName = jobs.find(job => job.id === jobId)?.name || jobConstants.label.toast.fallback;
+
         try {
             const response = await api.service.resources.jobs.deleteById(jobId);
 
@@ -79,9 +85,19 @@ const JobsList = ({
                 setState(prev => ({ ...prev, jobIdToDisplay: '' }));
             }
 
+            toast.add({
+                type: toastConstants.type.success,
+                title: jobName,
+                description: jobConstants.label.toast.deleted,
+            });
             onJobDeleted(response.data.id);
         } catch (error) {
-            console.log(error);
+            logging.error(error as Error);
+            toast.add({
+                type: toastConstants.type.error,
+                title: jobConstants.label.toast.fallback,
+                description: error instanceof CustomError ? error.message : jobConstants.label.toast.mutationFailed,
+            });
         }
     };
 
@@ -89,10 +105,22 @@ const JobsList = ({
      * Stops a running job.
      */
     const onStopJob = async (jobId: string) => {
+        const jobName = jobs.find(job => job.id === jobId)?.name || jobConstants.label.toast.fallback;
+
         try {
             await api.service.resources.jobs.stop(jobId);
+            toast.add({
+                type: toastConstants.type.success,
+                title: jobName,
+                description: jobConstants.label.toast.stop,
+            });
         } catch (error) {
-            console.log(error);
+            logging.error(error as Error);
+            toast.add({
+                type: toastConstants.type.error,
+                title: jobConstants.label.toast.fallback,
+                description: error instanceof CustomError ? error.message : jobConstants.label.toast.mutationFailed,
+            });
         }
     };
 
@@ -100,10 +128,22 @@ const JobsList = ({
      * Starts an on-demand run of a job.
      */
     const onRunJob = async (jobId: string) => {
+        const jobName = jobs.find(job => job.id === jobId)?.name || jobConstants.label.toast.fallback;
+
         try {
             await api.service.resources.jobs.run(jobId);
+            toast.add({
+                type: toastConstants.type.success,
+                title: jobName,
+                description: jobConstants.label.toast.run,
+            });
         } catch (error) {
-            console.log(error);
+            logging.error(error as Error);
+            toast.add({
+                type: toastConstants.type.error,
+                title: jobConstants.label.toast.fallback,
+                description: error instanceof CustomError ? error.message : jobConstants.label.toast.mutationFailed,
+            });
         }
     };
 
@@ -111,10 +151,24 @@ const JobsList = ({
      * Changes the schedule status of a job.
      */
     const onChangeScheduleStatus = async (jobId: string, status: JobScheduleStatus) => {
+        const jobName = jobs.find(job => job.id === jobId)?.name || jobConstants.label.toast.fallback;
+        const description =
+            status === JobScheduleStatus.stopped ? jobConstants.label.toast.pause : jobConstants.label.toast.activate;
+
         try {
             await api.service.resources.jobs.changeScheduleStatus(jobId, { status });
+            toast.add({
+                type: toastConstants.type.success,
+                title: jobName,
+                description,
+            });
         } catch (error) {
-            console.log(error);
+            logging.error(error as Error);
+            toast.add({
+                type: toastConstants.type.error,
+                title: jobConstants.label.toast.fallback,
+                description: error instanceof CustomError ? error.message : jobConstants.label.toast.mutationFailed,
+            });
         }
     };
 
@@ -122,10 +176,22 @@ const JobsList = ({
      * Retries attaching the job schedule to the runtime.
      */
     const onRetrySchedule = async (jobId: string) => {
+        const jobName = jobs.find(job => job.id === jobId)?.name || jobConstants.label.toast.fallback;
+
         try {
             await api.service.resources.jobs.retrySchedule(jobId);
+            toast.add({
+                type: toastConstants.type.success,
+                title: jobName,
+                description: jobConstants.label.toast.retry,
+            });
         } catch (error) {
-            console.log(error);
+            logging.error(error as Error);
+            toast.add({
+                type: toastConstants.type.error,
+                title: jobConstants.label.toast.fallback,
+                description: error instanceof CustomError ? error.message : jobConstants.label.toast.mutationFailed,
+            });
         }
     };
 

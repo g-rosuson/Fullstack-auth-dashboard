@@ -31,7 +31,7 @@ describe('Placeholder: content', () => {
         vi.resetAllMocks();
     });
 
-    it('renders the empty state message', () => {
+    it('[CLIENT-JOBS-LST-002] renders the empty state message', () => {
         renderComponent();
 
         expect(screen.getByText(PLACEHOLDER_MESSAGE)).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe('Placeholder: content', () => {
         expect(screen.getByLabelText('Not found illustration')).toBeInTheDocument();
     });
 
-    it('renders the create job button', () => {
+    it('[CLIENT-JOBS-LST-002] renders the create job button', () => {
         renderComponent();
 
         expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('Placeholder: user interactions', () => {
         vi.resetAllMocks();
     });
 
-    it('calls openFormSheet when the create button is clicked', async () => {
+    it('[CLIENT-JOBS-LST-002] calls openFormSheet when the create button is clicked', async () => {
         renderComponent();
 
         await userEvent.click(screen.getByRole('button', { name: 'Create job' }));
