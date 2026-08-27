@@ -6,6 +6,7 @@ type RegisteredTestUser = {
     password: string;
     firstName: string;
     lastName: string;
+    accessToken: string;
 };
 
 export type { RegisteredTestUser };

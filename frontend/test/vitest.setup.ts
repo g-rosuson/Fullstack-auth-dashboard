@@ -23,6 +23,14 @@ Object.defineProperty(window, 'matchMedia', {
     })),
 });
 
+// JSDOM does not implement ResizeObserver; shadcn radio groups and sheets observe layout.
+class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+
 // JSDOM does not implement HTMLFormElement.requestSubmit, which is called internally
 // by @testing-library/user-event when clicking a submit button inside a form.
 // This polyfill falls back to a plain submit event so form submission tests work correctly.

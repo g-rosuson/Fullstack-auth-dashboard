@@ -19,6 +19,7 @@ import { CustomError } from '@/services/error';
 const mockToastAdd = vi.hoisted(() => vi.fn());
 const stream = vi.hoisted(() => ({
     close: vi.fn(),
+    // eslint-disable-next-line no-unused-vars
     on: {} as Partial<Record<string, (_payload: unknown) => void>>,
 }));
 
@@ -111,9 +112,7 @@ describe('Jobs page: views', () => {
     it('[CLIENT-JOBS-LST-002] shows the empty placeholder with a create control and no list create control', async () => {
         await renderJobs([]);
 
-        expect(
-            screen.getByText('No jobs exist yet, create your first job to get started.')
-        ).toBeInTheDocument();
+        expect(screen.getByText('No jobs exist yet, create your first job to get started.')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Create job' })).toBeInTheDocument();
     });
 
