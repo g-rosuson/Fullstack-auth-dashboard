@@ -247,6 +247,7 @@ const Authentication = () => {
                         label={buttonLabel}
                         isLoading={isLoading}
                         disabled={isRegisterActive && isPasswordValid === false}
+                        fullWidth
                     />
                 </Form>
             </Card>
