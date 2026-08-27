@@ -17,6 +17,7 @@ const renderCard = (props: Partial<CardProps> & { children?: ReactNode } = {}) =
             headerActions={props.headerActions}
             footer={props.footer}
             className={props.className}
+            minWidth={props.minWidth}
             onClick={props.onClick}>
             {props.children ?? <p>Card body</p>}
         </Card>
@@ -115,5 +116,27 @@ describe('Card block: titleSize', () => {
         renderCard({ titleSize: 'sm', title: 'Nightly scrape' });
 
         expect(screen.getByRole('heading', { name: 'Nightly scrape' })).toHaveClass('text-sm');
+    });
+});
+
+describe('Card block: minWidth', () => {
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('does not pin a min-width token so a parent grid can size the card', () => {
+        renderCard({ title: 'Nightly scrape' });
+
+        const card = screen.getByRole('heading', { name: 'Nightly scrape' }).closest('[data-slot="card"]');
+        expect(card).not.toHaveClass('min-w-xs');
+        expect(card).not.toHaveClass('min-w-sm');
+        expect(card).not.toHaveClass('min-w-md');
+        expect(card).not.toHaveClass('min-w-lg');
+    });
+
+    it('applies the requested min-width token', () => {
+        renderCard({ title: 'Login', minWidth: 'sm' });
+
+        expect(screen.getByRole('heading', { name: 'Login' }).closest('[data-slot="card"]')).toHaveClass('min-w-sm');
     });
 });

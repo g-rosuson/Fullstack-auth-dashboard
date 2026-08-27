@@ -1,14 +1,8 @@
 import { cva } from 'class-variance-authority';
 
-import type { GridProps, GridSize } from './Grid.types';
+import type { GridProps } from './Grid.types';
 
 import { cn } from '@/lib/utils';
-
-const MIN_ITEM_WIDTH: Record<GridSize, string> = {
-    sm: '14rem',
-    md: '18rem',
-    lg: '24rem',
-};
 
 const gridVariants = cva('grid', {
     variants: {
@@ -27,6 +21,12 @@ const gridVariants = cva('grid', {
             lg: 'gap-lg',
             xl: 'gap-xl',
         },
+        minItemWidth: {
+            xs: 'grid-cols-autofill-xs',
+            sm: 'grid-cols-autofill-sm',
+            md: 'grid-cols-autofill-md',
+            lg: 'grid-cols-autofill-lg',
+        },
     },
     defaultVariants: {
         gap: 'md',
@@ -37,15 +37,8 @@ const gridVariants = cva('grid', {
  * Lays out children in columns with named gap.
  */
 const Grid = ({ children, className, gap, as: Tag = 'div', minItemWidth, columns }: GridProps) => {
-    const hasMinItemWidth = !!minItemWidth;
-    const gridStyle = hasMinItemWidth
-        ? { gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${MIN_ITEM_WIDTH[minItemWidth]}), 1fr))` }
-        : undefined;
-
     return (
-        <Tag
-            className={cn(gridVariants({ columns: hasMinItemWidth ? undefined : columns, gap }), className)}
-            style={gridStyle}>
+        <Tag className={cn(gridVariants({ columns: minItemWidth ? undefined : columns, gap, minItemWidth }), className)}>
             {children}
         </Tag>
     );

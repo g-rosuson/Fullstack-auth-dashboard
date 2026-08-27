@@ -1,4 +1,5 @@
 import React from 'react';
+import { cva } from 'class-variance-authority';
 
 import Flex from '@/components/blocks/flex/Flex';
 
@@ -15,6 +16,17 @@ import {
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+const cardMinWidth = cva('', {
+    variants: {
+        minWidth: {
+            xs: 'min-w-xs',
+            sm: 'min-w-sm',
+            md: 'min-w-md',
+            lg: 'min-w-lg',
+        },
+    },
+});
+
 interface CardProps {
     title: React.ReactNode;
     titleSize?: 'xs' | 'sm' | 'md' | 'lg';
@@ -24,6 +36,7 @@ interface CardProps {
     footer?: React.ReactNode;
     children?: React.ReactNode;
     className?: string;
+    minWidth?: 'xs' | 'sm' | 'md' | 'lg';
     onClick?: () => void;
 }
 
@@ -36,6 +49,7 @@ const Card = ({
     footer,
     children,
     className,
+    minWidth,
     onClick,
 }: CardProps) => {
     let descriptionContent = null;
@@ -65,7 +79,9 @@ const Card = ({
     }
 
     return (
-        <CardPrimitive className={cn(onClick && 'cursor-pointer', className)} onClick={onClick}>
+        <CardPrimitive
+            className={cn(onClick && 'cursor-pointer', cardMinWidth({ minWidth }), className)}
+            onClick={onClick}>
             <CardHeader>
                 <Flex direction="column" gap="xs" className="min-w-0">
                     <CardTitle className={cn(titleVariants({ size: titleSize }), 'min-w-0 truncate')}>

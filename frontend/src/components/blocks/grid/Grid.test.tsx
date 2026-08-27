@@ -35,9 +35,7 @@ describe('Grid block: fluid tracks', () => {
         render(<Grid minItemWidth="md">Cell</Grid>);
 
         const grid = screen.getByText('Cell');
-        expect(grid).toHaveStyle({
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 18rem), 1fr))',
-        });
+        expect(grid).toHaveClass('grid', 'grid-cols-autofill-md', 'gap-md');
         expect(grid).not.toHaveClass('grid-cols-3');
     });
 });

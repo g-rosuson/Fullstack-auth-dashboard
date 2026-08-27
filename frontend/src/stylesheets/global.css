@@ -7,6 +7,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * @theme inline — register Tailwind namespaces without emitting these names as CSS variables.
+ */
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -85,6 +88,21 @@
     --max-width-md: 28rem;
     --max-width-lg: 32rem;
     --max-width-xl: 36rem;
+}
+
+/*
+ * @theme (emitted) — same prefix → class mapping, plus the names exist as CSS variables.
+ */
+@theme {
+    --min-width-xs: 14rem;
+    --min-width-sm: 18rem;
+    --min-width-md: 22rem;
+    --min-width-lg: 26rem;
+
+    --grid-template-columns-autofill-xs: repeat(auto-fill, minmax(min(100%, var(--min-width-xs)), 1fr));
+    --grid-template-columns-autofill-sm: repeat(auto-fill, minmax(min(100%, var(--min-width-sm)), 1fr));
+    --grid-template-columns-autofill-md: repeat(auto-fill, minmax(min(100%, var(--min-width-md)), 1fr));
+    --grid-template-columns-autofill-lg: repeat(auto-fill, minmax(min(100%, var(--min-width-lg)), 1fr));
 }
 
 :root {
