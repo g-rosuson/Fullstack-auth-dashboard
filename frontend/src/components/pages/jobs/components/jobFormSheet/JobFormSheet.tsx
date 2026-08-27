@@ -2,18 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { PlusIcon } from 'lucide-react';
 
 import ToolDialog from './toolDialog/ToolDialog';
-import DatePicker from '@/components/ui-app/datePicker/DatePicker';
-import DialogTitle from '@/components/ui-app/dialogTitle/DialogTitle';
-import DropdownMenu from '@/components/ui-app/dropdownMenu/DropdownMenu';
-import Field from '@/components/ui-app/field/Field';
-import Flex from '@/components/ui-app/flex/Flex';
-import RadioGroup from '@/components/ui-app/radioGroup/RadioGroup';
-import Select from '@/components/ui-app/select/Select';
-import Sheet from '@/components/ui-app/sheet/Sheet';
+import DropdownMenu from '@/components/blocks/dropdownMenu/DropdownMenu';
+import Flex from '@/components/blocks/flex/Flex';
+import Form from '@/components/blocks/form/Form';
+import Sheet from '@/components/blocks/sheet/Sheet';
 
 import mappers from './mappers';
 
 import type { JobFormSheetProps, JobFormSheetState, JobFormSheetTool } from './types/JobSheet.types';
+import type { FormGroup, FormOption } from '@/components/blocks/form/Form.types';
 
 import jobFormSheetConstants from './constants';
 import { JobScheduleStatus, JobScheduleType } from '@/_types/_gen';
@@ -55,7 +52,7 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
     /**
      * Handles the change event for the schedule type select.
      */
-    const onScheduleTypeChange = (option: { value: JobScheduleType; label: string } | undefined) => {
+    const onScheduleTypeChange = (option: FormOption | undefined) => {
         const hasScheduleType = !!option?.value;
 
         setState(prev => ({
@@ -114,17 +111,15 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
     /**
      * Handles the change event for the schedule status radio group.
      */
-    const onScheduleStatusChange = (value: JobScheduleStatus) => {
-        setState(prev => ({ ...prev, scheduleStatus: value }));
+    const onScheduleStatusChange = (value: string) => {
+        setState(prev => ({ ...prev, scheduleStatus: value as JobScheduleStatus }));
     };
 
     /**
      * Handles the submit event for the form.
      */
-    const onFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const onFormSubmit = async () => {
         try {
-            e.preventDefault();
-
             if (state.isEditing) {
                 await onUpdateJob(mappers.mapToUpdateJobPayload(state));
             } else {
@@ -198,131 +193,135 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
         ? jobFormSheetConstants.label.button.edit.label
         : jobFormSheetConstants.label.button.create.label;
 
-    const customSheet = (
+    const hasScheduleType = !!state.scheduleType;
+
+    const groups: FormGroup[] = [
+        {
+            fields: [
+                {
+                    type: 'text',
+                    name: 'name',
+                    label: jobFormSheetConstants.label.field.name.label,
+                    placeholder: jobFormSheetConstants.label.field.name.placeholder,
+                    value: state.name,
+                    onChange: onFieldChange,
+                    required: true,
+                },
+            ],
+        },
+        {
+            legend: jobFormSheetConstants.label.title.tools,
+            children: (
+                <Flex direction="column" gap="md">
+                    <Button
+                        type="button"
+                        size="xs"
+                        aria-label={jobFormSheetConstants.label.button.target.add.ariaLabel}
+                        onClick={() => toggleToolDialog()}
+                        className="w-fit">
+                        <PlusIcon />
+                        {jobFormSheetConstants.label.button.target.add.label}
+                    </Button>
+
+                    {state.tools.map((tool, index) => (
+                        <Item key={index} variant="outline" className="bg-muted">
+                            <ItemContent>
+                                <ItemTitle>{tool.type}</ItemTitle>
+                            </ItemContent>
+
+                            <ItemActions>
+                                <DropdownMenu items={getToolItemOptions(index, tool)} />
+                            </ItemActions>
+                        </Item>
+                    ))}
+                </Flex>
+            ),
+        },
+        {
+            legend: jobFormSheetConstants.label.title.schedule,
+            fields: [
+                {
+                    type: 'select',
+                    name: 'scheduleType',
+                    label: jobFormSheetConstants.label.field.scheduleType.label,
+                    options: scheduleTypeOptions,
+                    value: state.scheduleType,
+                    placeholder: jobFormSheetConstants.label.field.scheduleType.placeholder,
+                    onChange: onScheduleTypeChange,
+                },
+                {
+                    type: 'row',
+                    fields: [
+                        {
+                            type: 'date',
+                            name: 'startDate',
+                            label: jobFormSheetConstants.label.field.startDate.label,
+                            placeholder: jobFormSheetConstants.label.field.startDate.placeholder,
+                            value: state.startDate,
+                            onChange: value => onDateChange('startDate', value),
+                            disabled: !hasScheduleType,
+                            required: hasScheduleType,
+                        },
+                        {
+                            type: 'time',
+                            name: 'startTime',
+                            label: jobFormSheetConstants.label.field.startTime.label,
+                            placeholder: jobFormSheetConstants.label.field.startTime.placeholder,
+                            value: state.startTime,
+                            onChange: onFieldChange,
+                            disabled: !hasScheduleType,
+                            required: hasScheduleType,
+                        },
+                    ],
+                },
+                {
+                    type: 'row',
+                    fields: [
+                        {
+                            type: 'date',
+                            name: 'endDate',
+                            label: jobFormSheetConstants.label.field.endDate.label,
+                            placeholder: jobFormSheetConstants.label.field.endDate.placeholder,
+                            value: state.endDate,
+                            onChange: value => onDateChange('endDate', value),
+                            disabled: !hasScheduleType,
+                        },
+                        {
+                            type: 'time',
+                            name: 'endTime',
+                            label: jobFormSheetConstants.label.field.endTime.label,
+                            placeholder: jobFormSheetConstants.label.field.endTime.placeholder,
+                            value: state.endTime,
+                            onChange: onFieldChange,
+                            disabled: !hasScheduleType,
+                        },
+                    ],
+                },
+                {
+                    type: 'radio',
+                    name: 'scheduleStatus',
+                    label: jobFormSheetConstants.label.title.status,
+                    items: scheduleStatusOptions,
+                    value: state.scheduleStatus,
+                    disabled: !hasScheduleType,
+                    onChange: onScheduleStatusChange,
+                },
+            ],
+        },
+    ];
+
+    // Determine the form id
+    const formId = 'job-sheet-form';
+
+    return (
         <Sheet
+            title={title}
             open={isOpen}
             primaryButtonLabel={submitLabel}
-            ariaDescribedby={title}
             isSubmitting={isSubmitting}
             onOpenChange={onOpenChange}
-            onFormSubmit={onFormSubmit}
-            enableForm>
-            <div>
-                <DialogTitle size="lg" spacing="md">
-                    {title}
-                </DialogTitle>
-
-                <Flex direction="column" gap="md" align="stretch">
-                    <section>
-                        <Field
-                            name="name"
-                            label={jobFormSheetConstants.label.field.name.label}
-                            type="text"
-                            placeholder={jobFormSheetConstants.label.field.name.placeholder}
-                            value={state.name}
-                            onChange={onFieldChange}
-                            required
-                        />
-                    </section>
-
-                    <section>
-                        <DialogTitle spacing="sm">{jobFormSheetConstants.label.title.tools}</DialogTitle>
-
-                        <div className="flex flex-col gap-md">
-                            <Button
-                                type="button"
-                                size="xs"
-                                aria-label={jobFormSheetConstants.label.button.target.add.ariaLabel}
-                                onClick={() => toggleToolDialog()}
-                                className="w-fit">
-                                <PlusIcon />
-                                {jobFormSheetConstants.label.button.target.add.label}
-                            </Button>
-
-                            {state.tools.map((tool, index) => (
-                                <Item key={index} variant="outline" className="bg-muted">
-                                    <ItemContent>
-                                        <ItemTitle>{tool.type}</ItemTitle>
-                                    </ItemContent>
-
-                                    <ItemActions>
-                                        <DropdownMenu dropdownMenuItems={getToolItemOptions(index, tool)} />
-                                    </ItemActions>
-                                </Item>
-                            ))}
-                        </div>
-                    </section>
-
-                    <section>
-                        <DialogTitle spacing="sm">{jobFormSheetConstants.label.title.schedule}</DialogTitle>
-
-                        <div className="flex flex-col gap-md mb-md">
-                            <Select
-                                label={jobFormSheetConstants.label.field.scheduleType.label}
-                                options={scheduleTypeOptions}
-                                id="schedule-type"
-                                value={state.scheduleType}
-                                placeholder={jobFormSheetConstants.label.field.scheduleType.placeholder}
-                                onChange={onScheduleTypeChange}
-                                className="w-full"
-                            />
-
-                            <div className="flex flex-col items-center gap-md sm:flex-row">
-                                <DatePicker
-                                    label={jobFormSheetConstants.label.field.startDate.label}
-                                    placeholder={jobFormSheetConstants.label.field.startDate.placeholder}
-                                    value={state.startDate}
-                                    onChange={value => onDateChange('startDate', value)}
-                                    disabled={!state.scheduleType}
-                                    required={!!state.scheduleType}
-                                />
-
-                                <Field
-                                    name="startTime"
-                                    label={jobFormSheetConstants.label.field.startTime.label}
-                                    type="time"
-                                    placeholder={jobFormSheetConstants.label.field.startTime.placeholder}
-                                    value={state.startTime}
-                                    onChange={onFieldChange}
-                                    disabled={!state.scheduleType}
-                                    required={!!state.scheduleType}
-                                />
-                            </div>
-
-                            <div className="flex flex-col items-center gap-md sm:flex-row">
-                                <DatePicker
-                                    label={jobFormSheetConstants.label.field.endDate.label}
-                                    placeholder={jobFormSheetConstants.label.field.endDate.placeholder}
-                                    value={state.endDate}
-                                    onChange={value => onDateChange('endDate', value)}
-                                    disabled={!state.scheduleType}
-                                />
-
-                                <Field
-                                    name="endTime"
-                                    label={jobFormSheetConstants.label.field.endTime.label}
-                                    type="time"
-                                    placeholder={jobFormSheetConstants.label.field.endTime.placeholder}
-                                    value={state.endTime}
-                                    onChange={onFieldChange}
-                                    disabled={!state.scheduleType}
-                                />
-                            </div>
-                        </div>
-
-                        <DialogTitle size="sm" spacing="sm">
-                            {jobFormSheetConstants.label.title.status}
-                        </DialogTitle>
-
-                        <RadioGroup
-                            items={scheduleStatusOptions}
-                            value={state.scheduleStatus}
-                            disabled={!state.scheduleType}
-                            onValueChange={onScheduleStatusChange}
-                        />
-                    </section>
-                </Flex>
-            </div>
+            formId={formId}>
+            <Form id={formId} ariaLabel={title} groups={groups} onSubmit={onFormSubmit} />
 
             <ToolDialog
                 isOpen={state.isToolDialogOpen}
@@ -333,8 +332,6 @@ const JobFormSheet = ({ job, isOpen, isSubmitting, onOpenChange, onCreateJob, on
             />
         </Sheet>
     );
-
-    return customSheet;
 };
 
 export default JobFormSheet;

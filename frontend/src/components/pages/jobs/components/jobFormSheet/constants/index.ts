@@ -30,19 +30,19 @@ const constants = {
             },
             startDate: {
                 label: 'Start date',
-                placeholder: 'Select a start date...',
+                placeholder: 'Select start date...',
             },
             startTime: {
                 label: 'Start time',
-                placeholder: 'Select a start time...',
+                placeholder: 'Select start time...',
             },
             endDate: {
                 label: 'End date',
-                placeholder: 'Select an end date...',
+                placeholder: 'Select end date...',
             },
             endTime: {
                 label: 'End time',
-                placeholder: 'Select an end time...',
+                placeholder: 'Select end time...',
             },
             maxPages: {
                 label: 'Max pages',

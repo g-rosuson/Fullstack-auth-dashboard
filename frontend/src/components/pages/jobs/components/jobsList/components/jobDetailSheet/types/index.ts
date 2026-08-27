@@ -1,6 +1,6 @@
 import type { Execution } from '@/_types/_gen';
+import type { DropdownMenuItem } from '@/components/blocks/dropdownMenu/DropdownMenu.types';
 import type { JobStatus, Schedule } from '@/components/pages/jobs/components/jobsList/types';
-import type { DropdownMenuItem } from '@/components/ui-app/dropdownMenu/DropdownMenu.types';
 import type { MouseEvent } from 'react';
 
 /**

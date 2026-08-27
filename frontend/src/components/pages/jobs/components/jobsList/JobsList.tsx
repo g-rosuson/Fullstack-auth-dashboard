@@ -3,9 +3,9 @@ import { PlusIcon } from 'lucide-react';
 
 import JobCard from './components/jobCard/JobCard';
 import JobDetailSheet from './components/jobDetailSheet/JobDetailSheet';
-import Button from '@/components/ui-app/button/Button';
-import ConfirmationDialog from '@/components/ui-app/confirmationDialog/ConfirmationDialog';
-import Grid from '@/components/ui-app/grid/Grid';
+import Button from '@/components/blocks/button/Button';
+import ConfirmationDialog from '@/components/blocks/confirmationDialog/ConfirmationDialog';
+import Grid from '@/components/blocks/grid/Grid';
 
 import mappers from '@/components/pages/jobs/components/jobsList/mappers';
 
@@ -267,7 +267,7 @@ const JobsList = ({
             </Grid>
 
             <div className="fixed bottom-md right-md">
-                <Button icon={<PlusIcon />} size="icon-lg" ariaLabel="Create job" onClick={() => onEditJob()} />
+                <Button icon={<PlusIcon />} size="lg" ariaLabel="Create job" onClick={() => onEditJob()} />
             </div>
 
             <JobDetailSheet

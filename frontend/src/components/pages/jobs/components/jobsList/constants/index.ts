@@ -91,7 +91,7 @@ const constants = {
 
     layout: {
         gap: 'md',
-        minItemWidth: 'medium',
+        minItemWidth: 'md',
         skeletonCount: 6,
     },
 } as const;

@@ -31,3 +31,4 @@ Each `client/<domain>/index.md` lists the surface and links to scenario files on
 
 - [auth/](./auth/index.md) — `CLIENT-AUTH-*`
 - [jobs/](./jobs/index.md) — `CLIENT-JOBS-*`
+- [ui/](./ui/index.md) — `CLIENT-UI-*`

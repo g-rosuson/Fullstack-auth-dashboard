@@ -10,7 +10,7 @@ const PLACEHOLDER_MESSAGE = 'No jobs exist yet, create your first job to get sta
  * Mock the illustration so tests stay focused on Placeholder behaviour
  * without asserting on SVG path details.
  */
-vi.mock('@/components/ui-app/illustration/Illustration', () => ({
+vi.mock('@/components/blocks/illustration/Illustration', () => ({
     default: {
         NotFound: () => <svg aria-label="Not found illustration" />,
     },

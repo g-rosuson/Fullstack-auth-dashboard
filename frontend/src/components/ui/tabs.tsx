@@ -9,7 +9,11 @@ function Tabs({ className, orientation = 'horizontal', ...props }: React.Compone
         <TabsPrimitive.Root
             data-slot="tabs"
             data-orientation={orientation}
-            className={cn('group/tabs flex gap-2 data-horizontal:flex-col', className)}
+            className={cn(
+                // Style-system token (gap-sm) replaces stock gap-2.
+                'group/tabs flex gap-sm data-horizontal:flex-col',
+                className
+            )}
             {...props}
         />
     );

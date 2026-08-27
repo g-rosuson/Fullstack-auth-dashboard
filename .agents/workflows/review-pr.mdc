@@ -18,7 +18,7 @@ Structured checklist for reviewing pull requests to enforce architecture, securi
 ## 2. Check Architecture Boundaries
 
 - Backend: `modules/` MUST NOT import from other `modules/`.
-- Frontend: `pages/` MUST NOT import from `ui/` directly — only via `ui-app/` wrappers.
+- Frontend: `pages/` MUST NOT import from `ui/` when a block exists — use `blocks/`.
 - Frontend: `store/` slices MUST NOT contain API calls.
 - Generated files (`_gen/`, `ui/`) MUST NOT be manually edited.
 

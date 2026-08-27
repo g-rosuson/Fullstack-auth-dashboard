@@ -2,20 +2,12 @@ import React, { useEffect, useState } from 'react';
 
 import ScraperTool from './components/scraperTool/ScraperTool';
 import { ToolDialogProps, ToolType } from './types/ToolDialog.types';
-import Select from '@/components/ui-app/select/Select';
+import Dialog from '@/components/blocks/dialog/Dialog';
+import Select from '@/components/blocks/select/Select';
 
 import type { JobFormSheetTool } from '../types/JobSheet.types';
 
 import constants from '@/components/pages/jobs/components/jobFormSheet/constants';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 
 const initialScraperTool = {
     keyword: '',
@@ -111,38 +103,31 @@ const ToolDialog = ({ isOpen, toolToEdit, onOpenChange, onToolAdd, onToolEdit }:
     // Determine if the submit button should be disabled
     const isSubmitButtonDisabled = !tool || !tool?.targets?.length;
 
+    const formId = 'add-tool-form';
+
     return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] overflow-y-scroll pb-0" showCloseButton>
-                <form onSubmit={onAddToolSubmit} className="flex flex-col gap-md">
-                    <DialogHeader>
-                        <DialogTitle>{constants.label.title.addTool}</DialogTitle>
-                        <DialogDescription size="sm">{constants.label.description.addTool}</DialogDescription>
-                    </DialogHeader>
+        <Dialog
+            open={isOpen}
+            onOpenChange={onOpenChange}
+            title={constants.label.title.addTool}
+            description={constants.label.description.addTool}
+            formId={formId}
+            primaryButtonLabel={constants.label.button.tool.add.label}
+            primaryButtonDisabled={isSubmitButtonDisabled}
+            className="max-h-[90vh] overflow-y-scroll">
+            <form id={formId} onSubmit={onAddToolSubmit} className="flex flex-col gap-md">
+                <Select
+                    className="w-full"
+                    label={constants.label.field.toolType.label}
+                    options={toolOptions}
+                    name="toolType"
+                    value={tool?.type || ''}
+                    placeholder={constants.label.field.toolType.placeholder}
+                    onChange={onToolTypeChange}
+                />
 
-                    <Select
-                        className="w-full"
-                        label={constants.label.field.toolType.label}
-                        options={toolOptions}
-                        id="tool-type-field"
-                        value={tool?.type || ''}
-                        placeholder={constants.label.field.toolType.placeholder}
-                        onChange={onToolTypeChange}
-                    />
-
-                    {toolComponent}
-
-                    <DialogFooter className="sticky bottom-0 left-0 right-0 mt-lg">
-                        <Button
-                            type="submit"
-                            variant="default"
-                            disabled={isSubmitButtonDisabled}
-                            aria-label={constants.label.button.tool.add.ariaLabel}>
-                            {constants.label.button.tool.add.label}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
+                {toolComponent}
+            </form>
         </Dialog>
     );
 };

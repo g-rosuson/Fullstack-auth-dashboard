@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { ChevronDownIcon } from 'lucide-react';
 
 import ToolPanel from './toolPanel/ToolPanel';
-import Heading from '@/components/ui-app/heading/Heading';
-import Tabs from '@/components/ui-app/tabs/Tabs';
-import Text from '@/components/ui-app/text/Text';
+import Tabs from '@/components/blocks/tabs/Tabs';
+import Text from '@/components/blocks/text/Text';
+import Title from '@/components/blocks/title/Title';
 
 import type { CollapsibleExecutionProps } from './types/Execution.types';
 import type { ExecutionTool } from '@/_types/_gen';
@@ -26,33 +26,33 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
     const information = (
         <section className="flex flex-col gap-sm border rounded-md p-md">
             <div>
-                <Heading level={3} size="xs" spacing="xs">
+                <Title level={3} size="xs" spacing="xs">
                     {constants.label.title.identifier}
-                </Heading>
+                </Title>
 
                 <Text size="xs">{execution.executionId}</Text>
             </div>
 
             <div>
-                <Heading level={3} size="xs" spacing="xs">
+                <Title level={3} size="xs" spacing="xs">
                     {constants.label.title.delegatedAt}
-                </Heading>
+                </Title>
                 <Text size="xs">{new Date(execution.schedule.delegatedAt).toLocaleString()}</Text>
             </div>
 
             <div>
-                <Heading level={3} size="xs" spacing="xs">
+                <Title level={3} size="xs" spacing="xs">
                     {constants.label.title.finishedAt}
-                </Heading>
+                </Title>
 
                 <Text size="xs">{new Date(execution.schedule.finishedAt || '').toLocaleString()}</Text>
             </div>
 
             {execution.schedule.cancelledAt && (
                 <div>
-                    <Heading level={3} size="xs" spacing="xs">
+                    <Title level={3} size="xs" spacing="xs">
                         {constants.label.title.cancelledAt}
-                    </Heading>
+                    </Title>
                     <Text size="xs">{new Date(execution.schedule.cancelledAt).toLocaleString()}</Text>
                 </div>
             )}
@@ -60,20 +60,14 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
     );
 
     /**
-     * Maps the tools to tabs and tab contents.
+     * Maps tools to the Tabs content model.
      */
     const mapToTabs = (tools: ExecutionTool[]) => {
-        const tabs = tools.map(tool => ({
+        return tools.map(tool => ({
             value: tool.toolId,
             label: utils.string.capitalize(tool.type),
-        }));
-
-        const tabContents = tools.map(tool => ({
-            value: tool.toolId,
             children: <ToolPanel tool={tool} />,
         }));
-
-        return { tabs, tabContents };
     };
 
     return (
@@ -94,12 +88,12 @@ const CollapsibleExecution = ({ execution }: CollapsibleExecutionProps) => {
             <CollapsibleContent className="p-md">
                 <section className="mb-md">{information}</section>
 
-                <Heading size="sm" spacing="xs" level={2}>
+                <Title size="sm" spacing="xs" level={2}>
                     {constants.label.title.tools}{' '}
                     <span className="text-sm font-normal">({execution.tools.length})</span>
-                </Heading>
+                </Title>
 
-                <Tabs tabs={mapToTabs(execution.tools).tabs} tabContents={mapToTabs(execution.tools).tabContents} />
+                <Tabs items={mapToTabs(execution.tools)} />
             </CollapsibleContent>
         </Collapsible>
     );

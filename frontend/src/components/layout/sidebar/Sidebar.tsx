@@ -1,6 +1,6 @@
 import { BriefcaseBusiness, Home } from 'lucide-react';
 
-import AppSidebar from '@/components/ui-app/sidebar/Sidebar';
+import AppSidebar from '@/components/blocks/sidebar/Sidebar';
 
 import config from '@/config';
 

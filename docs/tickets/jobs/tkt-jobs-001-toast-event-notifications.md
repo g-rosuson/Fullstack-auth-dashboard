@@ -10,7 +10,7 @@ As a job owner, I want toast notifications for important jobs events so that I n
 
 ## Definition of done
 
-- [ ] Jobs module uses `toast` from [`ui-app/toast`](../../../frontend/src/components/ui-app/toast/Toast.tsx) (depends on [TKT-UI-001](../ui/tkt-ui-001-shadcn-toast.md))
+- [ ] Jobs module uses `toast` from [`blocks/toast`](../../../frontend/src/components/blocks/toast/Toast.tsx) (depends on [TKT-UI-001](../ui/tkt-ui-001-shadcn-toast.md))
 - [ ] Mutation outcomes (create / update / delete / run / stop / schedule status / retry-schedule) surface success or error toasts with the correct type
 - [ ] Stream / operational outcomes that should interrupt the owner (e.g. target finished; job finished, failed, cancelled; scheduling failure per FR-JOBS-STR-004) show an appropriate toast
 - [ ] No leftover `console.log` / `console.error` as the only user-facing signal for those paths

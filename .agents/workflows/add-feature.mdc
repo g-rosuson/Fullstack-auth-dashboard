@@ -87,7 +87,7 @@ Create `frontend/src/components/pages/<name>/`:
 -   Sub-components in co-located directories
 -   Types in `<Component>.types.ts`
 
-Use `ui-app/` components. DO NOT import from `ui/` directly.
+Use `blocks/` components. DO NOT import from `ui/` when a block exists.
 
 ## 9. Add Route
 

@@ -1,10 +1,12 @@
 import { BrowserRouter } from 'react-router-dom';
 
+import { Toaster } from '@/components/blocks/toast/Toast';
 import AppSetup from '@/components/container/appSetup/AppSetup';
 import Routes from '@/components/routing/routes/Routes';
-import { Toaster } from '@/components/ui-app/toast/Toast';
 
 import './stylesheets/global.css';
+
+// TODO: Should blocks have explicit nfr's fr's or client "rules". Or do we link them when it makes sense?
 
 // TODO: How do we handle variant ('success' | 'destructive' | 'warning' | 'primary' | 'muted' etc) mapping/typing?
 

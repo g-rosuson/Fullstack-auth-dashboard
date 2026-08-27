@@ -1,8 +1,7 @@
 import { MouseEvent } from 'react';
 
-import { DropdownMenuItem } from '@/components/ui-app/dropdownMenu/DropdownMenu.types';
-
 import type { JobStatus, Schedule } from '../../types';
+import type { DropdownMenuItem } from '@/components/blocks/dropdownMenu/DropdownMenu.types';
 
 interface JobCardProps {
     jobId: string;

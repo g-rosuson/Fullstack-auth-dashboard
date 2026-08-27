@@ -1,7 +1,7 @@
 import React from 'react';
 import { PlusIcon, XIcon } from 'lucide-react';
 
-import Text from '@/components/ui-app/text/Text';
+import Text from '@/components/blocks/text/Text';
 
 import type { KeyWordsFieldProps } from './types/KeywordsField.types';
 

@@ -89,7 +89,7 @@ test.describe('auth', () => {
     });
 
     test.describe('registration', () => {
-        test.skip(!features.registrationEnabled, 'Registration is disabled in frontend config');
+        test.skip(!features.isRegistrationEnabled, 'Registration is disabled in frontend config');
 
         test('[AUTH-E2E-010] register route renders registration form', async ({ page }) => {
             await page.goto(routes.register);

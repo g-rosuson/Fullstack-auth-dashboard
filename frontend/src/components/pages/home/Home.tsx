@@ -1,11 +1,11 @@
-import Heading from '@/components/ui-app/heading/Heading';
+import Title from '@/components/blocks/title/Title';
 
 const Home = () => {
     return (
         <div>
-            <Heading size="lg" spacing="md" level={1}>
+            <Title size="lg" spacing="md" level={1}>
                 Home
-            </Heading>
+            </Title>
         </div>
     );
 };

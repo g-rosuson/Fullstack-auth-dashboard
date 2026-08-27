@@ -2,7 +2,7 @@ import { memo, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
 
-import Text from '@/components/ui-app/text/Text';
+import Text from '@/components/blocks/text/Text';
 
 import constants from './constants';
 import { Props } from './PasswordValidator.types';

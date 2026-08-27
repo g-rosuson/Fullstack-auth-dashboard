@@ -11,8 +11,17 @@ FRs state **what** the system shall do. NFRs state **how well**. Implementation 
 
 ## Layout
 
-- `fr/<domain>/` — business capability (e.g. `auth`, `jobs`)
-- `nfr/<attribute>/` — quality attribute (e.g. `security`, `reliability`)
+- `fr/<domain>/` — business capability (e.g. `auth`, `jobs`, `ui`)
+- `nfr/<attribute>/` — quality attribute (e.g. `security`, `reliability`, `accessibility`)
+
+## Domains
+
+- [fr/auth](./fr/auth/index.md) — `FR-AUTH-*`
+- [fr/jobs](./fr/jobs/index.md) — `FR-JOBS-*`
+- [fr/ui](./fr/ui/index.md) — `FR-UI-*`
+- [nfr/security/authentication.md](./nfr/security/authentication.md) — `NFR-SEC-AUTH-*`
+- [nfr/reliability/jobs.md](./nfr/reliability/jobs.md) — `NFR-REL-JOBS-*`
+- [nfr/accessibility/ui.md](./nfr/accessibility/ui.md) — `NFR-A11Y-UI-*`
 
 ## Identifiers
 

@@ -140,7 +140,7 @@ describe('Authentication component: authentication', () => {
     });
 
     it('register endpoint is invoked with correct values when the "/register" route is active', async () => {
-        config.features.registrationEnabled = true;
+        config.features.isRegistrationEnabled = true;
 
         renderComponent(config.routes.register);
 
@@ -169,7 +169,7 @@ describe('Authentication component: authentication', () => {
             });
         });
 
-        config.features.registrationEnabled = false;
+        config.features.isRegistrationEnabled = false;
     });
 
     // Test that the changeUser function is called with the correct payload
@@ -248,7 +248,7 @@ describe('Authentication component: authentication', () => {
     });
 
     it('register failure is handled gracefully', async () => {
-        config.features.registrationEnabled = true;
+        config.features.isRegistrationEnabled = true;
 
         renderComponent(config.routes.register);
 
@@ -270,11 +270,11 @@ describe('Authentication component: authentication', () => {
             expect(mockChangeUser).not.toHaveBeenCalled();
         });
 
-        config.features.registrationEnabled = false;
+        config.features.isRegistrationEnabled = false;
     });
 
     it('submit button is disabled on register when password is invalid', async () => {
-        config.features.registrationEnabled = true;
+        config.features.isRegistrationEnabled = true;
 
         // Override: do not call onChange so isPasswordValid stays false (button stays disabled)
         mockPasswordValidator.mockImplementation(() => null);
@@ -290,7 +290,7 @@ describe('Authentication component: authentication', () => {
         const submitButton = screen.getByRole('button', { name: 'Register' });
         expect(submitButton).toBeDisabled();
 
-        config.features.registrationEnabled = false;
+        config.features.isRegistrationEnabled = false;
     });
 });
 
@@ -303,13 +303,13 @@ describe('Authentication component: UI & navigation', () => {
     });
 
     it('heading is "Register" when the register route is active and registration is enabled', () => {
-        config.features.registrationEnabled = true;
+        config.features.isRegistrationEnabled = true;
 
         renderComponent(config.routes.register);
         const heading = screen.getByRole('heading');
         expect(heading.textContent).toBe('Register');
 
-        config.features.registrationEnabled = false;
+        config.features.isRegistrationEnabled = false;
     });
 
     it('heading is "Login" when the login route is active', () => {
@@ -349,13 +349,13 @@ describe('Authentication component: UI & navigation', () => {
 
     // Test submit button
     it('submit button has a "Register" label when the register route is active and registration is enabled', () => {
-        config.features.registrationEnabled = true;
+        config.features.isRegistrationEnabled = true;
 
         renderComponent(config.routes.register);
         const submitButton = screen.getByRole('button', { name: /Register/i });
         expect(submitButton).toHaveTextContent(/register/i);
 
-        config.features.registrationEnabled = false;
+        config.features.isRegistrationEnabled = false;
     });
 
     it('submit button has a "Login" label when the login route is active', () => {
@@ -372,11 +372,11 @@ describe('Authentication component: UI & navigation', () => {
 
     describe('when registration is enabled', () => {
         beforeEach(() => {
-            config.features.registrationEnabled = true;
+            config.features.isRegistrationEnabled = true;
         });
 
         afterEach(() => {
-            config.features.registrationEnabled = false;
+            config.features.isRegistrationEnabled = false;
         });
 
         // Login route

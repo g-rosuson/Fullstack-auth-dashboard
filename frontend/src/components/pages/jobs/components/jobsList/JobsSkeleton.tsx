@@ -1,5 +1,5 @@
 import JobCardSkeleton from './components/jobCard/skeleton/Skeleton';
-import Grid from '@/components/ui-app/grid/Grid';
+import Grid from '@/components/blocks/grid/Grid';
 
 import constants from './constants';
 
