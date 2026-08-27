@@ -1375,8 +1375,9 @@ describe('Integration: jobs HTTP', () => {
 
             expect(stream.status).toBe(200);
             expect(stream.headers['content-type']).toContain('text/event-stream');
-            expect(stream.headers['cache-control']).toBe('no-cache');
+            expect(stream.headers['cache-control']).toBe('no-cache, no-transform');
             expect(stream.headers.connection).toBe('keep-alive');
+            expect(stream.headers['x-accel-buffering']).toBe('no');
 
             expect(stream.aggregated.data.type).toBe(constants.events.jobs.jobsAggregated);
             expect(stream.aggregated.data.userId).toBe(createRes.body.data.userId);
